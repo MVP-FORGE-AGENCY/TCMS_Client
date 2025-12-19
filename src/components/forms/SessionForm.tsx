@@ -22,9 +22,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Loader2 } from "lucide-react"
 import type { Session, Programme } from "@/types"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { employees } from "@/lib/api"
+
+interface Instructor {
+    id: string
+    fullName: string
+    role: string
+}
 
 const formSchema = z.object({
     programmeId: z.string().min(1, "Programme is required"),
@@ -48,6 +56,10 @@ interface SessionFormProps {
 }
 
 export function SessionForm({ initialData, programmes, onSubmit, onCancel }: SessionFormProps) {
+    const { t } = useTranslation()
+    const [instructors, setInstructors] = useState<Instructor[]>([])
+    const [loadingInstructors, setLoadingInstructors] = useState(true)
+    
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
@@ -58,6 +70,32 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
             capacity: 10,
         },
     })
+
+    // Fetch instructors on mount
+    useEffect(() => {
+        const fetchInstructors = async () => {
+            try {
+                setLoadingInstructors(true)
+                const response = await employees.list()
+                // Filter for users who can be instructors
+                const instructorRoles = ['instructor', 'training_manager', 'admin']
+                const data = response.data || response
+                const filtered = (Array.isArray(data) ? data : []).filter((u: any) => 
+                    instructorRoles.includes(u.role) && u.isActive !== false
+                )
+                setInstructors(filtered.map((u: any) => ({
+                    id: u.id,
+                    fullName: u.fullName || u.full_name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+                    role: u.role
+                })))
+            } catch (error) {
+                console.error("Failed to fetch instructors:", error)
+            } finally {
+                setLoadingInstructors(false)
+            }
+        }
+        fetchInstructors()
+    }, [])
 
     useEffect(() => {
         if (initialData) {
@@ -85,7 +123,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                     name="programmeId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Programme</FormLabel>
+                            <FormLabel>{t("sessions.programme")}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -111,7 +149,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="dateStart"
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Start Date</FormLabel>
+                                <FormLabel>{t("sessions.startDate")}</FormLabel>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <FormControl>
@@ -125,7 +163,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                                                 {field.value ? (
                                                     format(field.value, "PPP")
                                                 ) : (
-                                                    <span>Pick a date</span>
+                                                    <span>{t("sessions.pickDate")}</span>
                                                 )}
                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
@@ -153,7 +191,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="dateEnd"
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>End Date</FormLabel>
+                                <FormLabel>{t("sessions.endDate")}</FormLabel>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <FormControl>
@@ -167,7 +205,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                                                 {field.value ? (
                                                     format(field.value, "PPP")
                                                 ) : (
-                                                    <span>Pick a date</span>
+                                                    <span>{t("sessions.pickDate")}</span>
                                                 )}
                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
@@ -197,7 +235,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="location"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Location</FormLabel>
+                                <FormLabel>{t("sessions.location")}</FormLabel>
                                 <FormControl>
                                     <Input placeholder="SIM-1" {...field} />
                                 </FormControl>
@@ -211,7 +249,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="capacity"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Capacity</FormLabel>
+                                <FormLabel>{t("sessions.capacity")}</FormLabel>
                                 <FormControl>
                                     <Input type="number" {...field} />
                                 </FormControl>
@@ -227,17 +265,29 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="instructorId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Instructor</FormLabel>
+                                <FormLabel>{t("sessions.instructor")}</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select instructor" />
+                                        <SelectTrigger disabled={loadingInstructors}>
+                                            {loadingInstructors ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <span>Loading...</span>
+                                                </div>
+                                            ) : (
+                                                <SelectValue placeholder="Select instructor" />
+                                            )}
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="inst-1">Capt. Smith</SelectItem>
-                                        <SelectItem value="inst-2">Capt. Jones</SelectItem>
-                                        <SelectItem value="inst-3">Capt. Brown</SelectItem>
+                                        {instructors.length === 0 && !loadingInstructors && (
+                                            <SelectItem value="" disabled>No instructors available</SelectItem>
+                                        )}
+                                        {instructors.map((inst) => (
+                                            <SelectItem key={inst.id} value={inst.id}>
+                                                {inst.fullName} ({inst.role})
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -250,7 +300,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         name="sessionType"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Type</FormLabel>
+                                <FormLabel>{t("sessions.sessionType")}</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -271,10 +321,10 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button type="submit">
-                        {initialData ? "Update Session" : "Schedule Session"}
+                        {initialData ? t("sessions.updateSession") : t("sessions.scheduleSession")}
                     </Button>
                 </div>
             </form>

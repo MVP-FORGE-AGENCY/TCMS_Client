@@ -19,8 +19,13 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import type { Employee, EmployeeHistory } from "@/types"
+import type { Employee } from "@/types"
 import { useEffect, useState } from "react"
+import { AbsencesTab } from "@/components/personnel/AbsencesTab"
+import { api } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { AlertTriangle } from "lucide-react"
+import { RemedialCompletionModal } from "@/components/forms/RemedialCompletionModal"
 
 interface PersonnelHistoryModalProps {
     employee: Employee | null
@@ -33,43 +38,17 @@ export function PersonnelHistoryModal({
     open,
     onOpenChange,
 }: PersonnelHistoryModalProps) {
-    const [history, setHistory] = useState<EmployeeHistory | null>(null)
+    const [history, setHistory] = useState<any>(null)
+    const [selectedAttempt, setSelectedAttempt] = useState<{ id: string, type: 'training' | 'check' } | null>(null)
 
     useEffect(() => {
         if (employee && open) {
-            // Mock fetching history
-            // In real app: api.get(\`/employees/\${employee.id}/history\`)
-            setHistory({
-                employee,
-                trainings: [
-                    {
-                        sessionId: "sess-1",
-                        programmeCode: "OPC-A320",
-                        date: "2024-01-15",
-                        result: "pass",
-                    },
-                    {
-                        sessionId: "sess-2",
-                        programmeCode: "CRM-REC",
-                        date: "2023-11-20",
-                        result: "pass",
-                    },
-                ],
-                checks: [
-                    {
-                        checkId: "chk-1",
-                        profileCode: "LPC-A320",
-                        date: "2024-02-01",
-                        result: "pass",
-                    },
-                    {
-                        checkId: "chk-2",
-                        profileCode: "OPC-A320",
-                        date: "2023-08-10",
-                        result: "fail",
-                    },
-                ],
-            })
+            api.get(`/attempts/employee/${employee.id}`)
+                .then(res => setHistory(res.data))
+                .catch(err => {
+                    console.error("Failed to fetch history:", err)
+                    setHistory({ employee, trainings: [], checks: [] } as any)
+                })
         } else {
             setHistory(null)
         }
@@ -79,7 +58,7 @@ export function PersonnelHistoryModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>History: {employee.fullName}</DialogTitle>
                 </DialogHeader>
@@ -88,6 +67,7 @@ export function PersonnelHistoryModal({
                     <TabsList>
                         <TabsTrigger value="training">Training Sessions</TabsTrigger>
                         <TabsTrigger value="checks">Proficiency Checks</TabsTrigger>
+                        <TabsTrigger value="absences">Absences</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="training">
@@ -97,35 +77,65 @@ export function PersonnelHistoryModal({
                                     <TableRow>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Programme</TableHead>
+                                        <TableHead>Attempt</TableHead>
                                         <TableHead>Result</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {history?.trainings.map((training, i) => (
+                                    {history?.trainings.map((training: any, i: number) => (
                                         <TableRow key={i}>
                                             <TableCell>{training.date}</TableCell>
-                                            <TableCell>{training.programmeCode}</TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        training.result === "pass"
-                                                            ? "default" // Greenish in default theme usually, or customize
-                                                            : training.result === "fail"
-                                                                ? "destructive"
-                                                                : "secondary"
-                                                    }
-                                                    className={
-                                                        training.result === "pass" ? "bg-green-600 hover:bg-green-700" : ""
-                                                    }
-                                                >
-                                                    {training.result.toUpperCase()}
-                                                </Badge>
+                                                <div>
+                                                    <div className="font-medium">{training.programmeCode}</div>
+                                                    <div className="text-xs text-muted-foreground">{training.programmeName}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">Attempt {training.attemptNumber}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge
+                                                        variant={
+                                                            training.result === "pass"
+                                                                ? "default" // Greenish in default theme usually, or customize
+                                                                : training.result === "fail"
+                                                                    ? "destructive"
+                                                                    : "secondary"
+                                                        }
+                                                        className={
+                                                            training.result === "pass" ? "bg-green-600 w-fit" : "w-fit"
+                                                        }
+                                                    >
+                                                        {training.result?.toUpperCase() || '-'}
+                                                    </Badge>
+                                                    {training.requiresRemedial && !training.remedialCompletedAt && (
+                                                        <div className="flex items-center text-xs text-amber-600 font-medium">
+                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                            Remedial Required
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {training.requiresRemedial && !training.remedialCompletedAt && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline"
+                                                        className="h-7 text-xs border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                                        onClick={() => setSelectedAttempt({ id: training.id, type: 'training' })}
+                                                    >
+                                                        Review & Complete
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {!history?.trainings.length && (
+                                    {(!history?.trainings || history.trainings.length === 0) && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center">
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                 No training history found.
                                             </TableCell>
                                         </TableRow>
@@ -142,35 +152,65 @@ export function PersonnelHistoryModal({
                                     <TableRow>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Profile</TableHead>
+                                        <TableHead>Attempt</TableHead>
                                         <TableHead>Result</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {history?.checks.map((check, i) => (
+                                    {history?.checks.map((check: any, i: number) => (
                                         <TableRow key={i}>
                                             <TableCell>{check.date}</TableCell>
-                                            <TableCell>{check.profileCode}</TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        check.result === "pass"
-                                                            ? "default"
-                                                            : check.result === "fail"
-                                                                ? "destructive"
-                                                                : "secondary"
-                                                    }
-                                                    className={
-                                                        check.result === "pass" ? "bg-green-600 hover:bg-green-700" : ""
-                                                    }
-                                                >
-                                                    {check.result.toUpperCase()}
-                                                </Badge>
+                                                <div>
+                                                    <div className="font-medium">{check.profileCode}</div>
+                                                    <div className="text-xs text-muted-foreground">{check.profileName}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">Attempt {check.attemptNumber}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge
+                                                        variant={
+                                                            check.result === "pass"
+                                                                ? "default"
+                                                                : check.result === "fail"
+                                                                    ? "destructive"
+                                                                    : "secondary"
+                                                        }
+                                                        className={
+                                                            check.result === "pass" ? "bg-green-600 w-fit" : "w-fit"
+                                                        }
+                                                    >
+                                                        {check.result?.toUpperCase() || '-'}
+                                                    </Badge>
+                                                    {check.requiresRemedial && !check.remedialCompletedAt && (
+                                                        <div className="flex items-center text-xs text-amber-600 font-medium">
+                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                            Remedial Required
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {check.requiresRemedial && !check.remedialCompletedAt && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline"
+                                                        className="h-7 text-xs border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                                        onClick={() => setSelectedAttempt({ id: check.id, type: 'check' })}
+                                                    >
+                                                        Review & Complete
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {!history?.checks.length && (
+                                    {(!history?.checks || history.checks.length === 0) && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center">
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                 No check history found.
                                             </TableCell>
                                         </TableRow>
@@ -179,8 +219,28 @@ export function PersonnelHistoryModal({
                             </Table>
                         </div>
                     </TabsContent>
+
+                    <TabsContent value="absences">
+                        <AbsencesTab userId={employee.id} userName={employee.fullName} />
+                    </TabsContent>
                 </Tabs>
             </DialogContent>
+            
+            <RemedialCompletionModal
+                attemptId={selectedAttempt?.id || null}
+                type={selectedAttempt?.type || 'training'}
+                isOpen={!!selectedAttempt}
+                onClose={() => setSelectedAttempt(null)}
+                onSuccess={() => {
+                    // Refetch history
+                    if (employee) {
+                         api.get(`/attempts/employee/${employee.id}`)
+                            .then(res => setHistory(res.data))
+                            .catch(console.error)
+                    }
+                }}
+            />
         </Dialog>
     )
 }
+

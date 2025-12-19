@@ -30,9 +30,10 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import { Badge } from "@/components/ui/badge"
+// Badge unused
 import type { ProficiencyCheck, ProficiencyProfile } from "@/types"
 import { useEffect } from "react"
+// import { useTranslation } from "react-i18next"
 
 const formSchema = z.object({
     dateEnd: z.string().min(1, "End date is required"),
@@ -54,6 +55,7 @@ interface CompleteCheckFormProps {
 }
 
 export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit }: CompleteCheckFormProps) {
+    // const { t } = useTranslation() // Unused after refactor
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
@@ -118,17 +120,15 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
 
     if (!check || !profile) return null
 
-    const elements = profile.requiredElements
-        ? Object.entries(profile.requiredElements).map(([name, isMandatory]) => ({ name, isMandatory }))
-        : []
+    const assessorIds = check?.assessorIds?.length ? check.assessorIds : (check?.assessorId ? [check.assessorId] : [])
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Complete Proficiency Check</DialogTitle>
                     <DialogDescription>
-                        Record results for {check.traineeId} ({profile.code})
+                        Record results and details for the check.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -148,6 +148,7 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
                                     </FormItem>
                                 )}
                             />
+
                             <FormField
                                 control={form.control}
                                 name="conditions"
@@ -173,108 +174,118 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
                             />
                         </div>
 
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-medium">Element Assessment</h4>
-                            <div className="rounded-md border p-4 space-y-4">
-                                {elements.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No required elements defined for this profile.</p>
-                                ) : (
-                                    elements.map((element) => (
-                                        <div key={element.name} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-medium">{element.name}</span>
-                                                {element.isMandatory && <Badge variant="secondary" className="text-xs">Mandatory</Badge>}
+                        {/* Required Elements Checklist */}
+                        {profile?.requiredElements && (
+                            <div className="space-y-2">
+                                <Label>Required Elements</Label>
+                                <div className="border rounded-md p-4 space-y-4">
+                                    {Object.entries(profile.requiredElements).map(([name, description]) => (
+                                        <div key={name} className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">{name}</Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {description as string}
+                                                </p>
                                             </div>
                                             <FormField
                                                 control={form.control}
-                                                name={`elementsResults.${element.name}`}
+                                                name={`elementsResults.${name}`}
                                                 render={({ field }) => (
                                                     <FormItem className="space-y-0">
-                                                        <FormControl>
-                                                            <RadioGroup
-                                                                onValueChange={field.onChange}
-                                                                defaultValue={field.value as string}
-                                                                className="flex gap-2"
-                                                            >
-                                                                <div className="flex items-center space-x-1">
-                                                                    <RadioGroupItem value="pass" id={`${element.name}-pass`} />
-                                                                    <Label htmlFor={`${element.name}-pass`} className="text-green-600">Pass</Label>
-                                                                </div>
-                                                                <div className="flex items-center space-x-1">
-                                                                    <RadioGroupItem value="fail" id={`${element.name}-fail`} />
-                                                                    <Label htmlFor={`${element.name}-fail`} className="text-red-600">Fail</Label>
-                                                                </div>
-                                                            </RadioGroup>
-                                                        </FormControl>
+                                                        <RadioGroup
+                                                            onValueChange={field.onChange}
+                                                            defaultValue={field.value}
+                                                            className="flex gap-2"
+                                                        >
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="pass" id={`${name}-pass`} />
+                                                                <Label htmlFor={`${name}-pass`}>Pass</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="fail" id={`${name}-fail`} />
+                                                                <Label htmlFor={`${name}-fail`}>Fail</Label>
+                                                            </div>
+                                                        </RadioGroup>
                                                     </FormItem>
                                                 )}
                                             />
                                         </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="result"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Overall Result</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="pass">Pass</SelectItem>
-                                                <SelectItem value="fail">Fail</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormDescription>
-                                            Automatically set to Fail if any mandatory element fails.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="comments"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Comments</FormLabel>
-                                        <FormControl>
-                                            <Textarea {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="signature"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Assessor Signature</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Type full name to sign" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        {form.formState.errors.root && (
-                            <div className="text-red-500 text-sm font-medium">
-                                {form.formState.errors.root.message}
+                                    ))}
+                                </div>
                             </div>
                         )}
+
+                        {/* Assessor Evaluations & Signatures */}
+                        <div className="space-y-4">
+                            <Label className="text-lg font-semibold">Assessor Evaluations & Signatures</Label>
+                            {assessorIds.map((id, index) => (
+                                <div key={id} className="border rounded-md p-4 space-y-4 bg-slate-50 dark:bg-slate-900">
+                                    <h4 className="font-medium">Assessor {index + 1} (ID: {id})</h4>
+                                    {/* In real app, name would be fetched or passed */}
+                                    
+                                    <FormField
+                                        control={form.control}
+                                        name="comments" // Shared comments for now, or could use array
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Comments / Evaluation</FormLabel>
+                                                <FormControl>
+                                                    <Textarea placeholder={`Evaluation notes from assessor...`} className="min-h-[80px]" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="signature" // Single signature for MVP/Lead Assessor
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Signature (Type Name)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Type full name to sign" {...field} />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    By typing your name, you certify that the check was conducted according to standards.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            ))}
+                            {assessorIds.length > 1 && (
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    * Currently, the Lead Assessor submits the final consolidated result.
+                                </p>
+                            )}
+                        </div>
+
+                        <FormField
+                            control={form.control}
+                            name="result"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <Label>Overall Result</Label>
+                                    <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex gap-4 mt-2"
+                                    >
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="pass" id="res-pass" />
+                                            <Label htmlFor="res-pass" className="font-bold text-green-600">PASS</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="fail" id="res-fail" />
+                                            <Label htmlFor="res-fail" className="font-bold text-red-600">FAIL</Label>
+                                        </div>
+                                    </RadioGroup>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

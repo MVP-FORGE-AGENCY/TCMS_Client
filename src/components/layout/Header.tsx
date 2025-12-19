@@ -15,8 +15,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { CommandMenu } from "./CommandMenu"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { useTranslation } from "react-i18next"
 
 export function Header() {
+    const { t } = useTranslation()
+    
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <Sheet>
@@ -44,6 +48,7 @@ export function Header() {
                     <CommandMenu />
                 </div>
 
+                <LanguageSwitcher />
                 <ModeToggle />
                 <NotificationBell />
 
@@ -57,12 +62,12 @@ export function Header() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuItem>Support</DropdownMenuItem>
+                        <DropdownMenuItem>{t("nav.settings")}</DropdownMenuItem>
+                        <DropdownMenuItem>{t("common.support")}</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Logout</DropdownMenuItem>
+                        <DropdownMenuItem>{t("common.logout")}</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

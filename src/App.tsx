@@ -17,6 +17,10 @@ const SessionsPage = lazy(() => import("@/pages/sessions/page"))
 const ChecksPage = lazy(() => import("@/pages/checks/page"))
 const ExpiringReport = lazy(() => import("@/pages/reports/ExpiringReport"))
 const SettingsPage = lazy(() => import("@/pages/settings/page"))
+const StandardsPage = lazy(() => import("@/pages/standards/page"))
+const StandardDetailPage = lazy(() => import("@/pages/standards/StandardDetailPage"))
+const ProceduresPage = lazy(() => import("@/pages/procedures/page"))
+const ProcedureDetailPage = lazy(() => import("@/pages/procedures/ProcedureDetailPage"))
 
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -59,9 +63,13 @@ function App() {
                     <Route path="/personnel" element={<PersonnelPage />} />
                     <Route path="/programmes" element={<ProgrammesPage />} />
                     <Route path="/programmes/:id" element={<ProgrammeDetailPage />} />
+                    <Route path="/standards" element={<StandardsPage />} />
+                    <Route path="/standards/:id" element={<StandardDetailPage />} />
                     <Route path="/sessions" element={<SessionsPage />} />
                     <Route path="/checks" element={<ChecksPage />} />
                     <Route path="/reports" element={<ExpiringReport />} />
+                    <Route path="/procedures" element={<ProceduresPage />} />
+                    <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                   </Route>
                 </Route>

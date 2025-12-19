@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { Plane } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 export default function LoginPage() {
+    const { t } = useTranslation()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -29,11 +31,11 @@ export default function LoginPage() {
             const { accessToken, user } = response.data
 
             login(accessToken, user)
-            toast.success("Welcome back!")
+            toast.success(t("auth.welcomeBackToast"))
             navigate(from, { replace: true })
         } catch (error: any) {
             console.error("Login failed:", error)
-            toast.error(error.response?.data?.message || "Invalid credentials")
+            toast.error(error.response?.data?.message || t("auth.invalidCredentials"))
         } finally {
             setIsLoading(false)
         }
@@ -48,15 +50,15 @@ export default function LoginPage() {
                             <Plane className="h-6 w-6 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                    <CardTitle className="text-2xl font-bold">{t("auth.welcomeBack")}</CardTitle>
                     <CardDescription>
-                        Enter your credentials to access the TCMS
+                        {t("auth.enterCredentials")}
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t("common.email")}</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -68,7 +70,7 @@ export default function LoginPage() {
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t("common.password")}</Label>
                             </div>
                             <Input
                                 id="password"
@@ -81,7 +83,7 @@ export default function LoginPage() {
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full" type="submit" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "Sign in"}
+                            {isLoading ? t("auth.signingIn") : t("auth.signIn")}
                         </Button>
                     </CardFooter>
                 </form>

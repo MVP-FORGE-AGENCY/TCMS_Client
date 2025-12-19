@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Plus, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +19,7 @@ import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 
 export default function SessionsPage() {
+    const { t } = useTranslation()
     const [sessions, setSessions] = useState<Session[]>([])
     const [programmes, setProgrammes] = useState<Programme[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -34,21 +36,20 @@ export default function SessionsPage() {
                 api.get("/sessions"),
                 api.get("/programmes")
             ])
-            ])
 
-    // Handle both array and paginated response structure for sessions
-    const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : (sessionsRes.data?.data || [])
-    setSessions(Array.isArray(sessionsData) ? sessionsData : [])
+            // Handle both array and paginated response structure for sessions
+            const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : (sessionsRes.data?.data || [])
+            setSessions(Array.isArray(sessionsData) ? sessionsData : [])
 
-    // Handle both array and paginated response structure for programmes
-    const programmesData = Array.isArray(programmesRes.data) ? programmesRes.data : (programmesRes.data?.data || [])
-    setProgrammes(Array.isArray(programmesData) ? programmesData : [])
-} catch (error) {
-    console.error("Failed to fetch data:", error)
-    toast.error("Failed to load sessions data")
-} finally {
-    setIsLoading(false)
-}
+            // Handle both array and paginated response structure for programmes
+            const programmesData = Array.isArray(programmesRes.data) ? programmesRes.data : (programmesRes.data?.data || [])
+            setProgrammes(Array.isArray(programmesData) ? programmesData : [])
+        } catch (error) {
+            console.error("Failed to fetch data:", error)
+            toast.error("Failed to load sessions data")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
 useEffect(() => {
@@ -61,9 +62,11 @@ const handleCreateSession = async (values: any) => {
         toast.success("Session scheduled successfully")
         fetchData()
         setIsCreateOpen(false)
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to create session:", error)
-        toast.error("Failed to schedule session")
+        const { parseApiError } = await import("@/lib/error-utils")
+        const errorMessage = parseApiError(error)
+        toast.error(errorMessage, { duration: 5000 })
     }
 }
 
@@ -116,13 +119,13 @@ return (
     <div className="space-y-6">
         <div className="flex items-center justify-between">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Training Sessions</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t("sessions.title")}</h1>
                 <p className="text-muted-foreground">
-                    Schedule and manage training sessions.
+                    {t("sessions.subtitle")}
                 </p>
             </div>
             <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Schedule Session
+                <Plus className="mr-2 h-4 w-4" /> {t("sessions.scheduleSession")}
             </Button>
         </div>
 
@@ -131,9 +134,9 @@ return (
         ) : sessions.length === 0 ? (
             <EmptyState
                 icon={Calendar}
-                title="No sessions scheduled"
-                description="Schedule your first training session."
-                actionLabel="Schedule Session"
+                title={t("common.noData")}
+                description={t("common.getStarted")}
+                actionLabel={t("sessions.scheduleSession")}
                 onAction={() => setIsCreateOpen(true)}
             />
         ) : (
@@ -148,7 +151,7 @@ return (
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Schedule New Session</DialogTitle>
+                    <DialogTitle>{t("sessions.scheduleNewSession")}</DialogTitle>
                 </DialogHeader>
                 <SessionForm
                     programmes={programmes}

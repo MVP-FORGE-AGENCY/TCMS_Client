@@ -11,14 +11,16 @@ import { PersonnelTable } from "@/components/tables/PersonnelTable"
 import { PersonnelForm } from "@/components/forms/PersonnelForm"
 import { PersonnelHistoryModal } from "@/components/PersonnelHistoryModal"
 import type { Employee } from "@/types"
-import { api } from "@/lib/api"
+import { api, auth, employees as employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Users } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "react-i18next"
 
 export default function PersonnelPage() {
+    const { t } = useTranslation()
     const [employees, setEmployees] = useState<Employee[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isFormOpen, setIsFormOpen] = useState(false)
@@ -48,12 +50,19 @@ export default function PersonnelPage() {
 
     const handleCreate = async (values: any) => {
         try {
-            // Note: POST /employees is not in the spec, assuming standard REST
             const payload = {
                 ...values,
                 organisationId: user?.organisationId
             }
-            await api.post("/employees", payload)
+            
+            if (values.createLoginAccount) {
+                await auth.register(payload)
+            } else {
+                // Remove password and createLoginAccount from payload for employee creation
+                const { password, createLoginAccount, ...employeeData } = payload
+                await employeesApi.create(employeeData)
+            }
+            
             toast.success("Employee created successfully")
             fetchEmployees()
             setIsFormOpen(false)
@@ -79,7 +88,7 @@ export default function PersonnelPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (confirm("Are you sure you want to delete this employee?")) {
+        if (confirm(t("common.confirmDelete"))) {
             try {
                 // Note: DELETE /employees/{id} is not in the spec, assuming standard REST
                 await api.delete(`/employees/${id}`)
@@ -111,13 +120,13 @@ export default function PersonnelPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Personnel</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
                     <p className="text-muted-foreground">
-                        Manage employees, roles, and view competence history.
+                        {t("personnel.subtitle")}
                     </p>
                 </div>
                 <Button onClick={openCreateModal}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Employee
+                    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
                 </Button>
             </div>
 
@@ -126,9 +135,9 @@ export default function PersonnelPage() {
             ) : employees.length === 0 ? (
                 <EmptyState
                     icon={Users}
-                    title="No personnel found"
-                    description="Get started by adding your first employee."
-                    actionLabel="Add Employee"
+                    title={t("common.noData")}
+                    description={t("common.getStarted")}
+                    actionLabel={t("personnel.addEmployee")}
                     onAction={openCreateModal}
                 />
             ) : (

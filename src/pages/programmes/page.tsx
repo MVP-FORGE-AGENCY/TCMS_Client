@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Plus, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +18,7 @@ import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 
 export default function ProgrammesPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [programmes, setProgrammes] = useState<Programme[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -48,9 +50,10 @@ export default function ProgrammesPage() {
             toast.success("Programme created successfully")
             fetchProgrammes()
             setIsFormOpen(false)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to create programme:", error)
-            toast.error("Failed to create programme")
+            const { parseApiError } = await import("@/lib/error-utils")
+            toast.error(parseApiError(error), { duration: 5000 })
         }
     }
 
@@ -62,9 +65,10 @@ export default function ProgrammesPage() {
             fetchProgrammes()
             setIsFormOpen(false)
             setSelectedProgramme(null)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update programme:", error)
-            toast.error("Failed to update programme")
+            const { parseApiError } = await import("@/lib/error-utils")
+            toast.error(parseApiError(error), { duration: 5000 })
         }
     }
 
@@ -97,13 +101,13 @@ export default function ProgrammesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Training Programmes</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t("programmes.title")}</h1>
                     <p className="text-muted-foreground">
-                        Manage training programmes, validity periods, and types.
+                        {t("programmes.subtitle")}
                     </p>
                 </div>
                 <Button onClick={openCreateModal}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Programme
+                    <Plus className="mr-2 h-4 w-4" /> {t("programmes.addProgramme")}
                 </Button>
             </div>
 
@@ -112,9 +116,9 @@ export default function ProgrammesPage() {
             ) : programmes.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
-                    title="No programmes found"
-                    description="Create your first training programme to get started."
-                    actionLabel="Add Programme"
+                    title={t("common.noData")}
+                    description={t("common.getStarted")}
+                    actionLabel={t("programmes.addProgramme")}
                     onAction={openCreateModal}
                 />
             ) : (
@@ -130,7 +134,7 @@ export default function ProgrammesPage() {
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle>
-                            {selectedProgramme ? "Edit Programme" : "Add New Programme"}
+                            {selectedProgramme ? t("programmes.updateProgramme") : t("programmes.createProgramme")}
                         </DialogTitle>
                     </DialogHeader>
                     <ProgrammeForm

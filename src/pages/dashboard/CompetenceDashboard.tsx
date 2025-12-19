@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
     Users,
     CheckCircle,
@@ -34,68 +34,19 @@ import { KPICard } from "@/components/dashboard/KPICard"
 import { PersonnelHistoryModal } from "@/components/PersonnelHistoryModal"
 import type { Employee } from "@/types"
 
-// Mock Data Types
-type CompetenceStatus = "valid" | "expiring" | "expired" | "not_acquired"
+// Types
+type CompetenceStatus = "valid" | "expiring_soon" | "expired" | "not_acquired"
 
 interface CompetenceCell {
     status: CompetenceStatus
     expiryDate?: string
+    absenceFlag?: 'none' | 'refresher_required' | 'initial_required'
+    absenceDurationMonths?: number
 }
 
 interface EmployeeCompetence extends Employee {
     competences: Record<string, CompetenceCell>
 }
-
-// Mock Data
-const COMPETENCE_CODES = ["BRK-MEAS", "FIRE-SAF", "CRM-INIT", "DG-AWR", "SEC-TRN"]
-
-const MOCK_DATA: EmployeeCompetence[] = [
-    {
-        id: "1",
-        fullName: "Captain John Smith",
-        organisationId: "Acme Aviation",
-        role: "instructor",
-        areaOfActivity: "Flight Ops",
-        employmentStart: "2020-01-01",
-        competences: {
-            "BRK-MEAS": { status: "valid", expiryDate: "2025-06-15" },
-            "FIRE-SAF": { status: "expiring", expiryDate: "2024-01-20" },
-            "CRM-INIT": { status: "valid", expiryDate: "2026-01-01" },
-            "DG-AWR": { status: "valid", expiryDate: "2025-12-31" },
-            "SEC-TRN": { status: "valid", expiryDate: "2025-03-10" },
-        }
-    },
-    {
-        id: "2",
-        fullName: "Jane Doe",
-        organisationId: "Acme Aviation",
-        role: "trainee",
-        areaOfActivity: "Cabin Crew",
-        employmentStart: "2023-05-15",
-        competences: {
-            "BRK-MEAS": { status: "not_acquired" },
-            "FIRE-SAF": { status: "valid", expiryDate: "2024-11-15" },
-            "CRM-INIT": { status: "expired", expiryDate: "2023-12-01" },
-            "DG-AWR": { status: "not_acquired" },
-            "SEC-TRN": { status: "valid", expiryDate: "2024-09-20" },
-        }
-    },
-    {
-        id: "3",
-        fullName: "Robert Brown",
-        organisationId: "Global Wings",
-        role: "manager",
-        areaOfActivity: "Training Dept",
-        employmentStart: "2019-11-01",
-        competences: {
-            "BRK-MEAS": { status: "valid", expiryDate: "2025-01-01" },
-            "FIRE-SAF": { status: "valid", expiryDate: "2025-02-28" },
-            "CRM-INIT": { status: "valid", expiryDate: "2025-05-10" },
-            "DG-AWR": { status: "expiring", expiryDate: "2024-02-15" },
-            "SEC-TRN": { status: "expired", expiryDate: "2023-10-30" },
-        }
-    },
-]
 
 export function CompetenceDashboard() {
     const [filterStatus, setFilterStatus] = useState<string>("all")
@@ -103,9 +54,64 @@ export function CompetenceDashboard() {
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
+    // Data Loading
+    const [data, setData] = useState<EmployeeCompetence[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [competenceCodes, setCompetenceCodes] = useState<string[]>([])
+
+    useEffect(() => {
+        fetchCompetenceData()
+    }, [])
+
+    const fetchCompetenceData = async () => {
+        try {
+            setIsLoading(true)
+            const { api } = await import('@/lib/api')
+            const response = await api.get('/competence')
+            
+            const flatList: any[] = response.data.data || []
+            
+            // Extract unique codes
+            const codes = Array.from(new Set(flatList.map((item: any) => item.competenceCode))).sort() as string[]
+            setCompetenceCodes(codes)
+
+            // Aggregate by user
+            const usersMap = new Map<string, EmployeeCompetence>()
+
+            flatList.forEach((item: any) => {
+                if (!usersMap.has(item.userId)) {
+                    usersMap.set(item.userId, {
+                        id: item.userId,
+                        fullName: item.fullName,
+                        organisationId: "",
+                        role: "Employee",
+                        areaOfActivity: item.departmentTag || "General",
+                        employmentStart: "",
+                        email: item.email,
+                        competences: {}
+                    } as EmployeeCompetence)
+                }
+
+                const user = usersMap.get(item.userId)!
+                user.competences[item.competenceCode] = {
+                    status: item.status,
+                    expiryDate: item.validUntil,
+                    absenceFlag: item.absenceFlag,
+                    absenceDurationMonths: item.absenceDurationMonths
+                }
+            })
+
+            setData(Array.from(usersMap.values()))
+        } catch (error) {
+            console.error("Failed to fetch competence data:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     // Filter Logic
     const filteredData = useMemo(() => {
-        return MOCK_DATA.filter(emp => {
+        return data.filter(emp => {
             const matchesDept = filterDept === "all" || emp.areaOfActivity === filterDept
 
             if (!matchesDept) return false
@@ -114,7 +120,7 @@ export function CompetenceDashboard() {
             // Check if employee has ANY competence with the filtered status
             return Object.values(emp.competences).some(c => c.status === filterStatus)
         })
-    }, [filterStatus, filterDept])
+    }, [data, filterStatus, filterDept])
 
     // KPI Calculations
     const kpis = useMemo(() => {
@@ -123,11 +129,11 @@ export function CompetenceDashboard() {
         let totalExpired = 0
         let totalCompetences = 0
 
-        MOCK_DATA.forEach(emp => {
+        data.forEach(emp => {
             Object.values(emp.competences).forEach(c => {
                 totalCompetences++
                 if (c.status === "valid") totalValid++
-                if (c.status === "expiring") totalExpiring++
+                if (c.status === "expiring_soon") totalExpiring++
                 if (c.status === "expired") totalExpired++
             })
         })
@@ -137,20 +143,20 @@ export function CompetenceDashboard() {
             : 0
 
         return {
-            totalPersonnel: MOCK_DATA.length,
+            totalPersonnel: data.length,
             validPercentage,
             totalExpiring,
             totalExpired
         }
-    }, [])
+    }, [data])
 
     const handleExport = () => {
-        const headers = ["Name", "Role", "Department", ...COMPETENCE_CODES]
+        const headers = ["Name", "Role", "Department", ...competenceCodes]
         const rows = filteredData.map(emp => [
             emp.fullName,
             emp.role,
             emp.areaOfActivity,
-            ...COMPETENCE_CODES.map(code => {
+            ...competenceCodes.map((code: string) => {
                 const comp = emp.competences[code]
                 return comp ? `${comp.status} (${comp.expiryDate || '-'}) ` : "N/A"
             })
@@ -172,7 +178,7 @@ export function CompetenceDashboard() {
     const getStatusColor = (status: CompetenceStatus) => {
         switch (status) {
             case "valid": return "bg-emerald-500 hover:bg-emerald-600"
-            case "expiring": return "bg-amber-500 hover:bg-amber-600"
+            case "expiring_soon": return "bg-amber-500 hover:bg-amber-600"
             case "expired": return "bg-red-500 hover:bg-red-600"
             default: return "bg-gray-300 hover:bg-gray-400 text-gray-700"
         }
@@ -181,10 +187,18 @@ export function CompetenceDashboard() {
     const getStatusLabel = (status: CompetenceStatus) => {
         switch (status) {
             case "valid": return "Valid"
-            case "expiring": return "Expiring"
+            case "expiring_soon": return "Expiring"
             case "expired": return "Expired"
             case "not_acquired": return "N/A"
         }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[50vh] items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
     }
 
     return (
@@ -206,7 +220,7 @@ export function CompetenceDashboard() {
                     value={kpis.totalExpiring}
                     icon={AlertTriangle}
                     className="border-amber-200 bg-amber-50"
-                    onClick={() => setFilterStatus("expiring")}
+                    onClick={() => setFilterStatus("expiring_soon")}
                 />
                 <KPICard
                     title="Expired"
@@ -227,7 +241,7 @@ export function CompetenceDashboard() {
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
                             <SelectItem value="valid">Valid</SelectItem>
-                            <SelectItem value="expiring">Expiring Soon</SelectItem>
+                            <SelectItem value="expiring_soon">Expiring Soon</SelectItem>
                             <SelectItem value="expired">Expired</SelectItem>
                         </SelectContent>
                     </Select>
@@ -257,7 +271,7 @@ export function CompetenceDashboard() {
                         <TableRow>
                             <TableHead className="w-[200px]">Employee</TableHead>
                             <TableHead>Role</TableHead>
-                            {COMPETENCE_CODES.map(code => (
+                            {competenceCodes.map(code => (
                                 <TableHead key={code} className="text-center">{code}</TableHead>
                             ))}
                         </TableRow>
@@ -277,18 +291,29 @@ export function CompetenceDashboard() {
                                     </button>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">{emp.role}</TableCell>
-                                {COMPETENCE_CODES.map(code => {
-                                    const comp = emp.competences[code] || { status: "not_acquired" }
+                                {competenceCodes.map(code => {
+                                    const comp = emp.competences[code] || { status: "not_acquired" as CompetenceStatus }
+                                    const hasAbsenceFlag = comp.absenceFlag && comp.absenceFlag !== 'none'
+                                    
                                     return (
                                         <TableCell key={code} className="text-center p-2">
                                             <TooltipProvider>
                                                 <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <Badge
-                                                            className={`w-24 justify-center ${getStatusColor(comp.status)}`}
-                                                        >
-                                                            {getStatusLabel(comp.status)}
-                                                        </Badge>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="relative inline-block">
+                                                            <Badge
+                                                                className={`w-24 justify-center ${getStatusColor(comp.status)}`}
+                                                            >
+                                                                {getStatusLabel(comp.status)}
+                                                            </Badge>
+                                                            {hasAbsenceFlag && (
+                                                                <div className={`absolute -top-2 -right-2 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-white ${
+                                                                    comp.absenceFlag === 'initial_required' ? 'bg-red-600' : 'bg-orange-500'
+                                                                }`}>
+                                                                    !
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                         <p>{getStatusLabel(comp.status)}</p>
@@ -296,6 +321,17 @@ export function CompetenceDashboard() {
                                                             <p className="text-xs text-muted-foreground">
                                                                 Expires: {comp.expiryDate}
                                                             </p>
+                                                        )}
+                                                        {hasAbsenceFlag && (
+                                                            <div className="mt-1 pt-1 border-t border-border">
+                                                                <p className="text-xs font-bold text-red-500 flex items-center gap-1">
+                                                                    <AlertTriangle size={12} />
+                                                                    {comp.absenceFlag === 'initial_required' 
+                                                                        ? `Initial Training Required (>12m absence)`
+                                                                        : `Refresher Required (${comp.absenceDurationMonths}m absence)`
+                                                                    }
+                                                                </p>
+                                                            </div>
                                                         )}
                                                     </TooltipContent>
                                                 </Tooltip>
@@ -305,6 +341,13 @@ export function CompetenceDashboard() {
                                 })}
                             </TableRow>
                         ))}
+                        {filteredData.length === 0 && (
+                             <TableRow>
+                                <TableCell colSpan={competenceCodes.length + 2} className="text-center py-8 text-muted-foreground">
+                                    No data found matching current filters.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Plus, CheckCircle } from "lucide-react"
@@ -20,6 +21,7 @@ import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 
 export default function ChecksPage() {
+    const { t } = useTranslation()
     const [profiles, setProfiles] = useState<ProficiencyProfile[]>([])
     const [checks, setChecks] = useState<ProficiencyCheck[]>([])
     const [employees, setEmployees] = useState<Employee[]>([])
@@ -39,27 +41,26 @@ export default function ChecksPage() {
                 api.get("/proficiency-profiles"),
                 api.get("/checks"),
                 api.get("/employees")
-            ])
-            ])
+            ]) 
 
-    // Handle both array and paginated response structure for profiles
-    const profilesData = Array.isArray(profilesRes.data) ? profilesRes.data : (profilesRes.data?.data || [])
-    setProfiles(Array.isArray(profilesData) ? profilesData : [])
+        // Handle both array and paginated response structure for profiles
+        const profilesData = Array.isArray(profilesRes.data) ? profilesRes.data : (profilesRes.data?.data || [])
+        setProfiles(Array.isArray(profilesData) ? profilesData : [])
 
-    // Handle both array and paginated response structure for checks
-    const checksData = Array.isArray(checksRes.data) ? checksRes.data : (checksRes.data?.data || [])
-    setChecks(Array.isArray(checksData) ? checksData : [])
+        // Handle both array and paginated response structure for checks
+        const checksData = Array.isArray(checksRes.data) ? checksRes.data : (checksRes.data?.data || [])
+        setChecks(Array.isArray(checksData) ? checksData : [])
 
-    // Handle both array and paginated response structure for employees
-    const employeesData = Array.isArray(employeesRes.data) ? employeesRes.data : (employeesRes.data?.data || [])
-    setEmployees(Array.isArray(employeesData) ? employeesData : [])
-} catch (error) {
-    console.error("Failed to fetch data:", error)
-    toast.error("Failed to load checks data")
-} finally {
-    setIsLoading(false)
-}
+        // Handle both array and paginated response structure for employees
+        const employeesData = Array.isArray(employeesRes.data) ? employeesRes.data : (employeesRes.data?.data || [])
+        setEmployees(Array.isArray(employeesData) ? employeesData : [])
+    } catch (error) {
+        console.error("Failed to fetch data:", error)
+        toast.error(t("checks.toast.fetchError"))
+    } finally {
+        setIsLoading(false)
     }
+        }
 
 useEffect(() => {
     fetchData()
@@ -71,17 +72,17 @@ const handleCreateProfile = async (values: any) => {
         if (selectedProfile) {
             // Note: Spec doesn't mention PATCH /proficiency-profiles/{id}, assuming standard REST
             await api.patch(`/proficiency-profiles/${selectedProfile.id}`, values)
-            toast.success("Profile updated successfully")
+            toast.success(t("checks.toast.profileUpdated"))
         } else {
             await api.post("/proficiency-profiles", values)
-            toast.success("Profile created successfully")
+            toast.success(t("checks.toast.profileCreated"))
         }
         fetchData()
         setIsProfileFormOpen(false)
         setSelectedProfile(null)
     } catch (error) {
         console.error("Failed to save profile:", error)
-        toast.error("Failed to save profile")
+        toast.error(t("checks.toast.saveProfileError"))
     }
 }
 
@@ -91,15 +92,15 @@ const handleEditProfile = (profile: ProficiencyProfile) => {
 }
 
 const handleDeleteProfile = async (profile: ProficiencyProfile) => {
-    if (confirm("Are you sure you want to delete this profile?")) {
+    if (confirm(t("checks.confirmDeleteProfile"))) {
         try {
             // Note: DELETE /proficiency-profiles/{id} is not in the spec
             await api.delete(`/proficiency-profiles/${profile.id}`)
-            toast.success("Profile deleted successfully")
+            toast.success(t("checks.toast.profileDeleted"))
             fetchData()
         } catch (error) {
             console.error("Failed to delete profile:", error)
-            toast.error("Failed to delete profile")
+            toast.error(t("checks.toast.deleteProfileError"))
         }
     }
 }
@@ -108,12 +109,12 @@ const handleDeleteProfile = async (profile: ProficiencyProfile) => {
 const handleScheduleCheck = async (values: any) => {
     try {
         await api.post("/checks", values)
-        toast.success("Check scheduled successfully")
+        toast.success(t("checks.toast.checkScheduled"))
         fetchData()
         setIsScheduleCheckOpen(false)
     } catch (error) {
         console.error("Failed to schedule check:", error)
-        toast.error("Failed to schedule check")
+        toast.error(t("checks.toast.scheduleCheckError"))
     }
 }
 
@@ -126,13 +127,13 @@ const handleSubmitCompletion = async (values: any) => {
     if (!selectedCheck) return
     try {
         await api.patch(`/checks/${selectedCheck.id}/complete`, values)
-        toast.success("Check completed successfully")
+        toast.success(t("checks.toast.checkCompleted"))
         fetchData()
         setIsCompleteCheckOpen(false)
         setSelectedCheck(null)
     } catch (error) {
         console.error("Failed to complete check:", error)
-        toast.error("Failed to complete check")
+        toast.error(t("checks.toast.completeCheckError"))
     }
 }
 
@@ -141,7 +142,7 @@ const handleViewProtocol = (check: ProficiencyCheck) => {
     if (check.protocolUrl) {
         window.open(check.protocolUrl, "_blank")
     } else {
-        toast.info("Protocol not available")
+        toast.info(t("checks.toast.protocolNotAvailable"))
     }
 }
 
@@ -149,23 +150,23 @@ return (
     <div className="space-y-6">
         <div className="flex items-center justify-between">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Proficiency Checks</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t("checks.title")}</h1>
                 <p className="text-muted-foreground">
-                    Manage proficiency profiles and schedule checks.
+                    {t("checks.subtitle")}
                 </p>
             </div>
         </div>
 
         <Tabs defaultValue="checks" className="space-y-4">
             <TabsList>
-                <TabsTrigger value="checks">Scheduled Checks</TabsTrigger>
-                <TabsTrigger value="profiles">Proficiency Profiles</TabsTrigger>
+                <TabsTrigger value="checks">{t("checks.scheduledChecks")}</TabsTrigger>
+                <TabsTrigger value="profiles">{t("checks.proficiencyProfiles")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="checks" className="space-y-4">
                 <div className="flex justify-end">
                     <Button onClick={() => setIsScheduleCheckOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Schedule Check
+                        <Plus className="mr-2 h-4 w-4" /> {t("checks.scheduleCheck")}
                     </Button>
                 </div>
                 {isLoading ? (
@@ -173,9 +174,9 @@ return (
                 ) : checks.length === 0 ? (
                     <EmptyState
                         icon={CheckCircle}
-                        title="No checks scheduled"
-                        description="Schedule your first proficiency check."
-                        actionLabel="Schedule Check"
+                        title={t("common.noData")}
+                        description={t("common.getStarted")}
+                        actionLabel={t("checks.scheduleCheck")}
                         onAction={() => setIsScheduleCheckOpen(true)}
                     />
                 ) : (
@@ -193,7 +194,7 @@ return (
                         setSelectedProfile(null)
                         setIsProfileFormOpen(true)
                     }}>
-                        <Plus className="mr-2 h-4 w-4" /> Create Profile
+                        <Plus className="mr-2 h-4 w-4" /> {t("checks.createProfile")}
                     </Button>
                 </div>
                 {isLoading ? (
@@ -201,9 +202,9 @@ return (
                 ) : profiles.length === 0 ? (
                     <EmptyState
                         icon={CheckCircle}
-                        title="No profiles found"
-                        description="Create a proficiency profile to get started."
-                        actionLabel="Create Profile"
+                        title={t("common.noData")}
+                        description={t("common.getStarted")}
+                        actionLabel={t("checks.createProfile")}
                         onAction={() => {
                             setSelectedProfile(null)
                             setIsProfileFormOpen(true)
@@ -223,7 +224,7 @@ return (
         <Dialog open={isProfileFormOpen} onOpenChange={setIsProfileFormOpen}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>{selectedProfile ? "Edit Profile" : "Create Profile"}</DialogTitle>
+                    <DialogTitle>{selectedProfile ? t("checks.updateProfile") : t("checks.createProfile")}</DialogTitle>
                 </DialogHeader>
                 <ProfileForm
                     initialData={selectedProfile}
@@ -237,7 +238,7 @@ return (
         <Dialog open={isScheduleCheckOpen} onOpenChange={setIsScheduleCheckOpen}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Schedule Proficiency Check</DialogTitle>
+                    <DialogTitle>{t("checks.scheduleCheckDialogTitle")}</DialogTitle>
                 </DialogHeader>
                 <ScheduleCheckForm
                     profiles={profiles}

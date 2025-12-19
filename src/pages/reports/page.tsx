@@ -1,8 +1,11 @@
+import { useTranslation } from "react-i18next"
+
 export default function ReportsPage() {
+    const { t } = useTranslation()
     return (
         <div>
-            <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <p className="text-muted-foreground">View system reports.</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t("reports.title")}</h1>
+            <p className="text-muted-foreground">{t("reports.subtitle")}</p>
         </div>
     )
 }

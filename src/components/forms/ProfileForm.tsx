@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Trash2 } from "lucide-react"
 import type { ProficiencyProfile } from "@/types"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 const formSchema = z.object({
     code: z.string().min(2, "Code must be at least 2 characters"),
@@ -38,6 +39,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProps) {
+    const { t } = useTranslation()
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
@@ -96,7 +98,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                         name="code"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Code</FormLabel>
+                                <FormLabel>{t("programmes.code")}</FormLabel>
                                 <FormControl>
                                     <Input placeholder="OPC" {...field} />
                                 </FormControl>
@@ -109,7 +111,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Name</FormLabel>
+                                <FormLabel>{t("common.name")}</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Operator Proficiency Check" {...field} />
                                 </FormControl>
@@ -125,7 +127,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                         name="intervalMonths"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Interval (Months)</FormLabel>
+                                <FormLabel>{t("checks.validityMonths")}</FormLabel>
                                 <FormControl>
                                     <Input type="number" {...field} />
                                 </FormControl>
@@ -138,7 +140,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                         name="requiredAssessors"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Required Assessors</FormLabel>
+                                <FormLabel>{t("checks.assessor")}</FormLabel>
                                 <FormControl>
                                     <Input type="number" {...field} />
                                 </FormControl>
@@ -150,7 +152,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <FormLabel>Required Elements</FormLabel>
+                        <FormLabel>{t("checks.elementAssessment")}</FormLabel>
                         <Button
                             type="button"
                             variant="outline"
@@ -158,7 +160,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                             onClick={() => append({ name: "", isMandatory: false })}
                         >
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Element
+                            {t("common.add")}
                         </Button>
                     </div>
 
@@ -189,7 +191,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="text-xs">Mandatory</FormLabel>
+                                                <FormLabel className="text-xs">{t("checks.mandatory")}</FormLabel>
                                             </div>
                                         </FormItem>
                                     )}
@@ -210,10 +212,10 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button type="submit">
-                        {initialData ? "Update Profile" : "Create Profile"}
+                        {initialData ? t("checks.updateProfile") : t("checks.createProfile")}
                     </Button>
                 </div>
             </form>

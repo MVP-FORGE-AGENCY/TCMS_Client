@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import type { Programme } from "@/types"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 const formSchema = z.object({
     code: z.string().min(2, {
@@ -56,6 +57,8 @@ interface ProgrammeFormProps {
 }
 
 export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeFormProps) {
+    const { t } = useTranslation()
+    
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
@@ -98,7 +101,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                         name="code"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Code</FormLabel>
+                                <FormLabel>{t("programmes.code")}</FormLabel>
                                 <FormControl>
                                     <Input placeholder="OPC-A320" {...field} />
                                 </FormControl>
@@ -112,11 +115,11 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                         name="type"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Type</FormLabel>
+                                <FormLabel>{t("programmes.programmeType")}</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
+                                            <SelectValue placeholder={t("programmes.programmeType")} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -137,7 +140,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Name</FormLabel>
+                            <FormLabel>{t("common.name")}</FormLabel>
                             <FormControl>
                                 <Input placeholder="Operator Proficiency Check A320" {...field} />
                             </FormControl>
@@ -152,7 +155,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                         name="validityMonths"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Validity (Months)</FormLabel>
+                                <FormLabel>{t("programmes.validityMonths")}</FormLabel>
                                 <FormControl>
                                     <Input type="number" {...field} />
                                 </FormControl>
@@ -195,7 +198,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                     name="departmentTag"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Department Tag</FormLabel>
+                            <FormLabel>{t("common.department")}</FormLabel>
                             <FormControl>
                                 <Input placeholder="Flight Ops" {...field} />
                             </FormControl>
@@ -211,7 +214,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                     render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
-                                <FormLabel>Active</FormLabel>
+                                <FormLabel>{t("common.status")}</FormLabel>
                                 <FormDescription>
                                     Enable or disable this programme.
                                 </FormDescription>
@@ -228,10 +231,10 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button type="submit">
-                        {initialData ? "Update Programme" : "Create Programme"}
+                        {initialData ? t("programmes.updateProgramme") : t("programmes.createProgramme")}
                     </Button>
                 </div>
             </form>

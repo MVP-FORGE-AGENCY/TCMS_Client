@@ -19,14 +19,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2 } from "lucide-react"
 import type { Session, Employee } from "@/types"
+import { api } from "@/lib/api"
+import { useEffect } from "react"
 
 // Mock employees for selection
-const MOCK_EMPLOYEES: Employee[] = [
-    { id: "emp1", fullName: "John Doe", organisationId: "ORG001", role: "Pilot", employmentStart: "2020-01-01" },
-    { id: "emp2", fullName: "Jane Smith", organisationId: "ORG002", role: "Pilot", employmentStart: "2019-05-15" },
-    { id: "emp3", fullName: "Bob Johnson", organisationId: "ORG003", role: "Cabin Crew", employmentStart: "2021-03-10" },
-    { id: "emp4", fullName: "Alice Brown", organisationId: "ORG004", role: "Cabin Crew", employmentStart: "2022-08-20" },
-]
+// Removed Mock employees
 
 interface SessionParticipantsProps {
     session: Session | null
@@ -39,11 +36,83 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
     const [isAddMode, setIsAddMode] = useState(false)
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
 
-    const handleAddParticipants = () => {
-        const newParticipants = MOCK_EMPLOYEES.filter(emp => selectedEmployees.includes(emp.id))
-        setParticipants([...participants, ...newParticipants])
-        setIsAddMode(false)
-        setSelectedEmployees([])
+    const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([])
+    const [isLoading, setIsLoading] = useState(false)
+    const [overrideError, setOverrideError] = useState<{ message: string, details: string[], canOverride: boolean } | null>(null)
+    const [isAdminOverride, setIsAdminOverride] = useState(false)
+
+    // Load participants when modal opens
+    useEffect(() => {
+        if (open && session) {
+            fetchParticipants()
+        }
+    }, [open, session])
+
+    // Load available employees when entering add mode
+    useEffect(() => {
+        if (isAddMode && session) {
+            fetchAvailableEmployees()
+        }
+    }, [isAddMode, session])
+
+    const fetchParticipants = async () => {
+        if (!session) return
+        setIsLoading(true)
+        try {
+            const res = await api.get(`/sessions/${session.id}/participants`)
+            const data = res.data?.data || res.data || []
+            setParticipants(data) // Backend returns array of user objects in data or directly
+        } catch (error) {
+            console.error("Failed to fetch participants:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const fetchAvailableEmployees = async () => {
+        setIsLoading(true)
+        try {
+            const res = await api.get('/users?isActive=true&limit=100') // Fetch active users
+            const allUsers = res.data?.data || res.data || []
+            // Filter out already enrolled
+            const enrolledIds = participants.map(p => p.id)
+            setAvailableEmployees(allUsers.filter((u: Employee) => !enrolledIds.includes(u.id)))
+        } catch (error) {
+            console.error("Failed to fetch employees:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleAddParticipants = async () => {
+        if (!session || selectedEmployees.length === 0) return
+        
+        try {
+            await api.post(`/sessions/${session.id}/enrol`, {
+                userIds: selectedEmployees,
+                override: isAdminOverride
+            })
+            
+            // Success
+            setIsAddMode(false)
+            setSelectedEmployees([])
+            setOverrideError(null)
+            setIsAdminOverride(false)
+            fetchParticipants()
+        } catch (error: any) {
+            console.error("Enrollment failed:", error)
+            const errData = error.response?.data?.error
+            if (errData?.code === 'ENROLMENT_BLOCKED') {
+                setOverrideError({
+                    message: errData.message,
+                    details: errData.details || [],
+                    canOverride: errData.canOverride
+                })
+            } else {
+               // Generic error handling (toast usually)
+               alert("Failed to enrol: " + (errData?.message || "Unknown error"))
+            }
+        }
     }
 
     const toggleEmployeeSelection = (empId: string) => {
@@ -125,6 +194,29 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                     </div>
                 ) : (
                     <div className="space-y-4">
+                         {overrideError && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md text-sm">
+                                <p className="font-semibold">{overrideError.message}</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    {overrideError.details.map((d, i) => (
+                                        <li key={i}>{d}</li>
+                                    ))}
+                                </ul>
+                                {overrideError.canOverride && (
+                                    <div className="mt-4 flex items-center space-x-2">
+                                        <Checkbox 
+                                            id="override" 
+                                            checked={isAdminOverride}
+                                            onCheckedChange={(c) => setIsAdminOverride(c === true)}
+                                        />
+                                        <label htmlFor="override" className="font-medium cursor-pointer">
+                                            I confirm I want to override these restrictions (Admin/Manager only)
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="rounded-md border max-h-[300px] overflow-y-auto">
                             <Table>
                                 <TableHeader>
@@ -135,7 +227,12 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {MOCK_EMPLOYEES.filter(e => !participants.find(p => p.id === e.id)).map((emp) => (
+                                    {isLoading ? (
+                                         <TableRow><TableCell colSpan={3} className="text-center">Loading...</TableCell></TableRow>
+                                    ) : availableEmployees.length === 0 ? (
+                                         <TableRow><TableCell colSpan={3} className="text-center">No eligible employees found</TableCell></TableRow>
+                                    ) : (
+                                        availableEmployees.map((emp) => (
                                         <TableRow key={emp.id}>
                                             <TableCell>
                                                 <Checkbox
@@ -146,16 +243,20 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                             <TableCell>{emp.fullName}</TableCell>
                                             <TableCell>{emp.role}</TableCell>
                                         </TableRow>
-                                    ))}
+                                    )))}
                                 </TableBody>
                             </Table>
                         </div>
                         <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setIsAddMode(false)}>
+                            <Button variant="outline" onClick={() => {
+                                setIsAddMode(false)
+                                setOverrideError(null)
+                                setIsAdminOverride(false)
+                            }}>
                                 Cancel
                             </Button>
                             <Button onClick={handleAddParticipants} disabled={selectedEmployees.length === 0}>
-                                Add Selected
+                                {isAdminOverride ? "Enrol (Override)" : "Add Selected"}
                             </Button>
                         </div>
                     </div>

@@ -18,8 +18,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import type { Employee } from "@/types"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 const formSchema = z.object({
     fullName: z.string().min(2, {
@@ -38,6 +40,16 @@ const formSchema = z.object({
     employmentStart: z.string().min(1, {
         message: "Start date is required.",
     }),
+    createLoginAccount: z.boolean().optional(),
+    password: z.string().optional(),
+}).refine((data) => {
+    if (data.createLoginAccount && !data.password) {
+        return false
+    }
+    return true
+}, {
+    message: "Password is required for login account",
+    path: ["password"],
 })
 
 interface PersonnelFormProps {
@@ -47,6 +59,10 @@ interface PersonnelFormProps {
 }
 
 export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelFormProps) {
+    const [createLoginAccount, setCreateLoginAccount] = useState(true)
+
+    const { t } = useTranslation()
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -56,6 +72,8 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
             // organisationId: "",
             areaOfActivity: "",
             employmentStart: new Date().toISOString().split("T")[0],
+            createLoginAccount: true,
+            password: "",
         },
     })
 
@@ -68,11 +86,24 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                 // organisationId: initialData.organisationId,
                 areaOfActivity: initialData.areaOfActivity || "",
                 employmentStart: initialData.employmentStart,
+                createLoginAccount: false, // Default to false for editing? Or maybe we shouldn't show it for editing
             })
+            setCreateLoginAccount(false) // Assuming editing existing employee doesn't involve creating login account here
         }
     }, [initialData, form])
 
-    function handleSubmit(values: z.infer<typeof formSchema>) {
+    // Update createLoginAccount state when form value changes
+    useEffect(() => {
+        const subscription = form.watch((value, { name }) => {
+            if (name === "createLoginAccount") {
+                setCreateLoginAccount(value.createLoginAccount as boolean)
+            }
+        })
+        return () => subscription.unsubscribe()
+    }, [form])
+
+
+    async function handleSubmit(values: z.infer<typeof formSchema>) {
         onSubmit(values)
     }
 
@@ -84,7 +115,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                     name="fullName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>{t("common.fullName")}</FormLabel>
                             <FormControl>
                                 <Input placeholder="John Doe" {...field} />
                             </FormControl>
@@ -98,7 +129,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>{t("common.email")}</FormLabel>
                             <FormControl>
                                 <Input placeholder="john.doe@example.com" {...field} />
                             </FormControl>
@@ -113,7 +144,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                         name="role"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Role</FormLabel>
+                                <FormLabel>{t("common.role")}</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -122,9 +153,9 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                                     </FormControl>
                                     <SelectContent>
                                         <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="manager">Manager</SelectItem>
+                                        <SelectItem value="training_manager">Manager</SelectItem>
                                         <SelectItem value="instructor">Instructor</SelectItem>
-                                        <SelectItem value="trainee">Trainee</SelectItem>
+                                        <SelectItem value="employee">Trainee</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -133,13 +164,52 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                     />
                 </div>
 
+                {!initialData && (
+                    <FormField
+                        control={form.control}
+                        name="createLoginAccount"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">{t("personnel.createLoginAccount")}</FormLabel>
+                                    <div className="text-sm text-muted-foreground">
+                                        {t("personnel.grantAccess")}
+                                    </div>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                )}
+
+                {!initialData && createLoginAccount && (
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t("common.password")}</FormLabel>
+                                <FormControl>
+                                    <Input type="password" placeholder="********" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="areaOfActivity"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Department</FormLabel>
+                                <FormLabel>{t("common.department")}</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Flight Ops" {...field} />
                                 </FormControl>
@@ -153,7 +223,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                         name="employmentStart"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Start Date</FormLabel>
+                                <FormLabel>{t("common.startDate")}</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -165,10 +235,10 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button type="submit">
-                        {initialData ? "Update Employee" : "Create Employee"}
+                        {initialData ? t("personnel.updateEmployee") : t("personnel.createEmployee")}
                     </Button>
                 </div>
             </form>

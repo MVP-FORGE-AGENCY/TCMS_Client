@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Printer } from "lucide-react"
-import { addDays, format, differenceInDays } from "date-fns"
+import { addDays, differenceInDays } from "date-fns"
+import { useTranslation } from "react-i18next"
 
 // Mock data for expiring items
 const MOCK_EXPIRING_ITEMS = [
@@ -23,6 +24,7 @@ const MOCK_EXPIRING_ITEMS = [
 ]
 
 export default function ExpiringReport() {
+    const { t, i18n } = useTranslation()
     const [daysThreshold, setDaysThreshold] = useState([90])
 
     const filteredItems = MOCK_EXPIRING_ITEMS.filter(item => {
@@ -40,29 +42,54 @@ export default function ExpiringReport() {
         return ""
     }
 
+    const formatDate = (date: Date) => {
+        const locale = i18n.language === 'bg' ? 'bg-BG' : 'en-GB'
+        return date.toLocaleDateString(locale, {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })
+    }
+
+    const formatDays = (days: number) => {
+        if (days === 1) {
+            return `1 ${t("common.day")}`
+        }
+        return `${days} ${t("common.days")}`
+    }
+
+    const getStatusTranslation = (status: string) => {
+        const statusMap: Record<string, string> = {
+            valid: t("dashboard.valid"),
+            expiring: t("dashboard.expiring"),
+            expired: t("dashboard.expired"),
+        }
+        return statusMap[status] || status
+    }
+
     return (
         <div className="space-y-6 print:space-y-2">
             <div className="flex items-center justify-between print:hidden">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Expiring Competences Report</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t("reports.expiringTitle")}</h1>
                     <p className="text-muted-foreground">
-                        Items expiring within the next {daysThreshold[0]} days.
+                        {t("reports.expiringSubtitle", { days: daysThreshold[0] })}
                     </p>
                 </div>
                 <Button onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4" />
-                    Export PDF
+                    {t("reports.exportPdf")}
                 </Button>
             </div>
 
             {/* Print Header */}
             <div className="hidden print:block mb-6">
-                <h1 className="text-2xl font-bold">Expiring Competences Report</h1>
-                <p className="text-sm text-gray-500">Generated on {format(new Date(), "PPP")}</p>
+                <h1 className="text-2xl font-bold">{t("reports.expiringTitle")}</h1>
+                <p className="text-sm text-gray-500">{t("reports.generatedOn", { date: formatDate(new Date()) })}</p>
             </div>
 
             <div className="flex items-center gap-4 p-4 border rounded-lg bg-card print:hidden">
-                <span className="text-sm font-medium w-32">Within {daysThreshold[0]} Days</span>
+                <span className="text-sm font-medium w-32">{t("reports.withinDays", { days: daysThreshold[0] })}</span>
                 <Slider
                     value={daysThreshold}
                     onValueChange={setDaysThreshold}
@@ -76,18 +103,18 @@ export default function ExpiringReport() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Employee</TableHead>
-                            <TableHead>Competence</TableHead>
-                            <TableHead>Expiry Date</TableHead>
-                            <TableHead>Days Remaining</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>{t("common.fullName")}</TableHead>
+                            <TableHead>{t("sessions.programme")}</TableHead>
+                            <TableHead>{t("common.date")}</TableHead>
+                            <TableHead>{t("reports.daysRemaining")}</TableHead>
+                            <TableHead>{t("common.status")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredItems.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center h-24">
-                                    No expiring items found within this range.
+                                    {t("reports.noExpiringItems")}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -97,15 +124,15 @@ export default function ExpiringReport() {
                                     <TableRow key={item.id} className={getRowColor(daysRemaining)}>
                                         <TableCell className="font-medium">{item.employee}</TableCell>
                                         <TableCell>{item.competence}</TableCell>
-                                        <TableCell>{format(item.expiryDate, "PPP")}</TableCell>
+                                        <TableCell>{formatDate(item.expiryDate)}</TableCell>
                                         <TableCell>
                                             <span className={daysRemaining < 7 ? "text-red-600 font-bold" : daysRemaining < 30 ? "text-amber-600 font-medium" : ""}>
-                                                {daysRemaining} days
+                                                {formatDays(daysRemaining)}
                                             </span>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="uppercase text-xs">
-                                                {item.status}
+                                                {getStatusTranslation(item.status)}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>

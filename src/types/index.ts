@@ -53,6 +53,7 @@ export interface Session {
     sessionType: SessionType;
     capacity?: number;
     status: SessionStatus;
+    isSigned?: boolean;
 }
 
 export interface SessionCreate {
@@ -111,6 +112,7 @@ export interface ProficiencyCheck {
     profileId: string;
     traineeId: string;
     assessorId: string;
+    assessorIds?: string[]; // New: Multiple assessors support
     dateStart: string;
     dateEnd?: string | null;
     conditions?: CheckCondition | null;
@@ -118,12 +120,22 @@ export interface ProficiencyCheck {
     result: CheckResult;
     comments?: string | null;
     protocolUrl?: string | null;
+    evaluations?: CheckAssessorEvaluation[];
+}
+
+export interface CheckAssessorEvaluation {
+    assessorId: string;
+    result: 'pass' | 'fail';
+    comments?: string | null;
+    signature?: string | null;
+    signedAt?: string | null;
 }
 
 export interface ProficiencyCheckCreate {
     profileId: string;
     traineeId: string;
     assessorId: string;
+    assessorIds?: string[]; // New
     dateStart: string;
     location?: string | null;
 }
@@ -134,6 +146,8 @@ export interface ProficiencyCheckComplete {
     elementsResults: Record<string, string>;
     result: CheckResult;
     comments?: string | null;
+    signatures?: Record<string, string>; // assessorId -> signature data
+    evaluations?: CheckAssessorEvaluation[];
 }
 
 export interface Employee {

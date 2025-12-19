@@ -9,7 +9,9 @@ import {
     FileText,
     Settings,
     Plane,
+    ClipboardList,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     className?: string
@@ -17,53 +19,66 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Sidebar({ className }: SidebarProps) {
     const location = useLocation()
+    const { t } = useTranslation()
 
     // TODO: Replace with real role check
     const userRole = "admin"
 
     const navItems = [
         {
-            title: "Dashboard",
+            title: t("nav.dashboard"),
             href: "/",
             icon: LayoutDashboard,
             roles: ["admin", "instructor", "trainee", "manager"],
         },
         {
-            title: "Personnel",
+            title: t("nav.personnel"),
             href: "/personnel",
             icon: Users,
             roles: ["admin", "manager"],
         },
         {
-            title: "Programmes",
+            title: t("nav.programmes"),
             href: "/programmes",
             icon: BookOpen,
             roles: ["admin", "manager", "instructor"],
         },
         {
-            title: "Sessions",
+            title: t("nav.standards"),
+            href: "/standards",
+            icon: BookOpen,
+            roles: ["admin", "manager", "instructor"],
+        },
+        {
+            title: t("nav.sessions"),
             href: "/sessions",
             icon: Calendar,
             roles: ["admin", "manager", "instructor", "trainee"],
         },
         {
-            title: "Proficiency Checks",
+            title: t("nav.checks"),
             href: "/checks",
             icon: ClipboardCheck,
             roles: ["admin", "manager", "instructor", "trainee"],
         },
         {
-            title: "Reports",
+            title: t("nav.reports"),
             href: "/reports",
             icon: FileText,
             roles: ["admin", "manager"],
             badge: 12, // Mocked expired items
         },
         {
-            title: "Settings",
+            title: t("nav.settings"),
             href: "/settings",
             icon: Settings,
             roles: ["admin"],
+        },
+        {
+            title: t("nav.procedures"),
+            href: "/procedures",
+            icon: ClipboardList,
+            roles: ["admin", "manager", "instructor", "trainee", "auditor"],
         },
     ]
 
