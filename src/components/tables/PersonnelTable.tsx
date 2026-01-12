@@ -29,6 +29,7 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import type { Employee } from "@/types"
 import { Edit, Eye, Trash2, ChevronDown } from "lucide-react"
@@ -46,6 +47,7 @@ export function PersonnelTable({
     onViewHistory,
     onDelete,
 }: PersonnelTableProps) {
+    const { t } = useTranslation()
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [rowSelection, setRowSelection] = useState({})
@@ -53,38 +55,38 @@ export function PersonnelTable({
     const columns: ColumnDef<Employee>[] = [
         {
             accessorKey: "fullName",
-            header: "Name",
+            header: t("personnel.name"),
             cell: ({ row }) => <div className="font-medium">{row.getValue("fullName")}</div>,
         },
         {
             accessorKey: "role",
-            header: "Role",
-            cell: ({ row }) => <Badge variant="outline">{row.getValue("role")}</Badge>,
+            header: t("personnel.role"),
+            cell: ({ row }) => <Badge variant="outline">{t(`personnel.roles.${row.getValue("role")}`)}</Badge>,
         },
         {
             accessorKey: "organisationId",
-            header: "Organisation",
+            header: t("personnel.organisation"),
             // In a real app, we'd map ID to name or fetch it
             cell: ({ row }) => <div>{row.getValue("organisationId")}</div>,
         },
         {
             accessorKey: "areaOfActivity",
-            header: "Department",
+            header: t("personnel.department"),
         },
         {
             accessorKey: "employmentStart",
-            header: "Start Date",
+            header: t("personnel.startDate"),
         },
         {
             id: "status",
-            header: "Status",
+            header: t("personnel.status"),
             cell: ({ row }) => {
                 // Mock logic for status based on employmentEnd
                 const endDate = row.original.employmentEnd
                 const isActive = !endDate || new Date(endDate) > new Date()
                 return (
                     <Badge variant={isActive ? "default" : "secondary"}>
-                        {isActive ? "Active" : "Inactive"}
+                        {isActive ? t("common.active") : t("common.inactive")}
                     </Badge>
                 )
             },
@@ -159,7 +161,7 @@ export function PersonnelTable({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("personnel.columns")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -224,7 +226,7 @@ export function PersonnelTable({
                                     colSpan={columns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results.
+                                    {t("common.noData")}
                                 </TableCell>
                             </TableRow>
                         )}

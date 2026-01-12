@@ -72,11 +72,14 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
     const fetchAvailableEmployees = async () => {
         setIsLoading(true)
         try {
-            const res = await api.get('/users?isActive=true&limit=100') // Fetch active users
+            const res = await api.get('/employees?isActive=true&limit=100') // Fetch active employees
             const allUsers = res.data?.data || res.data || []
-            // Filter out already enrolled
+            // Filter out already enrolled and only show employees (trainees)
             const enrolledIds = participants.map(p => p.id)
-            setAvailableEmployees(allUsers.filter((u: Employee) => !enrolledIds.includes(u.id)))
+            setAvailableEmployees(
+                allUsers
+                    .filter((u: Employee) => !enrolledIds.includes(u.id) && u.role === 'employee')
+            )
         } catch (error) {
             console.error("Failed to fetch employees:", error)
         } finally {
@@ -123,8 +126,17 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
         }
     }
 
-    const removeParticipant = (empId: string) => {
-        setParticipants(participants.filter(p => p.id !== empId))
+    const removeParticipant = async (participantId: string) => {
+        if (!session) return
+        try {
+            await api.delete(`/sessions/${session.id}/participants/${participantId}`)
+            // Refresh participants list
+            fetchParticipants()
+        } catch (error: any) {
+            console.error("Failed to remove participant:", error)
+            const errMessage = error.response?.data?.error?.message || "Failed to remove participant"
+            alert(errMessage)
+        }
     }
 
     if (!session) return null

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, BookOpen } from "lucide-react"
+import { Plus, BookOpen, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -9,6 +9,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { ProgrammesTable } from "@/components/tables/ProgrammesTable"
 import { ProgrammeForm } from "@/components/forms/ProgrammeForm"
 import type { Programme } from "@/types"
@@ -21,9 +28,11 @@ export default function ProgrammesPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [programmes, setProgrammes] = useState<Programme[]>([])
+    const [filteredProgrammes, setFilteredProgrammes] = useState<Programme[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [selectedProgramme, setSelectedProgramme] = useState<Programme | null>(null)
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
 
     const fetchProgrammes = async () => {
         try {
@@ -34,7 +43,7 @@ export default function ProgrammesPage() {
             setProgrammes(Array.isArray(data) ? data : [])
         } catch (error) {
             console.error("Failed to fetch programmes:", error)
-            toast.error("Failed to load programmes")
+            toast.error(t("programmes.toast.loadError", "Failed to load programmes"))
         } finally {
             setIsLoading(false)
         }
@@ -44,16 +53,28 @@ export default function ProgrammesPage() {
         fetchProgrammes()
     }, [])
 
+    // Filter programmes based on status
+    useEffect(() => {
+        if (statusFilter === "all") {
+            setFilteredProgrammes(programmes)
+        } else if (statusFilter === "active") {
+            setFilteredProgrammes(programmes.filter(p => p.isActive))
+        } else {
+            setFilteredProgrammes(programmes.filter(p => !p.isActive))
+        }
+    }, [programmes, statusFilter])
+
     const handleCreate = async (values: any) => {
         try {
+            console.log('[page.tsx handleCreate] Values to send:', JSON.stringify(values))
             await api.post("/programmes", values)
-            toast.success("Programme created successfully")
+            toast.success(t("programmes.toast.created", "Programme created successfully"))
             fetchProgrammes()
             setIsFormOpen(false)
         } catch (error: any) {
             console.error("Failed to create programme:", error)
             const { parseApiError } = await import("@/lib/error-utils")
-            toast.error(parseApiError(error), { duration: 5000 })
+            toast.error(parseApiError(error) || t("programmes.toast.createError", "Failed to create programme"), { duration: 5000 })
         }
     }
 
@@ -61,25 +82,25 @@ export default function ProgrammesPage() {
         if (!selectedProgramme) return
         try {
             await api.patch(`/programmes/${selectedProgramme.id}`, values)
-            toast.success("Programme updated successfully")
+            toast.success(t("programmes.toast.updated", "Programme updated successfully"))
             fetchProgrammes()
             setIsFormOpen(false)
             setSelectedProgramme(null)
         } catch (error: any) {
             console.error("Failed to update programme:", error)
             const { parseApiError } = await import("@/lib/error-utils")
-            toast.error(parseApiError(error), { duration: 5000 })
+            toast.error(parseApiError(error) || t("programmes.toast.updateError", "Failed to update programme"), { duration: 5000 })
         }
     }
 
     const handleToggleActive = async (id: string, isActive: boolean) => {
         try {
             await api.patch(`/programmes/${id}`, { isActive })
-            toast.success(`Programme ${isActive ? "activated" : "deactivated"}`)
+            toast.success(isActive ? t("programmes.toast.activated", "Programme activated") : t("programmes.toast.deactivated", "Programme deactivated"))
             fetchProgrammes()
         } catch (error) {
             console.error("Failed to update programme status:", error)
-            toast.error("Failed to update status")
+            toast.error(t("programmes.toast.statusError", "Failed to update status"))
         }
     }
 
@@ -106,24 +127,40 @@ export default function ProgrammesPage() {
                         {t("programmes.subtitle")}
                     </p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    <Plus className="mr-2 h-4 w-4" /> {t("programmes.addProgramme")}
-                </Button>
+                <div className="flex items-center gap-4">
+                    <Select
+                        value={statusFilter}
+                        onValueChange={(value: "all" | "active" | "inactive") => setStatusFilter(value)}
+                    >
+                        <SelectTrigger className="w-[150px]">
+                            <Filter className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder={t("programmes.filterPlaceholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t("programmes.all")}</SelectItem>
+                            <SelectItem value="active">{t("programmes.active")}</SelectItem>
+                            <SelectItem value="inactive">{t("programmes.inactive")}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={openCreateModal}>
+                        <Plus className="mr-2 h-4 w-4" /> {t("programmes.addProgramme")}
+                    </Button>
+                </div>
             </div>
 
             {isLoading ? (
                 <TableSkeleton columnCount={6} rowCount={10} />
-            ) : programmes.length === 0 ? (
+            ) : filteredProgrammes.length === 0 ? (
                 <EmptyState
                     icon={BookOpen}
-                    title={t("common.noData")}
-                    description={t("common.getStarted")}
+                    title={statusFilter === "all" ? t("common.noData") : t("programmes.noProgrammes", { status: statusFilter })}
+                    description={statusFilter === "all" ? t("common.getStarted") : t("programmes.tryDifferentFilter")}
                     actionLabel={t("programmes.addProgramme")}
                     onAction={openCreateModal}
                 />
             ) : (
                 <ProgrammesTable
-                    data={programmes}
+                    data={filteredProgrammes}
                     onEdit={openEditModal}
                     onToggleActive={handleToggleActive}
                     onView={handleView}

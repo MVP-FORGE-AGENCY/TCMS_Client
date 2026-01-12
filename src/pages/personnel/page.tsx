@@ -63,12 +63,12 @@ export default function PersonnelPage() {
                 await employeesApi.create(employeeData)
             }
             
-            toast.success("Employee created successfully")
+            toast.success(t("personnel.toast.created", "Employee created successfully"))
             fetchEmployees()
             setIsFormOpen(false)
         } catch (error) {
             console.error("Failed to create employee:", error)
-            toast.error("Failed to create employee")
+            toast.error(t("personnel.toast.createError", "Failed to create employee"))
         }
     }
 
@@ -77,13 +77,13 @@ export default function PersonnelPage() {
         try {
             // Note: PATCH /employees/{id} is not in the spec, assuming standard REST
             await api.patch(`/employees/${selectedEmployee.id}`, values)
-            toast.success("Employee updated successfully")
+            toast.success(t("personnel.toast.updated", "Employee updated successfully"))
             fetchEmployees()
             setIsFormOpen(false)
             setSelectedEmployee(null)
         } catch (error) {
             console.error("Failed to update employee:", error)
-            toast.error("Failed to update employee")
+            toast.error(t("personnel.toast.updateError", "Failed to update employee"))
         }
     }
 
@@ -92,11 +92,11 @@ export default function PersonnelPage() {
             try {
                 // Note: DELETE /employees/{id} is not in the spec, assuming standard REST
                 await api.delete(`/employees/${id}`)
-                toast.success("Employee deleted successfully")
+                toast.success(t("personnel.toast.deleted", "Employee deleted successfully"))
                 fetchEmployees()
             } catch (error) {
                 console.error("Failed to delete employee:", error)
-                toast.error("Failed to delete employee")
+                toast.error(t("personnel.toast.deleteError", "Failed to delete employee"))
             }
         }
     }
@@ -153,7 +153,7 @@ export default function PersonnelPage() {
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle>
-                            {selectedEmployee ? "Edit Employee" : "Add New Employee"}
+                            {selectedEmployee ? t("personnel.edit") : t("personnel.addEmployee")}
                         </DialogTitle>
                     </DialogHeader>
                     <PersonnelForm

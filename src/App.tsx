@@ -14,16 +14,23 @@ const DashboardPage = lazy(() => import("@/pages/dashboard/page"))
 const ProgrammesPage = lazy(() => import("@/pages/programmes/page"))
 const ProgrammeDetailPage = lazy(() => import("@/pages/programmes/ProgrammeDetailPage"))
 const SessionsPage = lazy(() => import("@/pages/sessions/page"))
+const SessionDetailPage = lazy(() => import("@/pages/sessions/SessionDetailPage"))
 const ChecksPage = lazy(() => import("@/pages/checks/page"))
+const CheckDetailPage = lazy(() => import("@/pages/checks/CheckDetailPage"))
 const ExpiringReport = lazy(() => import("@/pages/reports/ExpiringReport"))
 const SettingsPage = lazy(() => import("@/pages/settings/page"))
 const StandardsPage = lazy(() => import("@/pages/standards/page"))
 const StandardDetailPage = lazy(() => import("@/pages/standards/StandardDetailPage"))
 const ProceduresPage = lazy(() => import("@/pages/procedures/page"))
 const ProcedureDetailPage = lazy(() => import("@/pages/procedures/ProcedureDetailPage"))
+const CompetenceDashboard = lazy(() => import("@/pages/competence/page"))
+const EmployeeHistoryPage = lazy(() => import("@/pages/competence/EmployeeHistoryPage"))
+const ChangePasswordPage = lazy(() => import("@/pages/auth/ChangePasswordPage"))
+const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage"))
+const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
 
 function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -36,6 +43,15 @@ function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // const { user } = useAuth() // Moved to top
+  if (user?.mustChangePassword && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />
+  }
+
+  if (!user?.mustChangePassword && location.pathname === "/change-password") {
+     return <Navigate to="/dashboard" replace />
   }
 
   return <Outlet />
@@ -66,13 +82,29 @@ function App() {
                     <Route path="/standards" element={<StandardsPage />} />
                     <Route path="/standards/:id" element={<StandardDetailPage />} />
                     <Route path="/sessions" element={<SessionsPage />} />
+                    <Route path="/sessions/:id" element={<SessionDetailPage />} />
                     <Route path="/checks" element={<ChecksPage />} />
+                    <Route path="/checks/:id" element={<CheckDetailPage />} />
                     <Route path="/reports" element={<ExpiringReport />} />
                     <Route path="/procedures" element={<ProceduresPage />} />
                     <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
+                    <Route path="/competence" element={<CompetenceDashboard />} />
+                    <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    
+                    {/* Super Admin Routes */}
+                    <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
+                    <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+                    <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
                   </Route>
                 </Route>
+                
+                {/* Independent Protected Route for Change Password to avoid Layout if needed, or keep inside */}
+                 <Route element={<ProtectedRoute />}>
+                    <Route path="/change-password" element={<ChangePasswordPage />} />
+                 </Route>
+
               </Routes>
             </Suspense>
           </Router>

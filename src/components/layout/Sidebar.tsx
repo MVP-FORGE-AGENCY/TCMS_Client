@@ -62,6 +62,12 @@ export function Sidebar({ className }: SidebarProps) {
             roles: ["admin", "manager", "instructor", "trainee"],
         },
         {
+            title: t("nav.competence"),
+            href: "/competence",
+            icon: ClipboardList, // Or another suitable icon
+            roles: ["admin", "manager", "instructor", "trainee"],
+        },
+        {
             title: t("nav.reports"),
             href: "/reports",
             icon: FileText,
@@ -103,7 +109,7 @@ export function Sidebar({ className }: SidebarProps) {
                                 to={item.href}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
-                                    location.pathname === item.href
+                                    (location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href)))
                                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                                         : "text-muted-foreground hover:bg-sidebar-accent/50"
                                 )}

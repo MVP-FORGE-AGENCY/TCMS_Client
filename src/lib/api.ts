@@ -33,6 +33,10 @@ export const auth = {
         const response = await api.post("/auth/register", data)
         return response.data
     },
+    changePassword: async (data: any) => {
+        const response = await api.post("/auth/change-password", data)
+        return response.data
+    },
 }
 
 export const employees = {
@@ -176,12 +180,20 @@ export const standards = {
         const response = await api.patch(`/standards/${id}`, data)
         return response.data
     },
+    delete: async (id: string) => {
+        const response = await api.delete(`/standards/${id}`)
+        return response.data
+    },
     getMaterials: async (id: string, params?: { status?: string; type?: string }) => {
         const response = await api.get(`/materials/standards/${id}/materials`, { params })
         return response.data
     },
     uploadMaterial: async (id: string, data: { title: string; type: string; fileSize?: number; mimeType?: string }) => {
         const response = await api.post(`/materials/standards/${id}/materials`, data)
+        return response.data
+    },
+    getRevisions: async (id: string) => {
+        const response = await api.get(`/standards/${id}/revisions`)
         return response.data
     },
 }
@@ -262,7 +274,7 @@ export const checks = {
 
 // Sessions with enhanced results
 export const sessions = {
-    list: async (params?: { programmeId?: string; from?: string; to?: string; status?: string; page?: number; limit?: number }) => {
+    list: async (params?: { programmeId?: string; standardId?: string; from?: string; to?: string; status?: string; page?: number; limit?: number }) => {
         const response = await api.get("/sessions", { params })
         return response.data
     },
@@ -325,4 +337,18 @@ export const sessions = {
     },
 }
 
-
+// Super Admin
+export const superAdmin = {
+    listOrganizations: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+        const response = await api.get("/super-admin/organizations", { params })
+        return response.data
+    },
+    getOrganization: async (id: string) => {
+        const response = await api.get(`/super-admin/organizations/${id}`)
+        return response.data
+    },
+    createOrganization: async (data: any) => {
+        const response = await api.post("/super-admin/organizations", data)
+        return response.data
+    },
+}

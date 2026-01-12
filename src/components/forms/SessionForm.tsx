@@ -22,11 +22,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2, UserPlus } from "lucide-react"
 import type { Session, Programme } from "@/types"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { employees } from "@/lib/api"
+import { Badge } from "@/components/ui/badge"
+import { TraineePickerModal } from "@/components/modals/TraineePickerModal"
 
 interface Instructor {
     id: string
@@ -44,6 +46,7 @@ const formSchema = z.object({
     instructorId: z.string().min(1, "Instructor is required"),
     sessionType: z.enum(["theory", "practical", "combined"]),
     capacity: z.coerce.number().min(1, "Capacity must be at least 1"),
+    participantIds: z.array(z.string()).optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -59,6 +62,8 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
     const { t } = useTranslation()
     const [instructors, setInstructors] = useState<Instructor[]>([])
     const [loadingInstructors, setLoadingInstructors] = useState(true)
+    const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
+    const [isTraineeModalOpen, setIsTraineeModalOpen] = useState(false)
     
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
@@ -68,6 +73,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
             instructorId: "",
             sessionType: "combined",
             capacity: 10,
+            participantIds: [],
         },
     })
 
@@ -97,6 +103,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
         fetchInstructors()
     }, [])
 
+
     useEffect(() => {
         if (initialData) {
             form.reset({
@@ -112,8 +119,10 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
     }, [initialData, form])
 
     function handleSubmit(values: FormValues) {
-        onSubmit(values)
+        // Include selected participants
+        onSubmit({ ...values, participantIds: selectedParticipants })
     }
+
 
     return (
         <Form {...form}>
@@ -318,6 +327,58 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         )}
                     />
                 </div>
+
+                {/* Trainee/Participant Selection */}
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                        Participants
+                    </label>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsTraineeModalOpen(true)}
+                            className="w-full justify-start"
+                        >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            {selectedParticipants.length > 0 
+                                ? `${selectedParticipants.length} trainee(s) selected` 
+                                : "Add Participants..."
+                            }
+                        </Button>
+                        {selectedParticipants.length > 0 && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedParticipants([])}
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    {selectedParticipants.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {selectedParticipants.slice(0, 5).map(id => (
+                                <Badge key={id} variant="secondary" className="text-xs">
+                                    ID: {id.slice(0, 8)}...
+                                </Badge>
+                            ))}
+                            {selectedParticipants.length > 5 && (
+                                <Badge variant="outline" className="text-xs">
+                                    +{selectedParticipants.length - 5} more
+                                </Badge>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <TraineePickerModal
+                    open={isTraineeModalOpen}
+                    onOpenChange={setIsTraineeModalOpen}
+                    selectedIds={selectedParticipants}
+                    onSelectionChange={setSelectedParticipants}
+                />
 
                 <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={onCancel}>

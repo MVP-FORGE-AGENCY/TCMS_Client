@@ -23,14 +23,14 @@ import type { Session } from "@/types"
 
 interface SessionsTableProps {
     data: Session[]
-    onViewParticipants: (session: Session) => void
+    onViewSession: (session: Session) => void
     onRecordResults: (session: Session) => void
     onCancelSession: (session: Session) => void
 }
 
 export function SessionsTable({
     data,
-    onViewParticipants,
+    onViewSession,
     onRecordResults,
     onCancelSession,
 }: SessionsTableProps) {
@@ -121,9 +121,9 @@ export function SessionsTable({
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => onViewParticipants(session)}>
+                                            <DropdownMenuItem onClick={() => onViewSession(session)}>
                                                 <Users className="mr-2 h-4 w-4" />
-                                                View Participants
+                                                View Details
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => onRecordResults(session)}>
                                                 <ClipboardCheck className="mr-2 h-4 w-4" />

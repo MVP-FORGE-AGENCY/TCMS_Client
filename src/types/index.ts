@@ -13,6 +13,12 @@ export interface Programme {
     code: string;
     name: string;
     type: ProgrammeType;
+    standardId?: string | null;
+    standard?: {
+        id: string;
+        code: string;
+        name: string;
+    } | null;
     validityMonths?: number | null;
     durationHours?: number;
     frequencyMonths?: number | null;
@@ -25,6 +31,7 @@ export interface ProgrammeCreate {
     code: string;
     name: string;
     type: ProgrammeType;
+    standardId: string;
     validityMonths?: number | null;
     durationHours?: number;
     frequencyMonths?: number | null;
@@ -54,6 +61,12 @@ export interface Session {
     capacity?: number;
     status: SessionStatus;
     isSigned?: boolean;
+    programme?: {
+        id: string;
+        name: string;
+        code: string;
+        passScorePercent?: number;
+    };
 }
 
 export interface SessionCreate {
@@ -81,6 +94,35 @@ export interface SessionResultItem {
     score?: number | null;
     result?: SessionResultStatus | null;
     comments?: string | null;
+    theoryMethod?: AssessmentMethod | null;
+    theoryScore?: number | null;
+    theoryResult?: SessionResultStatus | null;
+    practicalMethod?: AssessmentMethod | null;
+    practicalScore?: number | null;
+    practicalResult?: SessionResultStatus | null;
+    overallResult?: SessionResultStatus | null;
+}
+
+export interface SessionResult {
+    id: string;
+    userId: string;
+    fullName: string;
+    email: string;
+    departmentTag?: string;
+    attendance: AttendanceStatus;
+    assessmentMethod?: AssessmentMethod;
+    score?: number;
+    result?: SessionResultStatus;
+    comments?: string;
+    theoryMethod?: AssessmentMethod;
+    theoryScore?: number;
+    theoryResult?: SessionResultStatus;
+    practicalMethod?: AssessmentMethod;
+    practicalScore?: number;
+    practicalResult?: SessionResultStatus;
+    overallResult?: SessionResultStatus;
+    certificateUrl?: string;
+    certificateNumber?: string;
 }
 
 export interface SessionResultsRequest {
@@ -150,14 +192,28 @@ export interface ProficiencyCheckComplete {
     evaluations?: CheckAssessorEvaluation[];
 }
 
+
+export interface Organization {
+    id: string;
+    name: string;
+    code: string;
+    country: string;
+    status: 'active' | 'suspended' | 'trial' | 'archived';
+    licenseType?: 'trial' | 'standard' | 'premium' | 'enterprise';
+    trialEndsAt?: string;
+    adminCount?: number;
+    userCount?: number;
+}
+
 export interface Employee {
     id: string;
     fullName: string;
     organisationId: string;
-    role: string;
+    role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly';
     areaOfActivity?: string | null;
     employmentStart: string;
     employmentEnd?: string | null;
+    mustChangePassword?: boolean;
 }
 
 export interface EmployeeHistory {
@@ -188,4 +244,33 @@ export interface CompetenceStatus {
 
 export interface ReportUrl {
     url: string;
+}
+
+export interface Standard {
+    id: string
+    code: string
+    name: string
+    description?: string
+    objectives?: string[]
+    validityMonths?: number
+    hasTheory: boolean
+    hasPractical: boolean
+    theoryPassScore?: number
+    practicalPassScore?: number
+    allowedMethods?: string[]
+    isActive: boolean
+    revision: number
+    departmentTag?: string
+    createdAt: string
+    updatedAt: string
+    isLatestRevision: boolean
+    createdFrom?: string
+    supersededBy?: string
+    validFrom?: string
+    validUntil?: string
+    deactivatedAt?: string
+    deactivatedBy?: {
+        id: string
+        name: string
+    }
 }

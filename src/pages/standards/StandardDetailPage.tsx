@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { standards, materialActions } from "@/lib/api"
+import { standards, materialActions, sessions } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,7 +21,10 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Upload, Download, Check, Archive, FileText } from "lucide-react"
+import { ArrowLeft, Upload, Download, Check, Archive, FileText, History, Pencil } from "lucide-react"
+import { EditStandardDialog } from "@/components/standards/EditStandardDialog"
+import { RevisionHistoryModal } from "@/components/standards/RevisionHistoryModal"
+import { RevisionBadge } from "@/components/standards/RevisionBadge"
 
 interface Material {
     id: string
@@ -42,6 +45,8 @@ export default function StandardDetailPage() {
     const queryClient = useQueryClient()
     const { user } = useAuth()
     const [isUploadOpen, setIsUploadOpen] = useState(false)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false)
     const [uploadData, setUploadData] = useState({ title: "", type: "pdf" })
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
@@ -60,9 +65,15 @@ export default function StandardDetailPage() {
         enabled: !!id,
     })
 
+    const { data: sessionsData, isLoading: isSessionsLoading } = useQuery({
+        queryKey: ["standard-sessions", id],
+        queryFn: () => sessions.list({ standardId: id!, limit: 100 }),
+        enabled: !!id,
+    })
+
     const uploadMutation = useMutation({
         mutationFn: async () => {
-            // First get signed upload URL
+            // First create material record and get its ID
             const response = await standards.uploadMaterial(id!, {
                 title: uploadData.title,
                 type: uploadData.type,
@@ -70,18 +81,28 @@ export default function StandardDetailPage() {
                 mimeType: selectedFile?.type,
             })
             
-            // Then upload to signed URL if available
-            if (response.uploadUrl && selectedFile) {
-                const uploadResponse = await fetch(response.uploadUrl, {
-                    method: "PUT",
-                    body: selectedFile,
-                    headers: { "Content-Type": selectedFile.type },
-                })
+            // Then upload file via proxy endpoint
+            if (response.material?.id && selectedFile) {
+                const formData = new FormData()
+                formData.append('file', selectedFile)
+                
+                const token = localStorage.getItem('token')
+                const uploadResponse = await fetch(
+                    `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/materials/${response.material.id}/upload`,
+                    {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                )
+                
                 if (!uploadResponse.ok) {
-                    throw new Error(`File upload failed: ${uploadResponse.statusText}`)
+                    const errorData = await uploadResponse.json().catch(() => ({}))
+                    console.error("Upload failed:", uploadResponse.status, errorData)
+                    throw new Error(errorData?.error?.message || `File upload failed: ${uploadResponse.statusText}`)
                 }
-            } else if (!response.uploadUrl) {
-                console.warn("No upload URL returned - storage may not be configured")
             }
             return response
         },
@@ -93,7 +114,7 @@ export default function StandardDetailPage() {
             toast.success("Material uploaded successfully")
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.error?.message || "Upload failed")
+            toast.error(error?.message || error?.response?.data?.error?.message || "Upload failed")
         },
     })
 
@@ -163,9 +184,24 @@ export default function StandardDetailPage() {
                         <Badge variant={standard.isActive ? "default" : "secondary"}>
                             {standard.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        <Badge variant="outline">v{standard.revision}</Badge>
+                        <RevisionBadge 
+                            revision={standard.revision} 
+                            isLatest={standard.isLatestRevision} 
+                        />
                     </div>
                     <p className="text-muted-foreground">{standard.name}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsHistoryOpen(true)}>
+                        <History className="mr-2 h-4 w-4" />
+                        History
+                    </Button>
+                    {canManage && (
+                        <Button onClick={() => setIsEditOpen(true)} size="sm">
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -399,13 +435,85 @@ export default function StandardDetailPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground">
-                                Sessions list will be displayed here when programmes are linked to this standard.
-                            </p>
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Programme</TableHead>
+                                            <TableHead>Dates</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Location</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {isSessionsLoading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                    Loading sessions...
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : !sessionsData?.data || sessionsData.data.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                    No sessions found for this standard
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            sessionsData.data.map((session: any) => (
+                                                <TableRow key={session.id}>
+                                                    <TableCell>
+                                                        <div className="font-medium">{session.programme?.name}</div>
+                                                        <div className="text-xs text-muted-foreground">{session.programme?.code}</div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="text-sm">
+                                                            {new Date(session.dateStart).toLocaleDateString()}
+                                                            {session.dateEnd && ` - ${new Date(session.dateEnd).toLocaleDateString()}`}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="capitalize">{session.sessionType || "-"}</TableCell>
+                                                    <TableCell>{session.location}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={
+                                                            session.status === 'completed' ? 'default' :
+                                                            session.status === 'cancelled' ? 'destructive' :
+                                                            session.status === 'in_progress' ? 'secondary' : 'outline'
+                                                        }>
+                                                            {session.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/sessions/${session.id}`)}>
+                                                            View
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {standard && (
+                <>
+                    <EditStandardDialog 
+                        standard={standard} 
+                        open={isEditOpen} 
+                        onOpenChange={setIsEditOpen} 
+                    />
+                    <RevisionHistoryModal 
+                        standardId={standard.id} 
+                        open={isHistoryOpen} 
+                        onOpenChange={setIsHistoryOpen} 
+                    />
+                </>
+            )}
         </div>
     )
 }

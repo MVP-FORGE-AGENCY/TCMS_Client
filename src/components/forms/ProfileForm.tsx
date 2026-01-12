@@ -12,14 +12,17 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2 } from "lucide-react"
 import type { ProficiencyProfile } from "@/types"
 import { useEffect } from "react"
+import { Label } from "@/components/ui/label"
 import { useTranslation } from "react-i18next"
 
 const formSchema = z.object({
     code: z.string().min(2, "Code must be at least 2 characters"),
     name: z.string().min(2, "Name must be at least 2 characters"),
+    standardId: z.string().uuid("Standard is required"),
     intervalMonths: z.coerce.number().min(1).max(24, "Interval cannot exceed 24 months"),
     requiredAssessors: z.coerce.number().min(1),
     elements: z.array(
@@ -36,15 +39,17 @@ interface ProfileFormProps {
     initialData?: ProficiencyProfile | null
     onSubmit: (values: any) => void
     onCancel: () => void
+    standards: any[]
 }
 
-export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProps) {
+export function ProfileForm({ initialData, onSubmit, onCancel, standards }: ProfileFormProps) {
     const { t } = useTranslation()
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
             code: "",
             name: "",
+            standardId: "",
             intervalMonths: 6,
             requiredAssessors: 1,
             elements: [],
@@ -58,7 +63,6 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
 
     useEffect(() => {
         if (initialData) {
-            // Convert requiredElements object to array for form
             const elementsArray = initialData.requiredElements
                 ? Object.entries(initialData.requiredElements).map(([name, isMandatory]) => ({
                     name,
@@ -69,6 +73,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
             form.reset({
                 code: initialData.code,
                 name: initialData.name,
+                standardId: (initialData as any).standardId || "",
                 intervalMonths: initialData.intervalMonths,
                 requiredAssessors: initialData.requiredAssessors,
                 elements: elementsArray,
@@ -77,7 +82,6 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
     }, [initialData, form])
 
     function handleSubmit(values: FormValues) {
-        // Convert array back to object for API
         const requiredElements = values.elements.reduce((acc, curr) => {
             acc[curr.name] = curr.isMandatory
             return acc
@@ -121,6 +125,31 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
                     />
                 </div>
 
+                <FormField
+                    control={form.control}
+                    name="standardId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Training Standard</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a standard" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {standards.map((s) => (
+                                        <SelectItem key={s.id} value={s.id}>
+                                            {s.code} - {s.title || s.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -152,7 +181,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel }: ProfileFormProp
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <FormLabel>{t("checks.elementAssessment")}</FormLabel>
+                        <Label>{t("checks.elementAssessment")}</Label>
                         <Button
                             type="button"
                             variant="outline"

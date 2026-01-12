@@ -23,6 +23,8 @@ import { Switch } from "@/components/ui/switch"
 import type { Programme } from "@/types"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { useQuery } from "@tanstack/react-query"
+import { standards } from "@/lib/api"
 
 const formSchema = z.object({
     code: z.string().min(2, {
@@ -30,6 +32,9 @@ const formSchema = z.object({
     }),
     name: z.string().min(2, {
         message: "Name must be at least 2 characters.",
+    }),
+    standardId: z.string().min(1, {
+        message: "Training Standard is required.",
     }),
     type: z.enum(["initial", "recurrent", "refresher", "continuation"]),
     validityMonths: z.preprocess(
@@ -59,11 +64,20 @@ interface ProgrammeFormProps {
 export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeFormProps) {
     const { t } = useTranslation()
     
+    // Fetch active standards for selection
+    const { data: standardsData } = useQuery({
+        queryKey: ["standards", { isActive: true }],
+        queryFn: () => standards.list({ isActive: true }),
+    })
+    
+    const availableStandards = Array.isArray(standardsData) ? standardsData : (standardsData?.data || [])
+    
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
             code: "",
             name: "",
+            standardId: "",
             type: "initial",
             validityMonths: 12,
             durationHours: 4,
@@ -78,6 +92,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
             form.reset({
                 code: initialData.code,
                 name: initialData.name,
+                standardId: initialData.standardId || "",
                 type: initialData.type,
                 validityMonths: initialData.validityMonths || 0,
                 durationHours: initialData.durationHours || 0,
@@ -89,6 +104,7 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
     }, [initialData, form])
 
     function handleSubmit(values: z.infer<typeof formSchema>) {
+        console.log('[ProgrammeForm] Submitting values:', values)
         onSubmit(values)
     }
 
@@ -144,6 +160,32 @@ export function ProgrammeForm({ initialData, onSubmit, onCancel }: ProgrammeForm
                             <FormControl>
                                 <Input placeholder="Operator Proficiency Check A320" {...field} />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="standardId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Training Standard *</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a training standard" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {availableStandards.map((std: any) => (
+                                        <SelectItem key={std.id} value={std.id}>
+                                            {std.code} - {std.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>Select the standard this programme teaches.</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}

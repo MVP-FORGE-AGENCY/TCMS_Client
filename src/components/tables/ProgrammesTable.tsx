@@ -33,6 +33,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTranslation } from "react-i18next"
 
 interface ProgrammesTableProps {
     data: Programme[]
@@ -47,18 +48,19 @@ export function ProgrammesTable({
     onToggleActive,
     onView,
 }: ProgrammesTableProps) {
+    const { t } = useTranslation()
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
     const columns: ColumnDef<Programme>[] = [
         {
             accessorKey: "code",
-            header: "Code",
+            header: t("programmes.code"),
             cell: ({ row }) => <div className="font-medium">{row.getValue("code")}</div>,
         },
         {
             accessorKey: "name",
-            header: "Name",
+            header: t("programmes.name"),
             cell: ({ row }) => (
                 <button
                     className="hover:underline font-medium"
@@ -69,8 +71,22 @@ export function ProgrammesTable({
             ),
         },
         {
+            accessorKey: "standard",
+            header: t("programmes.standard"),
+            cell: ({ row }) => {
+                const standard = row.original.standard
+                return standard ? (
+                    <Badge variant="outline" className="font-mono text-xs">
+                        {standard.code}
+                    </Badge>
+                ) : (
+                    <span className="text-muted-foreground">—</span>
+                )
+            },
+        },
+        {
             accessorKey: "type",
-            header: "Type",
+            header: t("programmes.type"),
             cell: ({ row }) => {
                 const type = row.getValue("type") as ProgrammeType
                 let colorClass = "bg-gray-500"
@@ -99,7 +115,7 @@ export function ProgrammesTable({
         },
         {
             accessorKey: "validityMonths",
-            header: "Validity (Months)",
+            header: t("programmes.validityMonths"),
             cell: ({ row }) => {
                 const val = row.getValue("validityMonths")
                 return <div>{val ? `${val} months` : "N/A"}</div>
@@ -107,7 +123,7 @@ export function ProgrammesTable({
         },
         {
             accessorKey: "isActive",
-            header: "Active",
+            header: t("programmes.active"),
             cell: ({ row }) => (
                 <Switch
                     checked={row.getValue("isActive")}
@@ -130,12 +146,19 @@ export function ProgrammesTable({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t("programmes.actions")}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => onEdit(programme)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                <Edit className="mr-2 h-4 w-4" /> {t("programmes.edit")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Deactivate
+                            <DropdownMenuItem 
+                                className={programme.isActive ? "text-destructive" : "text-green-600"}
+                                onClick={() => onToggleActive(programme.id, !programme.isActive)}
+                            >
+                                {programme.isActive ? (
+                                    <><Trash2 className="mr-2 h-4 w-4" /> {t("programmes.deactivate")}</>
+                                ) : (
+                                    <><Edit className="mr-2 h-4 w-4" /> {t("programmes.activate")}</>
+                                )}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -214,7 +237,7 @@ export function ProgrammesTable({
                                     colSpan={columns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results.
+                                    {t("common.noData")}
                                 </TableCell>
                             </TableRow>
                         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -25,66 +25,219 @@ import {
     Cell,
 } from "recharts"
 import { api } from "@/lib/api"
-// import { toast } from "sonner"
+import { useAuth } from "@/context/AuthContext"
 
-// Mock Data for Charts (kept as mock for now as API lacks aggregation endpoints)
-const DEPARTMENT_DATA = [
-    { name: "Flight Ops", valid: 45, expiring: 5, expired: 2 },
-    { name: "Cabin Crew", valid: 80, expiring: 12, expired: 5 },
-    { name: "Ground Ops", valid: 30, expiring: 3, expired: 1 },
-    { name: "Maintenance", valid: 25, expiring: 2, expired: 0 },
-]
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
-const TRAINING_TREND_DATA = [
-    { month: "Jan", completed: 12 },
-    { month: "Feb", completed: 19 },
-    { month: "Mar", completed: 15 },
-    { month: "Apr", completed: 22 },
-    { month: "May", completed: 28 },
-    { month: "Jun", completed: 25 },
-]
+// Role display name mapping
+const ROLE_LABELS: Record<string, string> = {
+    admin: "Admin",
+    training_manager: "Training Manager",
+    instructor: "Instructor",
+    employee: "Employee",
+    assessor: "Assessor",
+    auditor: "Auditor",
+}
 
-const ROLE_DATA = [
-    { name: "Pilots", value: 52 },
-    { name: "Cabin Crew", value: 97 },
-    { name: "Instructors", value: 15 },
-    { name: "Admin", value: 8 },
-]
+interface CompetenceItem {
+    departmentTag?: string | null
+    status: string
+}
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
+interface EmployeeItem {
+    role: string
+}
+
+interface SessionItem {
+    dateStart: string
+    status: string
+}
 
 export default function DashboardPage() {
     const { t } = useTranslation()
+    const { isLoading: authLoading, isAuthenticated } = useAuth()
     const [stats, setStats] = useState({
         totalPersonnel: 0,
         activeProgrammes: 0,
         expiringCompetences: 0,
-        complianceRate: 94.2 // Mocked for now
+        complianceRate: 0
     })
 
+    // Chart data states
+    const [departmentData, setDepartmentData] = useState<Array<{ name: string; valid: number; expiring: number; expired: number }>>([])
+    const [roleData, setRoleData] = useState<Array<{ name: string; value: number }>>([])
+    const [trainingTrendData, setTrainingTrendData] = useState<Array<{ month: string; completed: number }>>([])
+    const [isLoading, setIsLoading] = useState(true)
+
     useEffect(() => {
-        const fetchStats = async () => {
+        // Wait for auth to be ready before fetching data
+        if (authLoading || !isAuthenticated) {
+            return
+        }
+
+        const fetchDashboardData = async () => {
             try {
-                const [employeesRes, programmesRes, expiringRes] = await Promise.all([
-                    api.get("/employees"),
-                    api.get("/programmes?isActive=true"),
-                    api.get("/reports/expiring?withinDays=30")
+                setIsLoading(true)
+                
+                // Fetch all data in parallel with allSettled for resilience
+                // Note: API max limit is 100, so we use that
+                const results = await Promise.allSettled([
+                    api.get("/employees?limit=100"),
+                    api.get("/programmes?isActive=true&limit=100"),
+                    api.get("/reports/expiring?withinDays=30"),
+                    api.get("/competence?limit=100"),
+                    api.get("/sessions?status=completed&limit=100")
                 ])
 
-                setStats({
-                    totalPersonnel: employeesRes.data.length,
-                    activeProgrammes: programmesRes.data.length,
-                    expiringCompetences: expiringRes.data.length,
-                    complianceRate: 94.2
+                // Extract results safely
+                const employeesRes = results[0].status === 'fulfilled' ? results[0].value : null
+                const programmesRes = results[1].status === 'fulfilled' ? results[1].value : null
+                const expiringRes = results[2].status === 'fulfilled' ? results[2].value : null
+                const competenceRes = results[3].status === 'fulfilled' ? results[3].value : null
+                const sessionsRes = results[4].status === 'fulfilled' ? results[4].value : null
+
+                // Log for debugging
+                console.log('Dashboard API responses:', {
+                    employees: employeesRes?.data,
+                    programmes: programmesRes?.data,
+                    expiring: expiringRes?.data,
+                    competence: competenceRes?.data,
+                    sessions: sessionsRes?.data
                 })
+
+                // Parse responses - handle both { data: [...] } and direct array formats
+                const getDataArray = (res: { data: { data?: unknown[] } | unknown[] } | null): unknown[] => {
+                    if (!res?.data) return []
+                    // If res.data is an array directly
+                    if (Array.isArray(res.data)) return res.data
+                    // If res.data.data is an array (paginated format)
+                    if (Array.isArray(res.data.data)) return res.data.data
+                    return []
+                }
+
+                const employees = getDataArray(employeesRes) as EmployeeItem[]
+                const competences = getDataArray(competenceRes) as CompetenceItem[]
+                const sessions = getDataArray(sessionsRes) as SessionItem[]
+                const programmesData = getDataArray(programmesRes)
+                const expiringData = getDataArray(expiringRes)
+
+                console.log('Parsed data:', { 
+                    employeesCount: employees.length, 
+                    competencesCount: competences.length,
+                    sessionsCount: sessions.length,
+                    programmesCount: programmesData.length
+                })
+
+                // === Calculate Stats ===
+                const totalPersonnel = employeesRes?.data?.pagination?.total ?? employees.length
+                const activeProgrammes = programmesRes?.data?.pagination?.total ?? programmesData.length
+                const expiringCompetences = expiringData.length
+
+                // Calculate compliance rate (valid / total competences * 100)
+                const validCount = competences.filter(c => c.status === 'valid').length
+                const complianceRate = competences.length > 0 
+                    ? Math.round((validCount / competences.length) * 100 * 10) / 10 
+                    : 0
+
+                setStats({
+                    totalPersonnel,
+                    activeProgrammes,
+                    expiringCompetences,
+                    complianceRate
+                })
+
+                // === Competence Status by Department (Bar Chart) ===
+                const deptMap = new Map<string, { valid: number; expiring: number; expired: number }>()
+                
+                competences.forEach((comp) => {
+                    const dept = comp.departmentTag || "General"
+                    if (!deptMap.has(dept)) {
+                        deptMap.set(dept, { valid: 0, expiring: 0, expired: 0 })
+                    }
+                    const entry = deptMap.get(dept)!
+                    if (comp.status === 'valid') entry.valid++
+                    else if (comp.status === 'expiring_soon') entry.expiring++
+                    else if (comp.status === 'expired') entry.expired++
+                })
+
+                const deptChartData = Array.from(deptMap.entries())
+                    .map(([name, counts]) => ({ name, ...counts }))
+                    .sort((a, b) => (b.valid + b.expiring + b.expired) - (a.valid + a.expiring + a.expired))
+                    .slice(0, 6) // Top 6 departments
+
+                setDepartmentData(deptChartData)
+
+                // === Personnel Distribution by Role (Pie Chart) ===
+                const roleMap = new Map<string, number>()
+                
+                employees.forEach((emp) => {
+                    const role = emp.role || "employee"
+                    roleMap.set(role, (roleMap.get(role) || 0) + 1)
+                })
+
+                const roleChartData = Array.from(roleMap.entries())
+                    .map(([role, count]) => ({
+                        name: ROLE_LABELS[role] || role,
+                        value: count
+                    }))
+                    .sort((a, b) => b.value - a.value)
+
+                setRoleData(roleChartData)
+
+                // === Training Completion Trend (Line Chart - Last 6 months) ===
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+                const today = new Date()
+                const trendMap = new Map<string, number>()
+
+                // Initialize last 6 months with 0
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                    trendMap.set(key, 0)
+                }
+
+                // Count completed sessions by month
+                sessions.forEach((session) => {
+                    if (session.dateStart) {
+                        const date = new Date(session.dateStart)
+                        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                        if (trendMap.has(key)) {
+                            trendMap.set(key, (trendMap.get(key) || 0) + 1)
+                        }
+                    }
+                })
+
+                const trendChartData = Array.from(trendMap.entries())
+                    .map(([key, count]) => {
+                        const [_year, month] = key.split('-')
+                        return {
+                            month: monthNames[parseInt(month) - 1],
+                            completed: count
+                        }
+                    })
+
+                setTrainingTrendData(trendChartData)
+
             } catch (error) {
-                console.error("Failed to fetch dashboard stats:", error)
-                // Don't show toast on dashboard to avoid annoyance, just log
+                console.error("Failed to fetch dashboard data:", error)
+            } finally {
+                setIsLoading(false)
             }
         }
 
-        fetchStats()
-    }, [])
+        fetchDashboardData()
+    }, [authLoading, isAuthenticated])
+
+    // Memoized role data for stable rendering
+    const stableRoleData = useMemo(() => roleData, [roleData])
+
+    if (isLoading || authLoading) {
+        return (
+            <div className="flex h-[50vh] items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -102,9 +255,9 @@ export default function DashboardPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Departments</SelectItem>
-                            <SelectItem value="flight-ops">Flight Ops</SelectItem>
-                            <SelectItem value="cabin-crew">Cabin Crew</SelectItem>
-                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                            {departmentData.map(d => (
+                                <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                     <Select defaultValue="6m">
@@ -170,18 +323,24 @@ export default function DashboardPage() {
                         <CardTitle>{t("dashboard.competenceStatusByDepartment")}</CardTitle>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={DEPARTMENT_DATA}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="valid" name={t("dashboard.valid")} fill="#22c55e" />
-                                <Bar dataKey="expiring" name={t("dashboard.expiring")} fill="#f59e0b" />
-                                <Bar dataKey="expired" name={t("dashboard.expired")} fill="#ef4444" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {departmentData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={departmentData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="valid" name={t("dashboard.valid")} fill="#22c55e" />
+                                    <Bar dataKey="expiring" name={t("dashboard.expiring")} fill="#f59e0b" />
+                                    <Bar dataKey="expired" name={t("dashboard.expired")} fill="#ef4444" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                                No department data available
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
                 <Card className="col-span-3">
@@ -189,26 +348,33 @@ export default function DashboardPage() {
                         <CardTitle>{t("dashboard.personnelDistribution")}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <PieChart>
-                                <Pie
-                                    data={ROLE_DATA}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {ROLE_DATA.map((_entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {stableRoleData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={350}>
+                                <PieChart>
+                                    <Pie
+                                        data={stableRoleData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        label={({ name, value }) => `${name}: ${value}`}
+                                    >
+                                        {stableRoleData.map((_entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                                No personnel data available
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -218,17 +384,30 @@ export default function DashboardPage() {
                     <CardTitle>{t("dashboard.trainingCompletionTrend")}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={TRAINING_TREND_DATA}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="completed" stroke="#8884d8" strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {trainingTrendData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={trainingTrendData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="month" />
+                                <YAxis />
+                                <Tooltip />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="completed" 
+                                    stroke="#8884d8" 
+                                    strokeWidth={2}
+                                    dot={{ fill: '#8884d8', r: 4 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+                            No training data available
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
     )
 }
+
