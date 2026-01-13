@@ -29,7 +29,7 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                 }
                 
                 const res = await api.get('/checks', { params });
-                setChecks(res.data.checks);
+                setChecks(Array.isArray(res.data) ? res.data : res.data.checks || []);
             } catch (error) {
                 console.error("Failed to fetch checks", error);
                 toast.error("Failed to load checks");

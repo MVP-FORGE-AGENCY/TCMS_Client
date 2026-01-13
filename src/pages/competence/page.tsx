@@ -18,6 +18,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Filter, CheckCircle, XCircle, Clock } from "lucide-react"
@@ -156,9 +158,23 @@ export default function CompetenceDashboard() {
             {/* Filters */}
             <div className="flex items-center space-x-2">
                 <div className="relative flex-1 max-w-sm">
-                   {/* Search input if supported by backend or client filter */}
-                   {/* <Input placeholder="Search employee..." onChange={(e) => handleSearch(e.target.value)} /> */}
-                   {/* Actually backend filter 'userId' or 'competenceCode'. Let's skip text search for now unless enhanced. */}
+                   <Input 
+                        placeholder={t("competence.searchPlaceholder") || "Search by name or email..."} 
+                        defaultValue={search}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            // Debounce could be good, but for now direct update or simple timeout
+                            // Using timeout to avoid too many redirects
+                            const timeoutId = setTimeout(() => {
+                                setSearchParams(prev => {
+                                    if (val) prev.set("search", val);
+                                    else prev.delete("search");
+                                    return prev;
+                                });
+                            }, 500);
+                            return () => clearTimeout(timeoutId);
+                        }} 
+                    />
                 </div>
                 <Select value={status} onValueChange={handleStatusFilter}>
                     <SelectTrigger className="w-[180px]">
@@ -172,7 +188,38 @@ export default function CompetenceDashboard() {
                         <SelectItem value="not_acquired">{t("competence.notAcquired")}</SelectItem>
                     </SelectContent>
                 </Select>
+                
             </div>
+
+            {/* Expiring Competences Slider (Full Width) */}
+            {(status === 'expiring_soon' || status === 'all') && (
+                <Card className="bg-slate-50 border-dashed">
+                    <CardContent className="p-4 flex items-center gap-6">
+                        <div className="flex-1">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-sm font-medium">{t("competence.expiresWithin") || "Expires within"}</span>
+                                <span className="text-sm font-bold text-primary">{searchParams.get("expiresWithin") || 90} {t("common.days") || "days"}</span>
+                            </div>
+                            <Slider
+                                value={[parseInt(searchParams.get("expiresWithin") || "90")]}
+                                onValueChange={(vals: number[]) => {
+                                    const days = vals[0];
+                                    setSearchParams(prev => {
+                                        prev.set("expiresWithin", days.toString());
+                                        return prev;
+                                    });
+                                }}
+                                max={365}
+                                step={1}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="text-xs text-muted-foreground w-48 hidden md:block">
+                            {t("competence.sliderHint") || "Adjust to see competences expiring within the selected timeframe."}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Table */}
             <Card>

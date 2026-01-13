@@ -39,7 +39,7 @@ export default function EmployeeHistoryPage() {
     if (isLoading) return <div className="p-8">Loading...</div>
     if (!history) return <div className="p-8">Employee not found</div>
 
-    const { employee, competenceSummary, trainings, proficiencyChecks, absences } = history
+    const { employee, competences, trainings, checks, absences } = history
 
     return (
         <div className="space-y-6">
@@ -48,13 +48,13 @@ export default function EmployeeHistoryPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{employee.fullName}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{employee?.fullName}</h1>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>{employee.email}</span>
+                        <span>{employee?.email}</span>
                         <span>•</span>
-                        <Badge variant="outline">{employee.departmentTag || 'No Dept'}</Badge>
+                        <Badge variant="outline">{employee?.departmentTag || 'No Dept'}</Badge>
                         <span>•</span>
-                        <span>{employee.role}</span>
+                        <span>{employee?.role}</span>
                     </div>
                 </div>
             </div>
@@ -65,7 +65,7 @@ export default function EmployeeHistoryPage() {
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Active Competences</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-700">
-                             {history.statistics?.activeCompetences || 0}
+                             {competences?.filter((c: any) => c.status === 'valid').length || 0}
                         </div>
                     </CardContent>
                 </Card>
@@ -73,7 +73,7 @@ export default function EmployeeHistoryPage() {
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Expired</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-700">
-                             {history.statistics?.expiredCompetences || 0}
+                             {competences?.filter((c: any) => c.status === 'expired').length || 0}
                         </div>
                     </CardContent>
                 </Card>
@@ -81,7 +81,7 @@ export default function EmployeeHistoryPage() {
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Total Trainings</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                             {history.statistics?.totalTrainings || 0}
+                             {trainings?.length || 0}
                         </div>
                     </CardContent>
                 </Card>
@@ -113,14 +113,14 @@ export default function EmployeeHistoryPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {trainings.map((t: any) => (
-                                        <TableRow key={t.id}>
-                                            <TableCell>{new Date(t.date).toLocaleDateString()}</TableCell>
+                                    {(trainings || []).map((t: any) => (
+                                        <TableRow key={t.id || Math.random()}>
+                                            <TableCell>{t.date ? new Date(t.date).toLocaleDateString() : '-'}</TableCell>
                                             <TableCell>
-                                                <div className="font-medium">{t.programmeCode}</div>
+                                                <div className="font-medium">{t.programme || t.programmeCode}</div>
                                                 <div className="text-xs text-muted-foreground">{t.programmeName}</div>
                                             </TableCell>
-                                            <TableCell>{t.sessionType}</TableCell>
+                                            <TableCell>{t.type || t.sessionType}</TableCell>
                                             <TableCell>
                                                 <Badge variant={t.result === 'pass' ? 'default' : t.result === 'fail' ? 'destructive' : 'secondary'}>
                                                     {t.result ? t.result.toUpperCase() : 'N/A'}
@@ -135,6 +135,9 @@ export default function EmployeeHistoryPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                    {(!trainings || trainings.length === 0) && (
+                                        <TableRow><TableCell colSpan={5} className="text-center">No training history found.</TableCell></TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -156,21 +159,24 @@ export default function EmployeeHistoryPage() {
                                      </TableRow>
                                  </TableHeader>
                                  <TableBody>
-                                     {proficiencyChecks.map((c: any) => (
+                                     {(checks || []).map((c: any) => (
                                          <TableRow key={c.id}>
-                                             <TableCell>{new Date(c.dateEnd).toLocaleDateString()}</TableCell>
+                                             <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '-'}</TableCell>
                                              <TableCell>
-                                                 <div className="font-medium">{c.profileCode}</div>
+                                                 <div className="font-medium">{c.profile || c.profileCode}</div>
                                                  <div className="text-xs text-muted-foreground">{c.profileName}</div>
                                              </TableCell>
                                              <TableCell>
                                                 <Badge variant={c.result === 'pass' ? 'default' : 'destructive'}>
-                                                    {c.result.toUpperCase()}
+                                                    {c.result ? c.result.toUpperCase() : 'UNKNOWN'}
                                                 </Badge>
                                              </TableCell>
                                              <TableCell>{c.assessor}</TableCell>
                                          </TableRow>
                                      ))}
+                                     {(!checks || checks.length === 0) && (
+                                         <TableRow><TableCell colSpan={4} className="text-center">No checks found.</TableCell></TableRow>
+                                     )}
                                  </TableBody>
                              </Table>
                          </CardContent>
@@ -193,18 +199,18 @@ export default function EmployeeHistoryPage() {
                                      </TableRow>
                                  </TableHeader>
                                  <TableBody>
-                                     {competenceSummary.map((c: any, idx: number) => (
+                                     {(competences || []).map((c: any, idx: number) => (
                                          <TableRow key={idx}>
                                              <TableCell>
-                                                 <div className="font-medium">{c.code}</div>
-                                                 <div className="text-xs text-muted-foreground">{c.name}</div>
+                                                 <div className="font-medium">{c.standardCode || c.code}</div>
+                                                 <div className="text-xs text-muted-foreground">{c.standardName || c.name}</div>
                                              </TableCell>
-                                             <TableCell><Badge variant="outline">{c.type}</Badge></TableCell>
-                                             <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '-'}</TableCell>
+                                             <TableCell><Badge variant="outline">{c.type || 'Combined'}</Badge></TableCell>
+                                             <TableCell>{c.acquiredDate ? new Date(c.acquiredDate).toLocaleDateString() : '-'}</TableCell>
                                              <TableCell>{c.validUntil ? new Date(c.validUntil).toLocaleDateString() : 'Permanent'}</TableCell>
                                              <TableCell>
                                                 <Badge variant={c.status === 'valid' ? 'default' : c.status === 'expired' ? 'destructive' : 'secondary'}>
-                                                    {c.status.toUpperCase()}
+                                                    {c.status ? c.status.toUpperCase().replace('_', ' ') : 'UNKNOWN'}
                                                 </Badge>
                                              </TableCell>
                                          </TableRow>
