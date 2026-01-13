@@ -1,0 +1,52 @@
+{
+  "sops": [
+    {
+      "slug": "training-process",
+      "title": "Training Session Procedures",
+      "description": "How training sessions are scheduled, conducted, and documented",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    },
+    {
+      "slug": "assessment-criteria",
+      "title": "Pass Criteria & Scoring Standards",
+      "description": "Minimum scores and pass logic for theory and practical assessments",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    },
+    {
+      "slug": "retake-process",
+      "title": "Failed Training/Check - Retake Procedure",
+      "description": "Process for remedial training, waiting periods, and maximum attempts",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    },
+    {
+      "slug": "proficiency-check-process",
+      "title": "Proficiency Check Procedures",
+      "description": "Eligibility, multi-assessor requirements, and evaluation process",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    },
+    {
+      "slug": "absence-return",
+      "title": "Return to Duty After Absence",
+      "description": "Requirements for refresher or initial training after extended absence",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    },
+    {
+      "slug": "auditor-access",
+      "title": "Regulatory Audit Procedures",
+      "description": "Documents available for regulatory inspectors and audit protocols",
+      "version": "1.0",
+      "lastReviewed": "2024-12-01",
+      "nextReview": "2025-12-01"
+    }
+  ]
+}
