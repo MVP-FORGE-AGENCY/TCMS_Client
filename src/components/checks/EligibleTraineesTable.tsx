@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface EligibleTraineesTableProps {
-    onScheduleClick: (profileId: string, traineeId: string) => void;
+    onScheduleClick: (profileId: string, traineeId: string, traineeName: string) => void;
     refreshTrigger: number;
 }
 
@@ -152,7 +152,7 @@ const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onSchedul
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Button variant="outline" size="sm" onClick={() => onScheduleClick(selectedProfileId, t.userId)}>
+                                        <Button variant="outline" size="sm" onClick={() => onScheduleClick(selectedProfileId, t.userId, t.fullName)}>
                                             Schedule
                                         </Button>
                                     </TableCell>

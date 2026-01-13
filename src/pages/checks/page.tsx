@@ -21,16 +21,19 @@ const ChecksPage = () => {
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [scheduleInitialProfileId, setScheduleInitialProfileId] = useState<string | undefined>();
     const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>();
+    const [scheduleInitialTraineeName, setScheduleInitialTraineeName] = useState<string | undefined>();
 
     const openScheduleGroupCheck = () => {
         setScheduleInitialProfileId(undefined);
         setScheduleInitialTraineeId(undefined);
+        setScheduleInitialTraineeName(undefined);
         setIsScheduleModalOpen(true);
     };
 
-    const openScheduleSingleCheck = (profileId: string, traineeId: string) => {
+    const openScheduleSingleCheck = (profileId: string, traineeId: string, traineeName: string) => {
         setScheduleInitialProfileId(profileId);
         setScheduleInitialTraineeId(traineeId);
+        setScheduleInitialTraineeName(traineeName);
         setIsScheduleModalOpen(true);
     };
     
@@ -235,6 +238,7 @@ const ChecksPage = () => {
                 onSuccess={handleRefresh}
                 initialProfileId={scheduleInitialProfileId}
                 initialTraineeId={scheduleInitialTraineeId}
+                initialTraineeName={scheduleInitialTraineeName}
             />
 
             <Dialog open={isProfileFormOpen} onOpenChange={setIsProfileFormOpen}>

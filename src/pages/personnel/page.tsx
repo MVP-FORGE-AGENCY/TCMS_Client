@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -101,6 +102,8 @@ export default function PersonnelPage() {
         }
     }
 
+    const navigate = useNavigate()
+
     const openCreateModal = () => {
         setSelectedEmployee(null)
         setIsFormOpen(true)
@@ -111,9 +114,9 @@ export default function PersonnelPage() {
         setIsFormOpen(true)
     }
 
-    const openHistoryModal = (employee: Employee) => {
-        setSelectedEmployee(employee)
-        setIsHistoryOpen(true)
+    // Navigate to full page history (Dossier)
+    const viewHistory = (employee: Employee) => {
+        navigate(`/employees/${employee.id}/history`)
     }
 
     return (
@@ -144,7 +147,7 @@ export default function PersonnelPage() {
                 <PersonnelTable
                     data={employees}
                     onEdit={openEditModal}
-                    onViewHistory={openHistoryModal}
+                    onViewHistory={viewHistory}
                     onDelete={handleDelete}
                 />
             )}

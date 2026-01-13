@@ -43,10 +43,22 @@ export default function OrganizationsPage() {
         setIsLoading(true)
         try {
             const data = await superAdmin.listOrganizations({ search })
-            setOrgs(data.organizations || [])
+            console.log("Fetched Orgs Data:", data)
+            
+            // Ensure organizations is an array
+            if (Array.isArray(data.organizations)) {
+                setOrgs(data.organizations)
+            } else if (Array.isArray(data)) {
+                 // Fallback if API returns array directly
+                 setOrgs(data)
+            } else {
+                console.error("Invalid organizations data format", data)
+                setOrgs([])
+            }
         } catch (error) {
             console.error("Failed to fetch organizations", error)
             toast.error("Failed to load organizations")
+            setOrgs([])
         } finally {
             setIsLoading(false)
         }

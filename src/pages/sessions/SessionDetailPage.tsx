@@ -36,10 +36,14 @@ import { SessionParticipants } from "../../components/sessions/SessionParticipan
 import { Users } from "lucide-react"
 
 import { ConfirmationModal } from "@/components/common/ConfirmationModal"
+import { useAuth } from "@/context/AuthContext"
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
 
 export default function SessionDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const { setLabel } = useBreadcrumb()
     
     // Modal states
     const [confirmModal, setConfirmModal] = useState<{
@@ -76,7 +80,16 @@ export default function SessionDetailPage() {
 
     useEffect(() => {
         fetchData()
+        return () => {
+            if (id) setLabel(id, undefined)
+        }
     }, [id])
+
+    useEffect(() => {
+        if (session && id) {
+            setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+        }
+    }, [session, id])
 
     const handleStartSession = async () => {
         if (!confirm("Are you sure you want to start this session?")) return
@@ -185,6 +198,9 @@ export default function SessionDetailPage() {
                             <span>•</span>
                             <MapPin className="h-4 w-4" />
                             <span>{session.location}</span>
+                            <span>•</span>
+                            <Users className="h-4 w-4" />
+                            <span>Instructor: {session.instructor?.fullName || 'Unassigned'}</span>
                         </div>
                     </div>
                 </div>
@@ -230,9 +246,11 @@ export default function SessionDetailPage() {
                             <Button variant="outline" onClick={() => setIsParticipantsModalOpen(true)}>
                                 <Users className="mr-2 h-4 w-4" /> Manage Participants
                             </Button>
-                            <Button onClick={handleStartSession}>
-                                <Play className="mr-2 h-4 w-4" /> Start Session
-                            </Button>
+                            {(['admin', 'training_manager'].includes(user?.role || '') || user?.id === session.instructorId) && (
+                                <Button onClick={handleStartSession}>
+                                    <Play className="mr-2 h-4 w-4" /> Start Session
+                                </Button>
+                            )}
                         </>
                     )}
                     {isInProgress && (

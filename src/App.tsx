@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { NetworkBanner } from "@/components/layout/NetworkBanner"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider, useAuth } from "@/context/AuthContext"
+import { BreadcrumbProvider } from "@/context/BreadcrumbContext"
 
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"))
 const PersonnelPage = lazy(() => import("@/pages/personnel/page"))
@@ -50,9 +51,10 @@ function ProtectedRoute() {
     return <Navigate to="/change-password" replace />
   }
 
-  if (!user?.mustChangePassword && location.pathname === "/change-password") {
-     return <Navigate to="/dashboard" replace />
-  }
+  // Allow access to /change-password manually
+  // if (!user?.mustChangePassword && location.pathname === "/change-password") {
+  //    return <Navigate to="/dashboard" replace />
+  // }
 
   return <Outlet />
 }
@@ -63,52 +65,54 @@ function App() {
       <ErrorBoundary>
         <NetworkBanner />
         <AuthProvider>
-          <Router>
-            <Suspense fallback={
-              <div className="flex h-screen w-full items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              </div>
-            }>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-
-                <Route element={<ProtectedRoute />}>
-                  <Route element={<Layout />}>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/personnel" element={<PersonnelPage />} />
-                    <Route path="/programmes" element={<ProgrammesPage />} />
-                    <Route path="/programmes/:id" element={<ProgrammeDetailPage />} />
-                    <Route path="/standards" element={<StandardsPage />} />
-                    <Route path="/standards/:id" element={<StandardDetailPage />} />
-                    <Route path="/sessions" element={<SessionsPage />} />
-                    <Route path="/sessions/:id" element={<SessionDetailPage />} />
-                    <Route path="/checks" element={<ChecksPage />} />
-                    <Route path="/checks/:id" element={<CheckDetailPage />} />
-                    <Route path="/reports" element={<ExpiringReport />} />
-                    <Route path="/procedures" element={<ProceduresPage />} />
-                    <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
-                    <Route path="/competence" element={<CompetenceDashboard />} />
-                    <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
+            <BreadcrumbProvider>
+              <Router>
+                <Suspense fallback={
+                  <div className="flex h-screen w-full items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  </div>
+                }>
+                  <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+    
+                    <Route element={<ProtectedRoute />}>
+                      <Route element={<Layout />}>
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<DashboardPage />} />
+                        <Route path="/personnel" element={<PersonnelPage />} />
+                        <Route path="/programmes" element={<ProgrammesPage />} />
+                        <Route path="/programmes/:id" element={<ProgrammeDetailPage />} />
+                        <Route path="/standards" element={<StandardsPage />} />
+                        <Route path="/standards/:id" element={<StandardDetailPage />} />
+                        <Route path="/sessions" element={<SessionsPage />} />
+                        <Route path="/sessions/:id" element={<SessionDetailPage />} />
+                        <Route path="/checks" element={<ChecksPage />} />
+                        <Route path="/checks/:id" element={<CheckDetailPage />} />
+                        <Route path="/reports" element={<ExpiringReport />} />
+                        <Route path="/procedures" element={<ProceduresPage />} />
+                        <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
+                        <Route path="/competence" element={<CompetenceDashboard />} />
+                        <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        {/* Duplicate route removed */}
+                        
+                        {/* Super Admin Routes */}
+                        <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
+                        <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+                        <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
+                      </Route>
+                    </Route>
                     
-                    {/* Super Admin Routes */}
-                    <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
-                    <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
-                    <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
-                  </Route>
-                </Route>
-                
-                {/* Independent Protected Route for Change Password to avoid Layout if needed, or keep inside */}
-                 <Route element={<ProtectedRoute />}>
-                    <Route path="/change-password" element={<ChangePasswordPage />} />
-                 </Route>
-
-              </Routes>
-            </Suspense>
-          </Router>
-          <Toaster />
+                    {/* Independent Protected Route for Change Password to avoid Layout if needed, or keep inside */}
+                     <Route element={<ProtectedRoute />}>
+                        <Route path="/change-password" element={<ChangePasswordPage />} />
+                     </Route>
+    
+                  </Routes>
+                </Suspense>
+              </Router>
+              <Toaster />
+            </BreadcrumbProvider>
         </AuthProvider>
       </ErrorBoundary>
     </ThemeProvider>

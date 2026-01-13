@@ -22,7 +22,9 @@ export default function SuperAdminDashboard() {
                 
                 // Let's assume we fetch a reasonable number to get a glimpse
                 const data = await superAdmin.listOrganizations({ limit: 100 })
-                const orgs = data.organizations || []
+                // console.log("Dashboard - Orgs Data:", data)
+
+                const orgs = Array.isArray(data.organizations) ? data.organizations : []
                 
                 setStats({
                     totalOrgs: data.pagination?.total || orgs.length,

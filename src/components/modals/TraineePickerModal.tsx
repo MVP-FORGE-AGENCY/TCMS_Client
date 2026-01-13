@@ -27,7 +27,7 @@ interface TraineePickerModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     selectedIds: string[]
-    onSelectionChange: (ids: string[]) => void
+    onSelectionChange: (selected: Trainee[]) => void
 }
 
 export function TraineePickerModal({
@@ -108,7 +108,8 @@ export function TraineePickerModal({
     }
 
     const handleConfirm = () => {
-        onSelectionChange(localSelected)
+        const selectedObjects = trainees.filter(t => localSelected.includes(t.id));
+        onSelectionChange(selectedObjects)
         onOpenChange(false)
     }
 
