@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react"
-import { FileText, Calendar, ExternalLink, Loader2 } from "lucide-react"
+import { FileText, Calendar, ExternalLink, Loader2, Plus } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { api } from "@/lib/api"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useAuth } from "@/context/AuthContext"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ProcedureForm } from "@/components/forms/ProcedureForm"
 
 interface SOP {
     slug: string
@@ -18,8 +22,13 @@ interface SOP {
 
 export default function ProceduresPage() {
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const [sops, setSops] = useState<SOP[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [isCreateOpen, setIsCreateOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
 
     useEffect(() => {
         fetchSops()
@@ -46,6 +55,21 @@ export default function ProceduresPage() {
         })
     }
 
+    const handleCreate = async (values: any) => {
+        try {
+            setIsSubmitting(true)
+            await api.post('/sop', values)
+            toast.success(t("procedures.createSuccess") || "Procedure created successfully")
+            setIsCreateOpen(false)
+            fetchSops()
+        } catch (error) {
+            console.error("Failed to create SOP:", error)
+            toast.error(t("errors.createError") || "Failed to create procedure")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     if (isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
@@ -56,11 +80,19 @@ export default function ProceduresPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t("procedures.title")}</h1>
-                <p className="text-muted-foreground">
-                    {t("procedures.subtitle")}
-                </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">{t("procedures.title")}</h1>
+                    <p className="text-muted-foreground">
+                        {t("procedures.subtitle")}
+                    </p>
+                </div>
+                {canEdit && (
+                    <Button onClick={() => setIsCreateOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t("procedures.create") || "New Procedure"}
+                    </Button>
+                )}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -103,6 +135,19 @@ export default function ProceduresPage() {
                     </p>
                 </div>
             )}
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent className="sm:max-w-[800px]">
+                    <DialogHeader>
+                        <DialogTitle>{t("procedures.create") || "Create New Procedure"}</DialogTitle>
+                    </DialogHeader>
+                    <ProcedureForm
+                        onSubmit={handleCreate}
+                        onCancel={() => setIsCreateOpen(false)}
+                        isLoading={isSubmitting}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

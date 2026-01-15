@@ -130,18 +130,18 @@ const ChecksPage = () => {
 
     return (
         <div className="container mx-auto py-6 space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{t("checks.title")}</h1>
-                    <p className="text-muted-foreground">{t("checks.subtitle")}</p>
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("checks.title")}</h1>
+                    <p className="text-muted-foreground text-sm">{t("checks.subtitle")}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     {activeTab === 'profiles' ? (
-                        <Button onClick={openCreateProfile}>
+                        <Button onClick={openCreateProfile} className="w-full sm:w-auto">
                             <Plus className="mr-2 h-4 w-4" /> {t("checks.createProfile")}
                         </Button>
                     ) : (
-                        <Button onClick={openScheduleGroupCheck}>
+                        <Button onClick={openScheduleGroupCheck} className="w-full sm:w-auto">
                             <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck")}
                         </Button>
                     )}
@@ -149,7 +149,7 @@ const ChecksPage = () => {
             </div>
 
             <Tabs defaultValue="allocated" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[600px]">
                     <TabsTrigger value="eligible">{t("checks.eligibleTrainees")}</TabsTrigger>
                     <TabsTrigger value="allocated">{t("checks.scheduledChecks")}</TabsTrigger>
                     <TabsTrigger value="my_assessments">{t("checks.myAssessments")}</TabsTrigger>

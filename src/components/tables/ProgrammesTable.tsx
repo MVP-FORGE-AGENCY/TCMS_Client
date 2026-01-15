@@ -194,8 +194,8 @@ export function ProgrammesTable({
                     className="max-w-sm"
                 />
             </div>
-            <div className="rounded-md border">
-                <Table>
+            <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[800px]">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>

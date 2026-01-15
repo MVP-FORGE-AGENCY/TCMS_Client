@@ -4,9 +4,9 @@ import { Header } from "./Header"
 
 export function MainLayout() {
     return (
-        <div className="flex min-h-screen w-full flex-col bg-muted/40">
-            <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 md:pl-60">
-                <Sidebar className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex" />
+        <div className="flex min-h-screen w-full flex-col bg-muted/40 overflow-x-hidden">
+            <div className="flex flex-col gap-4 py-4 xl:pl-60">
+                <Sidebar className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background xl:flex" />
                 <div className="flex flex-col sm:gap-4 sm:py-4">
                     <Header />
                     <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">

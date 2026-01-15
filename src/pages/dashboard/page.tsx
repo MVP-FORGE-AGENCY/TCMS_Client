@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -55,6 +56,7 @@ interface SessionItem {
 
 export default function DashboardPage() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const { isLoading: authLoading, isAuthenticated } = useAuth()
     const [stats, setStats] = useState({
         totalPersonnel: 0,
@@ -84,7 +86,7 @@ export default function DashboardPage() {
                 const results = await Promise.allSettled([
                     api.get("/employees?limit=100"),
                     api.get("/programmes?isActive=true&limit=100"),
-                    api.get("/reports/expiring?withinDays=30"),
+                    api.get("/reports/expiring?withinDays=90"),
                     api.get("/competence?limit=100"),
                     api.get("/sessions?status=completed&limit=100")
                 ])
@@ -133,8 +135,9 @@ export default function DashboardPage() {
                 const activeProgrammes = programmesRes?.data?.pagination?.total ?? programmesData.length
                 const expiringCompetences = expiringData.length
 
-                // Calculate compliance rate (valid / total competences * 100)
-                const validCount = competences.filter(c => c.status === 'valid').length
+                // Calculate compliance rate (valid + expiring_soon / total competences * 100)
+                // Expiring competences are still valid until they actually expire
+                const validCount = competences.filter(c => c.status === 'valid' || c.status === 'expiring_soon').length
                 const complianceRate = competences.length > 0 
                     ? Math.round((validCount / competences.length) * 100 * 10) / 10 
                     : 0
@@ -248,9 +251,9 @@ export default function DashboardPage() {
                         {t("dashboard.subtitle")}
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Select defaultValue="all">
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Department" />
                         </SelectTrigger>
                         <SelectContent>
@@ -261,7 +264,7 @@ export default function DashboardPage() {
                         </SelectContent>
                     </Select>
                     <Select defaultValue="6m">
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Time Range" />
                         </SelectTrigger>
                         <SelectContent>
@@ -274,8 +277,11 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Card 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate('/personnel')}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t("dashboard.totalPersonnel")}</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -285,7 +291,10 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">{t("dashboard.activeEmployees")}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate('/programmes')}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t("dashboard.activeProgrammes")}</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -295,14 +304,17 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">{t("dashboard.currentlyActive")}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate('/competence')}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t("dashboard.expiringCompetences")}</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.expiringCompetences}</div>
-                        <p className="text-xs text-muted-foreground">{t("dashboard.within30Days")}</p>
+                        <p className="text-xs text-muted-foreground">{t("dashboard.within90Days")}</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -317,8 +329,8 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4">
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                <Card className="lg:col-span-4">
                     <CardHeader>
                         <CardTitle>{t("dashboard.competenceStatusByDepartment")}</CardTitle>
                     </CardHeader>
@@ -343,7 +355,7 @@ export default function DashboardPage() {
                         )}
                     </CardContent>
                 </Card>
-                <Card className="col-span-3">
+                <Card className="lg:col-span-3">
                     <CardHeader>
                         <CardTitle>{t("dashboard.personnelDistribution")}</CardTitle>
                     </CardHeader>

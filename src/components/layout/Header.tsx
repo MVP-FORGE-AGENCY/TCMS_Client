@@ -42,7 +42,7 @@ export function Header() {
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <Sheet>
                 <SheetTrigger asChild>
-                    <Button size="icon" variant="outline" className="sm:hidden">
+                    <Button size="icon" variant="outline" className="xl:hidden">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Toggle Menu</span>
                     </Button>
@@ -52,7 +52,7 @@ export function Header() {
                 </SheetContent>
             </Sheet>
 
-            <div className="hidden sm:block">
+            <div className="hidden xl:block">
                 <Breadcrumbs />
             </div>
 

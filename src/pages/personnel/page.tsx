@@ -48,6 +48,7 @@ export default function PersonnelPage() {
     }, [])
 
     const { user } = useAuth()
+    const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
 
     const handleCreate = async (values: any) => {
         try {
@@ -121,16 +122,18 @@ export default function PersonnelPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
+                    <p className="text-muted-foreground text-sm">
                         {t("personnel.subtitle")}
                     </p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
-                </Button>
+                {canEdit && (
+                    <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
+                        <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
+                    </Button>
+                )}
             </div>
 
             {isLoading ? (
@@ -140,15 +143,15 @@ export default function PersonnelPage() {
                     icon={Users}
                     title={t("common.noData")}
                     description={t("common.getStarted")}
-                    actionLabel={t("personnel.addEmployee")}
-                    onAction={openCreateModal}
+                    actionLabel={canEdit ? t("personnel.addEmployee") : undefined}
+                    onAction={canEdit ? openCreateModal : undefined}
                 />
             ) : (
                 <PersonnelTable
                     data={employees}
-                    onEdit={openEditModal}
+                    onEdit={canEdit ? openEditModal : undefined}
                     onViewHistory={viewHistory}
-                    onDelete={handleDelete}
+                    onDelete={canEdit ? handleDelete : undefined}
                 />
             )}
 

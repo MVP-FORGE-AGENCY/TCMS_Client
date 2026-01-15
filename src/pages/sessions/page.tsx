@@ -142,17 +142,18 @@ export default function SessionsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t("sessions.title")}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("sessions.title")}</h1>
+                    <p className="text-muted-foreground text-sm">
                         {t("sessions.subtitle")}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button 
                         variant={showFilters ? "secondary" : "outline"} 
                         onClick={() => setShowFilters(!showFilters)}
+                        className="w-full sm:w-auto"
                     >
                         <Filter className="mr-2 h-4 w-4" /> 
                         {t("common.filter", "Filter")}
@@ -160,7 +161,7 @@ export default function SessionsPage() {
                             <span className="ml-2 rounded-full bg-primary w-2 h-2" />
                         )}
                     </Button>
-                    <Button onClick={() => setIsCreateOpen(true)}>
+                    <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
                         <Plus className="mr-2 h-4 w-4" /> {t("sessions.scheduleSession")}
                     </Button>
                 </div>
@@ -168,7 +169,7 @@ export default function SessionsPage() {
 
             {showFilters && (
                 <div className="rounded-lg border bg-card p-4 shadow-sm">
-                    <div className="grid gap-4 md:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">{t("sessions.programme")}</label>
                             <Select value={filterProgramme} onValueChange={setFilterProgramme}>

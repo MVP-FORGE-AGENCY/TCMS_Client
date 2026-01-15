@@ -86,6 +86,7 @@
         "currentlyActive": "Currently active",
         "expiringCompetences": "Expiring Competences",
         "within30Days": "Within next 30 days",
+        "within90Days": "Within next 90 days",
         "complianceRate": "Compliance Rate",
         "overallCompliance": "Overall compliance",
         "competenceStatusByDepartment": "Competence Status by Department",

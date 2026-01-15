@@ -39,7 +39,7 @@ export function Sidebar({ className }: SidebarProps) {
             title: t("nav.personnel"),
             href: "/personnel",
             icon: Users,
-            roles: ["admin", "training_manager", "super_admin"],
+            roles: ["admin", "training_manager", "super_admin", "instructor", "assessor"],
         },
         {
             title: t("nav.programmes"),

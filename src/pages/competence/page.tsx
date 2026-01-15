@@ -64,11 +64,13 @@ export default function CompetenceDashboard() {
         try {
             const params = new URLSearchParams()
             if (status !== 'all') params.append("status", status)
-            if (search) params.append("search", search) // Backend might expect user search or code search
-            // The backend supports 'competenceCode' and 'userId' and 'status'. 
-            // We might need to adjust frontend filters to match backend capabilities.
-            // For now, let's assume specific filters or client-side filtering if backend is limited.
-            // The exact backend params: status, competenceCode, userId.
+            if (status !== 'all') params.append("status", status)
+            if (search) params.append("search", search)
+            
+            const expiresWithin = searchParams.get("expiresWithin")
+            if (expiresWithin) params.append("expiresWithin", expiresWithin)
+
+            // The exact backend params: status, competenceCode, userId, expiresWithin.
             
             const res = await api.get(`/competence?${params.toString()}`)
             setData(res.data.data || [])
@@ -82,7 +84,7 @@ export default function CompetenceDashboard() {
 
     useEffect(() => {
         fetchData()
-    }, [status, search, page])
+    }, [status, search, page, searchParams])
 
 
 
@@ -106,12 +108,12 @@ export default function CompetenceDashboard() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">{t("competence.dashboardTitle")}</h1>
-                <p className="text-muted-foreground">{t("competence.dashboardSubtitle")}</p>
+                <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("competence.dashboardTitle")}</h1>
+                <p className="text-muted-foreground text-sm">{t("competence.dashboardSubtitle")}</p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="cursor-pointer hover:bg-slate-50" onClick={() => handleStatusFilter('valid')}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t("competence.valid")}</CardTitle>
@@ -156,8 +158,8 @@ export default function CompetenceDashboard() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <div className="relative flex-1 sm:max-w-sm">
                    <Input 
                         placeholder={t("competence.searchPlaceholder") || "Search by name or email..."} 
                         defaultValue={search}
@@ -177,7 +179,7 @@ export default function CompetenceDashboard() {
                     />
                 </div>
                 <Select value={status} onValueChange={handleStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder={t("competence.allStatuses")} />
                     </SelectTrigger>
                     <SelectContent>
@@ -194,7 +196,7 @@ export default function CompetenceDashboard() {
             {/* Expiring Competences Slider (Full Width) */}
             {(status === 'expiring_soon' || status === 'all') && (
                 <Card className="bg-slate-50 border-dashed">
-                    <CardContent className="p-4 flex items-center gap-6">
+                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
                         <div className="flex-1">
                             <div className="flex justify-between mb-2">
                                 <span className="text-sm font-medium">{t("competence.expiresWithin") || "Expires within"}</span>
@@ -214,7 +216,7 @@ export default function CompetenceDashboard() {
                                 className="w-full"
                             />
                         </div>
-                        <div className="text-xs text-muted-foreground w-48 hidden md:block">
+                        <div className="text-xs text-muted-foreground md:w-48">
                             {t("competence.sliderHint") || "Adjust to see competences expiring within the selected timeframe."}
                         </div>
                     </CardContent>
@@ -223,8 +225,8 @@ export default function CompetenceDashboard() {
 
             {/* Table */}
             <Card>
-                <CardContent className="p-0">
-                    <Table>
+                <CardContent className="p-0 overflow-x-auto">
+                    <Table className="min-w-[700px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>{t("competence.employee")}</TableHead>

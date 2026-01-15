@@ -4,8 +4,8 @@ export default function ReportsPage() {
     const { t } = useTranslation()
     return (
         <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t("reports.title")}</h1>
-            <p className="text-muted-foreground">{t("reports.subtitle")}</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("reports.title")}</h1>
+            <p className="text-muted-foreground text-sm">{t("reports.subtitle")}</p>
         </div>
     )
 }

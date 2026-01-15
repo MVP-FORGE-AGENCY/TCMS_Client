@@ -36,9 +36,9 @@ import { Edit, Eye, Trash2, ChevronDown } from "lucide-react"
 
 interface PersonnelTableProps {
     data: Employee[]
-    onEdit: (employee: Employee) => void
+    onEdit?: (employee: Employee) => void
     onViewHistory: (employee: Employee) => void
-    onDelete: (id: string) => void
+    onDelete?: (id: string) => void
 }
 
 export function PersonnelTable({
@@ -65,17 +65,23 @@ export function PersonnelTable({
         },
         {
             accessorKey: "organisationId",
-            header: t("personnel.organisation"),
+            header: () => <span className="hidden lg:inline">{t("personnel.organisation")}</span>,
             // In a real app, we'd map ID to name or fetch it
-            cell: ({ row }) => <div>{row.getValue("organisationId")}</div>,
+            cell: ({ row }) => {
+                const orgId = row.getValue("organisationId") as string;
+                const truncated = orgId ? `${orgId.substring(0, 8)}...` : "-";
+                return <div className="hidden lg:block text-muted-foreground text-xs">{truncated}</div>;
+            },
         },
         {
             accessorKey: "areaOfActivity",
-            header: t("personnel.department"),
+            header: () => <span className="hidden lg:inline">{t("personnel.department")}</span>,
+            cell: ({ row }) => <div className="hidden lg:block">{row.getValue("areaOfActivity")}</div>,
         },
         {
             accessorKey: "employmentStart",
-            header: t("personnel.startDate"),
+            header: () => <span className="hidden lg:inline">{t("personnel.startDate")}</span>,
+            cell: ({ row }) => <div className="hidden lg:block">{row.getValue("employmentStart")}</div>,
         },
         {
             id: "status",
@@ -107,23 +113,27 @@ export function PersonnelTable({
                         >
                             <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(employee)}
-                            title="Edit"
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => onDelete(employee.id)}
-                            title="Delete"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {onEdit && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onEdit(employee)}
+                                title="Edit"
+                            >
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        )}
+                        {onDelete && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => onDelete(employee.id)}
+                                title="Delete"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 )
             },
@@ -183,8 +193,8 @@ export function PersonnelTable({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="rounded-md border">
-                <Table>
+            <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[600px] md:min-w-full">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
