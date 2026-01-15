@@ -18,10 +18,11 @@ interface ScheduleCheckModalProps {
     onSuccess: () => void;
     initialProfileId?: string;
     initialTraineeId?: string;
+    initialTraineeName?: string;
 }
 
 const ScheduleCheckModal: React.FC<ScheduleCheckModalProps> = ({ 
-    open, onOpenChange, onSuccess, initialProfileId, initialTraineeId 
+    open, onOpenChange, onSuccess, initialProfileId, initialTraineeId, initialTraineeName
 }) => {
     const [loading, setLoading] = useState(false);
     const [profiles, setProfiles] = useState<any[]>([]);
@@ -108,8 +109,6 @@ const ScheduleCheckModal: React.FC<ScheduleCheckModalProps> = ({
         }
     };
     
-
-
 
     const fetchEligibleTrainees = async (pId: string) => {
         try {
@@ -257,7 +256,7 @@ const ScheduleCheckModal: React.FC<ScheduleCheckModalProps> = ({
                         
                         {isSingleMode ? (
                             <div className="p-2 border rounded-md bg-muted/50 text-sm">
-                                {trainees.find(t => t.userId === initialTraineeId)?.fullName || 'Loading...'}
+                                {initialTraineeName || trainees.find(t => t.userId === initialTraineeId)?.fullName || 'Loading...'}
                             </div>
                         ) : (
                             <div className="border rounded-md">

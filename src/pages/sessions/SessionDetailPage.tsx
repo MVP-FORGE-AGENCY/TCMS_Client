@@ -36,10 +36,14 @@ import { SessionParticipants } from "../../components/sessions/SessionParticipan
 import { Users } from "lucide-react"
 
 import { ConfirmationModal } from "@/components/common/ConfirmationModal"
+import { useAuth } from "@/context/AuthContext"
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
 
 export default function SessionDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const { setLabel } = useBreadcrumb()
     
     // Modal states
     const [confirmModal, setConfirmModal] = useState<{
@@ -76,7 +80,16 @@ export default function SessionDetailPage() {
 
     useEffect(() => {
         fetchData()
+        return () => {
+            if (id) setLabel(id, '')
+        }
     }, [id])
+
+    useEffect(() => {
+        if (session && id) {
+            setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+        }
+    }, [session, id])
 
     const handleStartSession = async () => {
         if (!confirm("Are you sure you want to start this session?")) return
@@ -163,33 +176,42 @@ export default function SessionDetailPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate("/sessions")}>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex items-start gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => navigate("/sessions")} className="shrink-0">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
+                    <div className="min-w-0">
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight">
                             {session.programme?.code} - {session.programme?.name}
                         </h1>
-                        <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground mt-1 text-sm">
                             <Badge variant={
                                 isCompleted ? "default" : 
                                 isInProgress ? "destructive" : "secondary"
                             }>
                                 {session.status?.replace('_', ' ').toUpperCase()}
                             </Badge>
-                            <span>•</span>
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(session.dateStart).toLocaleDateString()}</span>
-                            <span>•</span>
-                            <MapPin className="h-4 w-4" />
-                            <span>{session.location}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {new Date(session.dateStart).toLocaleDateString()}
+                            </span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {session.location}
+                            </span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {session.instructor?.fullName || 'Unassigned'}
+                            </span>
                         </div>
                     </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     {(isPlanned || isInProgress || isCompleted) && (
                         <Button variant="outline" onClick={handleGenerateAttendance}>
                             <FileText className="mr-2 h-4 w-4" /> Attendance Sheet
@@ -230,9 +252,11 @@ export default function SessionDetailPage() {
                             <Button variant="outline" onClick={() => setIsParticipantsModalOpen(true)}>
                                 <Users className="mr-2 h-4 w-4" /> Manage Participants
                             </Button>
-                            <Button onClick={handleStartSession}>
-                                <Play className="mr-2 h-4 w-4" /> Start Session
-                            </Button>
+                            {(['admin', 'training_manager'].includes(user?.role || '') || user?.id === session.instructorId) && (
+                                <Button onClick={handleStartSession}>
+                                    <Play className="mr-2 h-4 w-4" /> Start Session
+                                </Button>
+                            )}
                         </>
                     )}
                     {isInProgress && (
@@ -277,8 +301,9 @@ export default function SessionDetailPage() {
                     <CardHeader>
                         <CardTitle>Participants ({participants.length})</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Table>
+                    <CardContent className="p-0 md:p-6">
+                        <div className="overflow-x-auto">
+                            <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name</TableHead>
@@ -366,6 +391,7 @@ export default function SessionDetailPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

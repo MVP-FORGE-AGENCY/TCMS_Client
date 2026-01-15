@@ -10,9 +10,12 @@ import {
 import { Fragment } from "react"
 import { useTranslation } from "react-i18next"
 
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
+
 export function Breadcrumbs() {
     const location = useLocation()
     const { t } = useTranslation()
+    const { labels } = useBreadcrumb()
     const pathnames = location.pathname.split("/").filter((x) => x)
 
     // Map of path segments to translation keys
@@ -29,11 +32,18 @@ export function Breadcrumbs() {
     }
 
     const getTitle = (segment: string): string => {
+        // 1. Try static translation
         const key = pathTranslations[segment.toLowerCase()]
         if (key) {
             return t(key)
         }
-        // For dynamic segments (IDs), just capitalize first letter
+        
+        // 2. Try dynamic label from context
+        if (labels[segment]) {
+            return labels[segment];
+        }
+
+        // 3. Fallback
         return segment.charAt(0).toUpperCase() + segment.slice(1)
     }
 

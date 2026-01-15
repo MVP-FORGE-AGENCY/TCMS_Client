@@ -50,7 +50,7 @@ export default function ChangePasswordPage() {
                 <CardHeader>
                     <CardTitle>Change Password</CardTitle>
                     <CardDescription>
-                        This is your first login. For security reasons, you must change your temporary password.
+                        Update your password securely.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit(onSubmit)}>

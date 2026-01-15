@@ -120,19 +120,19 @@ export default function ProgrammesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t("programmes.title")}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("programmes.title")}</h1>
+                    <p className="text-muted-foreground text-sm">
                         {t("programmes.subtitle")}
                     </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <Select
                         value={statusFilter}
                         onValueChange={(value: "all" | "active" | "inactive") => setStatusFilter(value)}
                     >
-                        <SelectTrigger className="w-[150px]">
+                        <SelectTrigger className="w-full sm:w-[150px]">
                             <Filter className="h-4 w-4 mr-2" />
                             <SelectValue placeholder={t("programmes.filterPlaceholder")} />
                         </SelectTrigger>
@@ -142,7 +142,7 @@ export default function ProgrammesPage() {
                             <SelectItem value="inactive">{t("programmes.inactive")}</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={openCreateModal}>
+                    <Button onClick={openCreateModal} className="w-full sm:w-auto">
                         <Plus className="mr-2 h-4 w-4" /> {t("programmes.addProgramme")}
                     </Button>
                 </div>

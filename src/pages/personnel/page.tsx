@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,6 +48,7 @@ export default function PersonnelPage() {
     }, [])
 
     const { user } = useAuth()
+    const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
 
     const handleCreate = async (values: any) => {
         try {
@@ -101,6 +103,8 @@ export default function PersonnelPage() {
         }
     }
 
+    const navigate = useNavigate()
+
     const openCreateModal = () => {
         setSelectedEmployee(null)
         setIsFormOpen(true)
@@ -111,23 +115,25 @@ export default function PersonnelPage() {
         setIsFormOpen(true)
     }
 
-    const openHistoryModal = (employee: Employee) => {
-        setSelectedEmployee(employee)
-        setIsHistoryOpen(true)
+    // Navigate to full page history (Dossier)
+    const viewHistory = (employee: Employee) => {
+        navigate(`/employees/${employee.id}/history`)
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
+                    <p className="text-muted-foreground text-sm">
                         {t("personnel.subtitle")}
                     </p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
-                </Button>
+                {canEdit && (
+                    <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
+                        <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
+                    </Button>
+                )}
             </div>
 
             {isLoading ? (
@@ -137,15 +143,15 @@ export default function PersonnelPage() {
                     icon={Users}
                     title={t("common.noData")}
                     description={t("common.getStarted")}
-                    actionLabel={t("personnel.addEmployee")}
-                    onAction={openCreateModal}
+                    actionLabel={canEdit ? t("personnel.addEmployee") : undefined}
+                    onAction={canEdit ? openCreateModal : undefined}
                 />
             ) : (
                 <PersonnelTable
                     data={employees}
-                    onEdit={openEditModal}
-                    onViewHistory={openHistoryModal}
-                    onDelete={handleDelete}
+                    onEdit={canEdit ? openEditModal : undefined}
+                    onViewHistory={viewHistory}
+                    onDelete={canEdit ? handleDelete : undefined}
                 />
             )}
 

@@ -9,6 +9,8 @@ interface AuthContextType {
     isLoading: boolean
     login: (token: string, user: Employee) => void
     logout: () => void
+    impersonatedOrgId: string | null
+    impersonateOrg: (orgId: string | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -16,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<Employee | null>(null)
     const [token, setToken] = useState<string | null>(localStorage.getItem("token"))
+    const [impersonatedOrgId, setImpersonatedOrgId] = useState<string | null>(localStorage.getItem("impersonatedOrgId"))
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -25,6 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     // Verify token and get user details
                     api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`
+                    
+                    // Restore Impersonation Header
+                    const storedOrgId = localStorage.getItem("impersonatedOrgId");
+                    if (storedOrgId) {
+                        api.defaults.headers.common["x-impersonate-organisation-id"] = storedOrgId;
+                        setImpersonatedOrgId(storedOrgId);
+                    }
+
                     const response = await api.get("/me")
                     setUser(response.data)
                     setToken(storedToken)
@@ -42,6 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = (newToken: string, newUser: Employee) => {
         localStorage.setItem("token", newToken)
         api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`
+        
+        // Clear impersonation on new login
+        delete api.defaults.headers.common["x-impersonate-organisation-id"];
+        localStorage.removeItem("impersonatedOrgId");
+        setImpersonatedOrgId(null);
+        
         setToken(newToken)
         setUser(newUser)
     }
@@ -49,8 +66,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = () => {
         localStorage.removeItem("token")
         delete api.defaults.headers.common["Authorization"]
+        
+        // Clear impersonation
+        delete api.defaults.headers.common["x-impersonate-organisation-id"];
+        localStorage.removeItem("impersonatedOrgId");
+        setImpersonatedOrgId(null);
+
         setToken(null)
         setUser(null)
+    }
+
+    const impersonateOrg = (orgId: string | null) => {
+         if (orgId) {
+             api.defaults.headers.common["x-impersonate-organisation-id"] = orgId;
+             localStorage.setItem("impersonatedOrgId", orgId);
+             setImpersonatedOrgId(orgId);
+         } else {
+             delete api.defaults.headers.common["x-impersonate-organisation-id"];
+             localStorage.removeItem("impersonatedOrgId");
+             setImpersonatedOrgId(null);
+         }
+         // Reload to ensure all components fetch new data
+         window.location.reload(); 
     }
 
     return (
@@ -62,6 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isLoading,
                 login,
                 logout,
+                impersonatedOrgId,
+                impersonateOrg
             }}
         >
             {children}

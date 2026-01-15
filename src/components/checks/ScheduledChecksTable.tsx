@@ -58,8 +58,8 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
     };
 
     return (
-        <div className="rounded-md border">
-            <Table>
+        <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[800px]">
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>

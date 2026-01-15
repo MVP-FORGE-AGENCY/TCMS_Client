@@ -166,10 +166,10 @@ export default function StandardsPage() {
     return (
         <div className="space-y-6">
             {/* ... header and filters ... */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{t("standards.title")}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("standards.title")}</h1>
+                    <p className="text-muted-foreground text-sm">
                         {t("standards.subtitle")}
                     </p>
                 </div>
@@ -357,8 +357,8 @@ export default function StandardsPage() {
                 )}
             </div>
 
-            <div className="flex items-center gap-4">
-                <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                <div className="relative flex-1 sm:max-w-sm">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder={t("standards.searchPlaceholder")}
@@ -367,7 +367,7 @@ export default function StandardsPage() {
                         className="pl-8"
                     />
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button 
                         variant={statusFilter === "active" ? "default" : "outline"}
                         onClick={() => setStatusFilter("active")}
@@ -392,8 +392,8 @@ export default function StandardsPage() {
                 </div>
             </div>
 
-            <div className="rounded-md border">
-                <Table>
+            <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[800px]">
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[100px]">{t("standards.code")}</TableHead>

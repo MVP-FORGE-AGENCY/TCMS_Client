@@ -61,6 +61,11 @@ export interface Session {
     capacity?: number;
     status: SessionStatus;
     isSigned?: boolean;
+    instructor?: {
+        id: string;
+        fullName: string;
+        email: string;
+    } | null;
     programme?: {
         id: string;
         name: string;

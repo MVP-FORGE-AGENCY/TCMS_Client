@@ -62,7 +62,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
     const { t } = useTranslation()
     const [instructors, setInstructors] = useState<Instructor[]>([])
     const [loadingInstructors, setLoadingInstructors] = useState(true)
-    const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
+    const [selectedParticipants, setSelectedParticipants] = useState<any[]>([])
     const [isTraineeModalOpen, setIsTraineeModalOpen] = useState(false)
     
     const form = useForm<FormValues>({
@@ -84,7 +84,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                 setLoadingInstructors(true)
                 const response = await employees.list()
                 // Filter for users who can be instructors
-                const instructorRoles = ['instructor', 'training_manager', 'admin']
+                const instructorRoles = ['instructor', 'training_manager', 'admin', 'assessor']
                 const data = response.data || response
                 const filtered = (Array.isArray(data) ? data : []).filter((u: any) => 
                     instructorRoles.includes(u.role) && u.isActive !== false
@@ -120,7 +120,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
 
     function handleSubmit(values: FormValues) {
         // Include selected participants
-        onSubmit({ ...values, participantIds: selectedParticipants })
+        onSubmit({ ...values, participantIds: selectedParticipants.map(p => p.id) })
     }
 
 
@@ -159,37 +159,62 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>{t("sessions.startDate")}</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground"
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "PPP")
-                                                ) : (
-                                                    <span>{t("sessions.pickDate")}</span>
-                                                )}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            disabled={(date: Date) =>
-                                                date < new Date()
-                                            }
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                                <div className="flex gap-2">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "flex-1 pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? (
+                                                        format(field.value, "PPP")
+                                                    ) : (
+                                                        <span>{t("sessions.pickDate")}</span>
+                                                    )}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={(date) => {
+                                                    if (!date) return;
+                                                    const newDate = new Date(date);
+                                                    // Preserve time if exists, else default 09:00
+                                                    if (field.value) {
+                                                        newDate.setHours(field.value.getHours(), field.value.getMinutes());
+                                                    } else {
+                                                        newDate.setHours(9, 0);
+                                                    }
+                                                    field.onChange(newDate);
+                                                }}
+                                                disabled={(date: Date) =>
+                                                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                                                }
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Input 
+                                        type="time"
+                                        className="w-[110px]"
+                                        value={field.value ? format(field.value, 'HH:mm') : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (!val) return;
+                                            const [h, m] = val.split(':').map(Number);
+                                            const newDate = new Date(field.value || new Date());
+                                            newDate.setHours(h, m);
+                                            field.onChange(newDate);
+                                        }}
+                                    />
+                                </div>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -201,37 +226,64 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>{t("sessions.endDate")}</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground"
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "PPP")
-                                                ) : (
-                                                    <span>{t("sessions.pickDate")}</span>
-                                                )}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            disabled={(date: Date) =>
-                                                date < new Date()
-                                            }
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                                <div className="flex gap-2">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "flex-1 pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? (
+                                                        format(field.value, "PPP")
+                                                    ) : (
+                                                        <span>{t("sessions.pickDate")}</span>
+                                                    )}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={(date) => {
+                                                    if (!date) {
+                                                        field.onChange(undefined);
+                                                        return;
+                                                    }
+                                                    const newDate = new Date(date);
+                                                    if (field.value) {
+                                                        newDate.setHours(field.value.getHours(), field.value.getMinutes());
+                                                    } else {
+                                                        newDate.setHours(17, 0); // Default end 17:00
+                                                    }
+                                                    field.onChange(newDate);
+                                                }}
+                                                disabled={(date: Date) =>
+                                                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                                                }
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Input 
+                                        type="time" 
+                                        className="w-[110px]"
+                                        value={field.value ? format(field.value, 'HH:mm') : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (!val) return;
+                                            const [h, m] = val.split(':').map(Number);
+                                            const newDate = new Date(field.value || new Date());
+                                            newDate.setHours(h, m);
+                                            field.onChange(newDate);
+                                        }}
+                                    />
+                                </div>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -359,9 +411,9 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                     </div>
                     {selectedParticipants.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                            {selectedParticipants.slice(0, 5).map(id => (
-                                <Badge key={id} variant="secondary" className="text-xs">
-                                    ID: {id.slice(0, 8)}...
+                            {selectedParticipants.slice(0, 5).map(p => (
+                                <Badge key={p.id} variant="secondary" className="text-xs">
+                                    {p.fullName}
                                 </Badge>
                             ))}
                             {selectedParticipants.length > 5 && (
@@ -376,7 +428,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
                 <TraineePickerModal
                     open={isTraineeModalOpen}
                     onOpenChange={setIsTraineeModalOpen}
-                    selectedIds={selectedParticipants}
+                    selectedIds={selectedParticipants.map(p => p.id)}
                     onSelectionChange={setSelectedParticipants}
                 />
 

@@ -51,6 +51,30 @@ interface AbsencesTabProps {
     userName: string
 }
 
+function ExpandableText({ text }: { text: string }) {
+    const [isExpanded, setIsExpanded] = useState(false)
+    if (text.length <= 50) return <TableCell className="max-w-[200px]">{text}</TableCell>
+    
+    return (
+        <TableCell className="max-w-[200px]">
+            <div className="flex flex-col items-start gap-1">
+                <span className={isExpanded ? "whitespace-pre-wrap text-sm" : "truncate w-full block text-sm"}>
+                    {text}
+                </span>
+                <button 
+                    onClick={(e) => {
+                        e.preventDefault()
+                        setIsExpanded(!isExpanded)
+                    }}
+                    className="text-xs text-blue-600 hover:underline focus:outline-none"
+                >
+                    {isExpanded ? "Show less" : "Show more"}
+                </button>
+            </div>
+        </TableCell>
+    )
+}
+
 export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
     const queryClient = useQueryClient()
     const { user } = useAuth()
@@ -311,12 +335,12 @@ export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
                                             {a.absenceType}
                                         </span>
                                     </TableCell>
-                                    <TableCell>{format(new Date(a.dateStart), "MMM d, yyyy")}</TableCell>
-                                    <TableCell>{format(new Date(a.dateEnd), "MMM d, yyyy")}</TableCell>
+                                    <TableCell>{a.dateStart ? format(new Date(a.dateStart), "MMM d, yyyy") : "-"}</TableCell>
+                                    <TableCell>{a.dateEnd ? format(new Date(a.dateEnd), "MMM d, yyyy") : "-"}</TableCell>
                                     <TableCell>
                                         <Badge className={getStatusColor(a.status)}>{a.status}</Badge>
                                     </TableCell>
-                                    <TableCell className="max-w-[200px] truncate">{a.reason || "-"}</TableCell>
+                                    <ExpandableText text={a.reason || "-"} />
                                     {canManage && (
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">

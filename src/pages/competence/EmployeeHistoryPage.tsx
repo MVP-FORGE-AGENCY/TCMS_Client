@@ -39,7 +39,7 @@ export default function EmployeeHistoryPage() {
     if (isLoading) return <div className="p-8">Loading...</div>
     if (!history) return <div className="p-8">Employee not found</div>
 
-    const { employee, competences, trainings, checks, absences } = history
+    const { employee, competences, trainings, checks, absences, documents } = history
 
     return (
         <div className="space-y-6">
@@ -87,11 +87,12 @@ export default function EmployeeHistoryPage() {
                 </Card>
             </div>
 
-            <Tabs defaultValue="training" className="w-full">
+            <Tabs defaultValue="competence" className="w-full">
                 <TabsList>
+                    <TabsTrigger value="competence">Competence Status</TabsTrigger>
                     <TabsTrigger value="training">Training History</TabsTrigger>
                     <TabsTrigger value="checks">Proficiency Checks</TabsTrigger>
-                    <TabsTrigger value="competence">Competence Status</TabsTrigger>
+                    <TabsTrigger value="documents">Signed Protocols</TabsTrigger>
                     {absences && absences.length > 0 && <TabsTrigger value="absences">Absences</TabsTrigger>}
                 </TabsList>
 
@@ -120,11 +121,12 @@ export default function EmployeeHistoryPage() {
                                                 <div className="font-medium">{t.programme || t.programmeCode}</div>
                                                 <div className="text-xs text-muted-foreground">{t.programmeName}</div>
                                             </TableCell>
-                                            <TableCell>{t.type || t.sessionType}</TableCell>
+                                            <TableCell>{t.type || t.sessionType || 'Training'}</TableCell>
                                             <TableCell>
                                                 <Badge variant={t.result === 'pass' ? 'default' : t.result === 'fail' ? 'destructive' : 'secondary'}>
                                                     {t.result ? t.result.toUpperCase() : 'N/A'}
                                                 </Badge>
+                                                {t.status === 'No Show' && <Badge variant="destructive" className="ml-2">NO SHOW</Badge>}
                                             </TableCell>
                                             <TableCell>
                                                 {t.certificateUrl ? (
@@ -167,7 +169,7 @@ export default function EmployeeHistoryPage() {
                                                  <div className="text-xs text-muted-foreground">{c.profileName}</div>
                                              </TableCell>
                                              <TableCell>
-                                                <Badge variant={c.result === 'pass' ? 'default' : 'destructive'}>
+                                                <Badge variant={c.result === 'pass' ? 'default' : c.result === 'fail' ? 'destructive' : 'secondary'}>
                                                     {c.result ? c.result.toUpperCase() : 'UNKNOWN'}
                                                 </Badge>
                                              </TableCell>
@@ -215,12 +217,84 @@ export default function EmployeeHistoryPage() {
                                              </TableCell>
                                          </TableRow>
                                      ))}
+                                     {(!competences || competences.length === 0) && (
+                                         <TableRow><TableCell colSpan={5} className="text-center">No competences found.</TableCell></TableRow>
+                                     )}
                                  </TableBody>
                              </Table>
                          </CardContent>
                     </Card>
                 </TabsContent>
 
+                {/* Documents Tab */}
+                <TabsContent value="documents" className="mt-4">
+                     <Card>
+                         <CardHeader><CardTitle>Signed Protocols</CardTitle></CardHeader>
+                         <CardContent>
+                             <Table>
+                                 <TableHeader>
+                                     <TableRow>
+                                         <TableHead>Date</TableHead>
+                                         <TableHead>Document</TableHead>
+                                         <TableHead>Action</TableHead>
+                                     </TableRow>
+                                 </TableHeader>
+                                 <TableBody>
+                                     {(documents || []).map((d: any) => (
+                                         <TableRow key={d.id}>
+                                             <TableCell>{d.created_at ? new Date(d.created_at).toLocaleDateString() : '-'}</TableCell>
+                                             <TableCell>
+                                                 <div className="font-medium">{d.document_type === 'protocol' ? 'Evaluation Protocol' : d.document_type}</div>
+                                                 <div className="text-xs text-muted-foreground">{d.file_path}</div>
+                                             </TableCell>
+                                             <TableCell>
+                                                 {d.file_path ? (
+                                                     <Button variant="ghost" size="sm" onClick={() => window.open(d.file_path, '_blank')}>
+                                                        <FileText className="h-4 w-4 mr-1" /> View/Download
+                                                     </Button>
+                                                 ) : '-'}
+                                             </TableCell>
+                                         </TableRow>
+                                     ))}
+                                     {(!documents || documents.length === 0) && (
+                                         <TableRow><TableCell colSpan={3} className="text-center">No signed protocols found.</TableCell></TableRow>
+                                     )}
+                                 </TableBody>
+                             </Table>
+                         </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Absences Tab */}
+                {absences && absences.length > 0 && (
+                <TabsContent value="absences" className="mt-4">
+                  <Card>
+                    <CardHeader><CardTitle>Absences</CardTitle></CardHeader>
+                    <CardContent>
+                      <Table>
+                         <TableHeader>
+                            <TableRow>
+                               <TableHead>Start Date</TableHead>
+                               <TableHead>End Date</TableHead>
+                               <TableHead>Type</TableHead>
+                               <TableHead>Reason</TableHead>
+                            </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                            {absences.map((a: any) => (
+                               <TableRow key={a.id}>
+                                  <TableCell>{new Date(a.date_start).toLocaleDateString()}</TableCell>
+                                  <TableCell>{new Date(a.date_end).toLocaleDateString()}</TableCell>
+                                  <TableCell><Badge variant="outline">{a.absence_type}</Badge></TableCell>
+                                  <TableCell>{a.reason || '-'}</TableCell>
+                               </TableRow>
+                            ))}
+                         </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                )}
             </Tabs>
         </div>
     )

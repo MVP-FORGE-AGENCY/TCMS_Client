@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -14,16 +14,26 @@ import SubmitEvaluationModal from '@/components/checks/SubmitEvaluationModal';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SignatureModal from './SignatureModal';
 
+import { useBreadcrumb } from "@/context/BreadcrumbContext";
+
 const CheckDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { setLabel } = useBreadcrumb();
     
     const [check, setCheck] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
     const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
     const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (check && id) {
+            const label = `${check.profile?.code} - ${check.trainee?.full_name}`;
+            setLabel(id, label);
+        }
+    }, [check, id, setLabel]);
 
 
     const handleFinalize = async () => {
@@ -55,6 +65,31 @@ const CheckDetailPage = () => {
             toast.error("Failed to load check details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadProtocol = async () => {
+        try {
+            toast.promise(
+                api.get(`/checks/${id}/protocol`, { responseType: 'blob' }),
+                {
+                    loading: 'Generating Protocol PDF...',
+                    success: (response) => {
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        // Content-Disposition header usually handles filename, but fallback here
+                        link.setAttribute('download', `Protocol.pdf`);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        return 'Protocol downloaded';
+                    },
+                    error: 'Failed to download protocol'
+                }
+            );
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -137,12 +172,13 @@ const CheckDetailPage = () => {
                                 </Button>
                             )}
 
-                            {(check.finalDecision === 'pending' || check.finalDecision === 'in_progress') && 
-                             ['admin', 'training_manager'].includes(user?.role || '') && (
-                                <Button size="sm" variant="outline" className="ml-2" onClick={() => setIsFinalizeOpen(true)}>
-                                    Finalise Check
+                            {/* Generate Official Protocol - Only for finalized checks */}
+                            {(check.finalDecision === 'pass' || check.finalDecision === 'fail') && (
+                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={handleDownloadProtocol}>
+                                    <FileText className="w-4 h-4" /> Generate Official Protocol
                                 </Button>
                             )}
+
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -219,12 +255,7 @@ const CheckDetailPage = () => {
                                                     </Button>
                                                 )}
                                                 
-                                                {/* Sign Button: Visible if I am assessor, I submitted evaluation, but not yet signed */}
-                                                {user?.id === assessor.id && assessor.evaluationSubmitted && !assessor.signatureReceived && (
-                                                    <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setIsSignModalOpen(true)}>
-                                                        <PenTool className="w-3 h-3 mr-1" /> Sign Protocol
-                                                    </Button>
-                                                )}
+
                                                 
                                                 {/* Signature Status Badge */}
                                                 {assessor.signatureReceived && (
@@ -241,14 +272,15 @@ const CheckDetailPage = () => {
                     </CardContent>
                 </Card>
 
-                {/* Requirements / Elements */}
+                {/* Requirements / Elements - Only show if defined */}
+                {check.profile?.required_elements && Object.keys(check.profile.required_elements).length > 0 && (
                 <Card className="md:col-span-2">
                     <CardHeader>
                         <CardTitle>Assessment Criteria</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
-                            {check.profile?.required_elements && Object.values(check.profile.required_elements).map((elem: any, idx: number) => (
+                            {Object.values(check.profile.required_elements).map((elem: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0 hover:bg-muted/50 px-2 py-1 rounded">
                                     <span className="font-medium">{elem.name}</span>
                                     {elem.mandatory && <Badge variant="secondary" className="text-xs">Mandatory</Badge>}
@@ -257,6 +289,7 @@ const CheckDetailPage = () => {
                         </div>
                     </CardContent>
                 </Card>
+                )}
 
             </div>
 
