@@ -34,6 +34,7 @@ const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPa
 // Curriculum and Campaign routes
 const CurriculumsPage = lazy(() => import("@/pages/curriculums/page"))
 const CurriculumBuilder = lazy(() => import("@/pages/curriculums/CurriculumBuilder"))
+const CurriculumDetailPage = lazy(() => import("@/pages/curriculums/CurriculumDetailPage"))
 const CampaignsPage = lazy(() => import("@/pages/campaigns/page"))
 const CampaignDetailPage = lazy(() => import("@/pages/campaigns/CampaignDetailPage"))
 
@@ -106,7 +107,8 @@ function App() {
                         {/* Curriculum Routes */}
                         <Route path="/curriculums" element={<CurriculumsPage />} />
                         <Route path="/curriculums/new" element={<CurriculumBuilder />} />
-                        <Route path="/curriculums/:id" element={<CurriculumBuilder />} />
+                        <Route path="/curriculums/:id" element={<CurriculumDetailPage />} />
+                        <Route path="/curriculums/:id/edit" element={<CurriculumBuilder />} />
                         
                         {/* Campaign Routes */}
                         <Route path="/campaigns" element={<CampaignsPage />} />

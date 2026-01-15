@@ -398,4 +398,17 @@ export const curriculums = {
         const response = await api.get(`/curriculums/${id}/revisions`)
         return response.data
     },
+    getMaterials: async (id: string) => {
+        const response = await api.get(`/curriculums/${id}/materials`)
+        return response.data
+    },
+    uploadMaterial: async (id: string, data: {
+        title: string
+        type: string
+        fileSize?: number
+        mimeType?: string
+    }) => {
+        const response = await api.post(`/curriculums/${id}/materials`, data)
+        return response.data
+    },
 }
