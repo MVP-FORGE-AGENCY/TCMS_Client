@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { TrafficLightCard } from "@/components/ui/traffic-light-card"
 import { Filter, CheckCircle, XCircle, Clock } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -96,66 +97,60 @@ export default function CompetenceDashboard() {
         })
     }
 
-    const getStatusStyle = (status: string) => {
+    const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'valid': return "bg-green-100 text-green-800"
-            case 'expiring_soon': return "bg-yellow-100 text-yellow-800"
-            case 'expired': return "bg-red-100 text-red-800"
-            default: return "bg-gray-100 text-gray-800"
+            case 'valid': 
+                return <Badge variant="valid" showIcon>{t("competence.valid")}</Badge>
+            case 'expiring_soon': 
+                return <Badge variant="expiring" showIcon>{t("competence.expiringSoon")}</Badge>
+            case 'expired': 
+                return <Badge variant="expired" showIcon>{t("competence.expired")}</Badge>
+            default: 
+                return <Badge variant="outline">{status}</Badge>
         }
     }
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("competence.dashboardTitle")}</h1>
-                <p className="text-muted-foreground text-sm">{t("competence.dashboardSubtitle")}</p>
+                <h1 className="text-h2">{t("competence.dashboardTitle")}</h1>
+                <p className="text-slate-500 text-sm">{t("competence.dashboardSubtitle")}</p>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="cursor-pointer hover:bg-slate-50" onClick={() => handleStatusFilter('valid')}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("competence.valid")}</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-700">{summary.valid}</div>
-                        <p className="text-xs text-muted-foreground">{t("competence.compliantRecords")}</p>
-                    </CardContent>
-                </Card>
-                <Card className="cursor-pointer hover:bg-slate-50" onClick={() => handleStatusFilter('expiring_soon')}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("competence.expiringSoon")}</CardTitle>
-                        <Clock className="h-4 w-4 text-yellow-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-yellow-700">{summary.expiringSoon}</div>
-                        <p className="text-xs text-muted-foreground">{t("competence.within90Days")}</p>
-                    </CardContent>
-                </Card>
-                <Card className="cursor-pointer hover:bg-slate-50" onClick={() => handleStatusFilter('expired')}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("competence.expired")}</CardTitle>
-                        <XCircle className="h-4 w-4 text-red-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-700">{summary.expired}</div>
-                        <p className="text-xs text-muted-foreground">{t("competence.actionRequired")}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("competence.totalTracked")}</CardTitle>
-                        <Filter className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {summary.valid + summary.expiringSoon + summary.expired + summary.notAcquired}
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Traffic Light Dashboard - Brand Identity System */}
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <TrafficLightCard
+                    status="valid"
+                    value={summary.valid}
+                    label={t("competence.valid")}
+                    onClick={() => handleStatusFilter('valid')}
+                />
+                <TrafficLightCard
+                    status="expiring"
+                    value={summary.expiringSoon}
+                    label={t("competence.expiringSoon")}
+                    onClick={() => handleStatusFilter('expiring_soon')}
+                />
+                <TrafficLightCard
+                    status="expired"
+                    value={summary.expired}
+                    label={t("competence.expired")}
+                    onClick={() => handleStatusFilter('expired')}
+                />
             </div>
+
+            {/* Total Tracked Card */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{t("competence.totalTracked")}</CardTitle>
+                    <Filter className="h-4 w-4 text-slate-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">
+                        {summary.valid + summary.expiringSoon + summary.expired + summary.notAcquired}
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -264,9 +259,7 @@ export default function CompetenceDashboard() {
                                             {item.validUntil ? new Date(item.validUntil).toLocaleDateString() : 'Permanent'}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge className={getStatusStyle(item.status)} variant="outline">
-                                                {item.status.replace('_', ' ').toUpperCase()}
-                                            </Badge>
+                                            {getStatusBadge(item.status)}
                                         </TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${item.userId}/history`)}>
