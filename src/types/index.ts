@@ -213,12 +213,19 @@ export interface Organization {
 export interface Employee {
     id: string;
     fullName: string;
+    email?: string;
     organisationId: string;
     role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly';
     areaOfActivity?: string | null;
-    employmentStart: string;
+    departmentTag?: string | null;
+    employmentStart?: string;
     employmentEnd?: string | null;
     mustChangePassword?: boolean;
+    organisation?: {
+        id: string;
+        name: string;
+        code: string;
+    } | null;
 }
 
 export interface EmployeeHistory {

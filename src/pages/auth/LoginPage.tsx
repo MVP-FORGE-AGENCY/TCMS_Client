@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,19 +7,17 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
-import { Plane } from "lucide-react"
+import { Plane, Eye, EyeOff } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 export default function LoginPage() {
     const { t } = useTranslation()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const { login } = useAuth()
     const navigate = useNavigate()
-    const location = useLocation()
-
-    const from = location.state?.from?.pathname || "/dashboard"
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -32,7 +30,7 @@ export default function LoginPage() {
 
             login(accessToken, user)
             toast.success(t("auth.welcomeBackToast"))
-            navigate(from, { replace: true })
+            navigate("/", { replace: true })
         } catch (error: any) {
             console.error("Login failed:", error)
             toast.error(error.response?.data?.message || t("auth.invalidCredentials"))
@@ -72,13 +70,28 @@ export default function LoginPage() {
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password">{t("common.password")}</Label>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <Eye className="h-4 w-4" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </CardContent>
                     <CardFooter>

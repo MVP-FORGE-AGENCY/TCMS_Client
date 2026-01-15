@@ -230,7 +230,18 @@ function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOp
                             </div>
                             <div className="space-y-2">
                                 <Label>Email</Label>
-                                <Input type="email" {...register("adminUser.email", { required: true })} placeholder="admin@acme.com" />
+                                <Input 
+                                    type="text" 
+                                    {...register("adminUser.email", { 
+                                        required: "Email is required",
+                                        pattern: {
+                                            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                                            message: "Invalid email format"
+                                        }
+                                    })} 
+                                    placeholder="admin@acme.com" 
+                                />
+                                {errors.adminUser?.email && <span className="text-red-500 text-xs">{errors.adminUser.email.message as string}</span>}
                             </div>
                             <div className="space-y-2 col-span-2">
                                 <Label>Temporary Password</Label>
