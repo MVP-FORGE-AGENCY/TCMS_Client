@@ -352,3 +352,50 @@ export const superAdmin = {
         return response.data
     },
 }
+
+// Curriculums API
+export const curriculums = {
+    list: async (params?: { isActive?: boolean; type?: string; search?: string }) => {
+        const response = await api.get("/curriculums", { params })
+        return response.data
+    },
+    get: async (id: string) => {
+        const response = await api.get(`/curriculums/${id}`)
+        return response.data
+    },
+    create: async (data: {
+        code: string
+        name: string
+        type: string
+        validityMonths?: number
+        standardTags?: string[]
+        description?: string
+        modules?: any[]
+    }) => {
+        const response = await api.post("/curriculums", data)
+        return response.data
+    },
+    update: async (id: string, data: Partial<{
+        name: string
+        type: string
+        validityMonths: number
+        standardTags: string[]
+        description: string
+        isActive: boolean
+    }>) => {
+        const response = await api.patch(`/curriculums/${id}`, data)
+        return response.data
+    },
+    updateModules: async (id: string, modules: any[]) => {
+        const response = await api.put(`/curriculums/${id}/modules`, { modules })
+        return response.data
+    },
+    delete: async (id: string) => {
+        const response = await api.delete(`/curriculums/${id}`)
+        return response.data
+    },
+    getRevisions: async (id: string) => {
+        const response = await api.get(`/curriculums/${id}/revisions`)
+        return response.data
+    },
+}
