@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { SessionsTable } from "@/components/tables/SessionsTable"
 import { SessionForm } from "@/components/forms/SessionForm"
 import { RecordResultsForm } from "@/components/forms/RecordResultsForm"
-import type { Session, Programme } from "@/types"
+import type { Session, Curriculum } from "@/types"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
@@ -29,12 +29,12 @@ import { EmptyState } from "@/components/ui/empty-state"
 export default function SessionsPage() {
     const { t } = useTranslation()
     const [sessions, setSessions] = useState<Session[]>([])
-    const [programmes, setProgrammes] = useState<Programme[]>([])
+    const [curriculums, setCurriculums] = useState<Curriculum[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const navigate = useNavigate()
 
     // Filters
-    const [filterProgramme, setFilterProgramme] = useState<string>("")
+    const [filterCurriculum, setFilterCurriculum] = useState<string>("")
     const [filterStatus, setFilterStatus] = useState<string>("")
     const [filterDateFrom, setFilterDateFrom] = useState<string>("")
     const [filterDateTo, setFilterDateTo] = useState<string>("")
@@ -50,25 +50,25 @@ export default function SessionsPage() {
             
             // Build query params for filters
             const params = new URLSearchParams()
-            if (filterProgramme) params.append('programmeId', filterProgramme)
+            if (filterCurriculum) params.append('curriculumId', filterCurriculum)
             if (filterStatus) params.append('status', filterStatus)
             if (filterDateFrom) params.append('from', filterDateFrom)
             if (filterDateTo) params.append('to', filterDateTo)
             
             const queryString = params.toString() ? `?${params.toString()}` : ''
             
-            const [sessionsRes, programmesRes] = await Promise.all([
+            const [sessionsRes, curriculumsRes] = await Promise.all([
                 api.get(`/sessions${queryString}`),
-                api.get("/programmes")
+                api.get("/curriculums")
             ])
 
             // Handle both array and paginated response structure for sessions
             const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : (sessionsRes.data?.data || [])
             setSessions(Array.isArray(sessionsData) ? sessionsData : [])
 
-            // Handle both array and paginated response structure for programmes
-            const programmesData = Array.isArray(programmesRes.data) ? programmesRes.data : (programmesRes.data?.data || [])
-            setProgrammes(Array.isArray(programmesData) ? programmesData : [])
+            // Handle both array and paginated response structure for curriculums
+            const curriculumsData = Array.isArray(curriculumsRes.data) ? curriculumsRes.data : (curriculumsRes.data?.data || [])
+            setCurriculums(Array.isArray(curriculumsData) ? curriculumsData : [])
         } catch (error) {
             console.error("Failed to fetch data:", error)
             toast.error(t("sessions.toast.loadError", "Failed to load sessions data"))
@@ -78,17 +78,17 @@ export default function SessionsPage() {
     }
 
     const clearFilters = () => {
-        setFilterProgramme("")
+        setFilterCurriculum("")
         setFilterStatus("")
         setFilterDateFrom("")
         setFilterDateTo("")
     }
 
-    const hasActiveFilters = filterProgramme || filterStatus || filterDateFrom || filterDateTo
+    const hasActiveFilters = filterCurriculum || filterStatus || filterDateFrom || filterDateTo
 
     useEffect(() => {
         fetchData()
-    }, [filterProgramme, filterStatus, filterDateFrom, filterDateTo])
+    }, [filterCurriculum, filterStatus, filterDateFrom, filterDateTo])
 
     const handleCreateSession = async (values: any) => {
         try {
@@ -171,16 +171,16 @@ export default function SessionsPage() {
                 <div className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">{t("sessions.programme")}</label>
-                            <Select value={filterProgramme} onValueChange={setFilterProgramme}>
+                            <label className="text-sm font-medium">{t("sessions.curriculum", "Curriculum")}</label>
+                            <Select value={filterCurriculum} onValueChange={setFilterCurriculum}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder={t("sessions.allProgrammes")} />
+                                    <SelectValue placeholder={t("sessions.allCurriculums", "All Curriculums")} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">{t("sessions.allProgrammes")}</SelectItem>
-                                    {programmes.map((prog) => (
-                                        <SelectItem key={prog.id} value={prog.id}>
-                                            {prog.code} - {prog.name}
+                                    <SelectItem value="all">{t("sessions.allCurriculums", "All Curriculums")}</SelectItem>
+                                    {curriculums.map((curr) => (
+                                        <SelectItem key={curr.id} value={curr.id}>
+                                            {curr.code} - {curr.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -261,7 +261,7 @@ export default function SessionsPage() {
                         <DialogTitle>{t("sessions.scheduleNewSession")}</DialogTitle>
                     </DialogHeader>
                     <SessionForm
-                        programmes={programmes}
+                        curriculums={curriculums}
                         onSubmit={handleCreateSession}
                         onCancel={() => setIsCreateOpen(false)}
                     />

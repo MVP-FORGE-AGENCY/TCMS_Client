@@ -27,6 +27,7 @@ import {
 } from "recharts"
 import { api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
+import { MyActions } from "@/components/dashboard/MyActions"
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
@@ -276,6 +277,9 @@ export default function DashboardPage() {
                     </Select>
                 </div>
             </div>
+
+            {/* My Actions - Priority Task List */}
+            <MyActions />
 
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card 

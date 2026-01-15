@@ -23,7 +23,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2, UserPlus } from "lucide-react"
-import type { Session, Programme } from "@/types"
+import type { Session, Curriculum } from "@/types"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { employees } from "@/lib/api"
@@ -37,7 +37,7 @@ interface Instructor {
 }
 
 const formSchema = z.object({
-    programmeId: z.string().min(1, "Programme is required"),
+    curriculumId: z.string().min(1, "Curriculum is required"),
     dateStart: z.date({
         message: "Start date is required",
     }),
@@ -53,12 +53,12 @@ type FormValues = z.infer<typeof formSchema>
 
 interface SessionFormProps {
     initialData?: Session | null
-    programmes: Programme[]
+    curriculums: Curriculum[]
     onSubmit: (values: FormValues) => void
     onCancel: () => void
 }
 
-export function SessionForm({ initialData, programmes, onSubmit, onCancel }: SessionFormProps) {
+export function SessionForm({ initialData, curriculums, onSubmit, onCancel }: SessionFormProps) {
     const { t } = useTranslation()
     const [instructors, setInstructors] = useState<Instructor[]>([])
     const [loadingInstructors, setLoadingInstructors] = useState(true)
@@ -68,7 +68,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
-            programmeId: "",
+            curriculumId: "",
             location: "",
             instructorId: "",
             sessionType: "combined",
@@ -107,7 +107,7 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
     useEffect(() => {
         if (initialData) {
             form.reset({
-                programmeId: initialData.programmeId,
+                curriculumId: (initialData as any).curriculumId || '',
                 dateStart: new Date(initialData.dateStart),
                 dateEnd: initialData.dateEnd ? new Date(initialData.dateEnd) : undefined,
                 location: initialData.location,
@@ -129,20 +129,20 @@ export function SessionForm({ initialData, programmes, onSubmit, onCancel }: Ses
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
-                    name="programmeId"
+                    name="curriculumId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t("sessions.programme")}</FormLabel>
+                            <FormLabel>{t("sessions.curriculum", "Curriculum")}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select programme" />
+                                        <SelectValue placeholder={t("sessions.selectCurriculum", "Select curriculum")} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {programmes.filter(p => p.isActive).map((prog) => (
-                                        <SelectItem key={prog.id} value={prog.id}>
-                                            {prog.code} - {prog.name}
+                                    {curriculums.filter(c => c.isActive).map((curr) => (
+                                        <SelectItem key={curr.id} value={curr.id}>
+                                            {curr.code} - {curr.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

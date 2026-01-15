@@ -52,7 +52,9 @@ export type SessionStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled
 
 export interface Session {
     id: string;
-    programmeId: string;
+    curriculumId?: string;
+    curriculumModuleId?: string;
+    programmeId?: string; // Legacy - deprecated
     dateStart: string;
     dateEnd?: string;
     location: string;
@@ -61,27 +63,38 @@ export interface Session {
     capacity?: number;
     status: SessionStatus;
     isSigned?: boolean;
+    campaignId?: string;
+    retakeOf?: string;
+    attemptNumber?: number;
     instructor?: {
         id: string;
         fullName: string;
         email: string;
+    } | null;
+    curriculum?: {
+        id: string;
+        code: string;
+        name: string;
+        type: string;
     } | null;
     programme?: {
         id: string;
         name: string;
         code: string;
         passScorePercent?: number;
-    };
+    } | null; // Legacy - deprecated
 }
 
 export interface SessionCreate {
-    programmeId: string;
+    curriculumId: string;
+    curriculumModuleId?: string;
     dateStart: string;
     dateEnd?: string;
     location: string;
     instructorId: string;
     sessionType: SessionType;
     capacity?: number;
+    campaignId?: string;
 }
 
 export interface SessionEnrolRequest {
@@ -285,4 +298,273 @@ export interface Standard {
         id: string
         name: string
     }
+}
+
+// ============================================================================
+// CURRICULUM SYSTEM (Merged Programmes + Profiles)
+// ============================================================================
+
+export type CurriculumType = 'initial' | 'recurrent' | 'refresher' | 'conversion' | 'differences';
+export type ModuleType = 'instruction' | 'assessment';
+export type DeliveryMethod = 'classroom' | 'elearning' | 'practical' | 'simulator' | 'self_study';
+
+export interface GradingElement {
+    id: string;
+    name: string;
+    description?: string;
+    isMandatory: boolean;
+    defaultGrade?: number;
+}
+
+export interface PassCriteria {
+    passThreshold: number;
+    failThreshold: number;
+    mandatoryAllPass: boolean;
+}
+
+export interface CurriculumModule {
+    id: string;
+    curriculumId: string;
+    type: ModuleType;
+    name: string;
+    description?: string;
+    durationHours?: number;
+    sequence: number;
+    // For instruction modules
+    deliveryMethod?: DeliveryMethod;
+    // For assessment modules
+    gradingElements?: GradingElement[];
+    passCriteria?: PassCriteria;
+    requiredAssessors?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface CurriculumModuleCreate {
+    type: ModuleType;
+    name: string;
+    description?: string;
+    durationHours?: number;
+    sequence?: number;
+    deliveryMethod?: DeliveryMethod;
+    gradingElements?: GradingElement[];
+    passCriteria?: PassCriteria;
+    requiredAssessors?: number;
+}
+
+export interface Curriculum {
+    id: string;
+    code: string;
+    name: string;
+    type: CurriculumType;
+    validityMonths?: number;
+    standardTags: string[];
+    description?: string;
+    isActive: boolean;
+    revision: number;
+    modules: CurriculumModule[];
+    // Computed fields from summary view
+    totalHours?: number;
+    instructionModulesCount?: number;
+    assessmentModulesCount?: number;
+    totalModulesCount?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface CurriculumCreate {
+    code: string;
+    name: string;
+    type: CurriculumType;
+    validityMonths?: number;
+    standardTags?: string[];
+    description?: string;
+    modules?: CurriculumModuleCreate[];
+}
+
+export interface CurriculumUpdate {
+    name?: string;
+    type?: CurriculumType;
+    validityMonths?: number;
+    standardTags?: string[];
+    description?: string;
+    isActive?: boolean;
+}
+
+// ============================================================================
+// CAMPAIGN SYSTEM (Bulk Scheduling)
+// ============================================================================
+
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type EnrollmentStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'failed' | 'withdrawn';
+export type EnrollmentResult = 'pass' | 'fail' | 'incomplete';
+
+export interface CampaignEnrollment {
+    id: string;
+    campaignId: string;
+    userId: string;
+    status: EnrollmentStatus;
+    result?: EnrollmentResult;
+    enrolledAt: string;
+    completedAt?: string;
+    notes?: string;
+    user?: {
+        id: string;
+        fullName: string;
+        email: string;
+        departmentTag?: string;
+    };
+}
+
+export interface Campaign {
+    id: string;
+    name: string;
+    description?: string;
+    curriculumId: string;
+    curriculum?: {
+        id: string;
+        code: string;
+        name: string;
+        type: CurriculumType;
+        validityMonths?: number;
+    };
+    dateRangeStart: string;
+    dateRangeEnd: string;
+    maxPerSession: number;
+    defaultLocation?: string;
+    defaultInstructorId?: string;
+    status: CampaignStatus;
+    progressPercent: number;
+    enrollments?: CampaignEnrollment[];
+    // Stats from summary view
+    totalEnrollments?: number;
+    pendingCount?: number;
+    scheduledCount?: number;
+    inProgressCount?: number;
+    completedCount?: number;
+    failedCount?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface CampaignCreate {
+    name: string;
+    description?: string;
+    curriculumId: string;
+    dateRangeStart: string;
+    dateRangeEnd: string;
+    maxPerSession?: number;
+    defaultLocation?: string;
+    defaultInstructorId?: string;
+}
+
+export interface CampaignUpdate {
+    name?: string;
+    description?: string;
+    dateRangeStart?: string;
+    dateRangeEnd?: string;
+    maxPerSession?: number;
+    defaultLocation?: string;
+    defaultInstructorId?: string;
+    status?: CampaignStatus;
+}
+
+export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface GenerateScheduleRequest {
+    instructorId?: string;
+    location?: string;
+    sessionDurationHours?: number;
+    preferredDays?: WeekDay[];
+    preferredTime?: string; // HH:mm format
+    breakBetweenMinutes?: number;
+}
+
+export interface GenerateScheduleResponse {
+    data: Session[];
+    summary: {
+        sessionsCreated: number;
+        participantsScheduled: number;
+    };
+}
+
+// ============================================================================
+// RETAKE SYSTEM
+// ============================================================================
+
+export interface RetakeChainItem {
+    id: string;
+    attemptNumber: number;
+    dateStart: string;
+    status: SessionStatus;
+    result?: SessionResultStatus;
+}
+
+export interface ScheduleRetakeRequest {
+    traineeId: string;
+    dateStart: string;
+    dateEnd?: string;
+    location?: string;
+    instructorId?: string;
+}
+
+// ============================================================================
+// ACTION DASHBOARD (My Actions)
+// ============================================================================
+
+export type ActionItemType = 
+    | 'expiry_warning' 
+    | 'pending_signature' 
+    | 'session_approval' 
+    | 'acknowledge_training'
+    | 'pending_grading'
+    | 'retake_required'
+    | 'session_reminder';
+
+export type ActionItemPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface ActionItem {
+    id: string;
+    type: ActionItemType;
+    title: string;
+    description?: string;
+    priority: ActionItemPriority;
+    dueDate?: string;
+    targetUrl: string;
+    entityType?: 'session' | 'check' | 'competence' | 'campaign';
+    entityId?: string;
+    metadata?: Record<string, any>;
+    createdAt: string;
+    isRead?: boolean;
+}
+
+export interface ActionItemsResponse {
+    data: ActionItem[];
+    total: number;
+    unreadCount: number;
+}
+
+// ============================================================================
+// EXCEPTION-BASED GRADING
+// ============================================================================
+
+export type GradeValue = 1 | 2 | 3 | 4 | 5;
+export type GradeDeviation = 'below_standard' | 'standard' | 'above_standard';
+
+export interface ElementGrade {
+    elementId: string;
+    grade: GradeValue;
+    deviation: GradeDeviation;
+    comments?: string; // Required only for grades 1, 2, or 5
+}
+
+export interface ExceptionGradingRequest {
+    deviations: ElementGrade[]; // Only non-standard grades
+    defaultGrade?: GradeValue; // Default is 3 (standard)
+}
+
+export interface ExceptionGradingResponse {
+    allElements: ElementGrade[];
+    overallResult: 'pass' | 'fail';
+    requiresRetake: boolean;
 }

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
     Table,
     TableBody,
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Users, ClipboardCheck, Ban } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Session } from "@/types"
+import { format } from "date-fns"
 
 interface SessionsTableProps {
     data: Session[]
@@ -34,13 +36,23 @@ export function SessionsTable({
     onRecordResults,
     onCancelSession,
 }: SessionsTableProps) {
-    const [filterProgramme, setFilterProgramme] = useState("")
+    const { t } = useTranslation()
+    const [filterSearch, setFilterSearch] = useState("")
     const [filterStatus, setFilterStatus] = useState<string>("all")
 
     const filteredData = (data || []).filter((session) => {
-        const matchesProgramme = session.programmeId.toLowerCase().includes(filterProgramme.toLowerCase())
+        // Search by curriculum name, instructor name, or location
+        const searchLower = filterSearch.toLowerCase()
+        const curriculumName = session.curriculum?.name || session.programme?.name || ''
+        const instructorName = session.instructor?.fullName || ''
+        const location = session.location || ''
+        
+        const matchesSearch = !filterSearch || 
+            curriculumName.toLowerCase().includes(searchLower) ||
+            instructorName.toLowerCase().includes(searchLower) ||
+            location.toLowerCase().includes(searchLower)
         const matchesStatus = filterStatus === "all" || session.status === filterStatus
-        return matchesProgramme && matchesStatus
+        return matchesSearch && matchesStatus
     })
 
     const getStatusColor = (status: string) => {
@@ -58,25 +70,40 @@ export function SessionsTable({
         }
     }
 
+    const getSessionTypeBadge = (type: string) => {
+        switch (type) {
+            case "ground":
+                return "bg-emerald-100 text-emerald-800"
+            case "simulator":
+                return "bg-violet-100 text-violet-800"
+            case "flight":
+                return "bg-sky-100 text-sky-800"
+            case "combined":
+                return "bg-orange-100 text-orange-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
+
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-4">
                 <Input
-                    placeholder="Filter by Programme ID..."
-                    value={filterProgramme}
-                    onChange={(e) => setFilterProgramme(e.target.value)}
+                    placeholder={t('sessions.searchPlaceholder', 'Search by curriculum, instructor, or location...')}
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
                     className="max-w-sm"
                 />
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by Status" />
+                        <SelectValue placeholder={t('sessions.filterStatus', 'Filter by Status')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="planned">Planned</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
+                        <SelectItem value="planned">{t('sessions.planned', 'Planned')}</SelectItem>
+                        <SelectItem value="in_progress">{t('sessions.inProgress', 'In Progress')}</SelectItem>
+                        <SelectItem value="completed">{t('sessions.completed', 'Completed')}</SelectItem>
+                        <SelectItem value="cancelled">{t('sessions.cancelled', 'Cancelled')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -85,26 +112,32 @@ export function SessionsTable({
                 <Table className="min-w-[900px]">
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Programme</TableHead>
-                            <TableHead>Instructor</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Capacity</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>{t('sessions.date', 'Date')}</TableHead>
+                            <TableHead>{t('sessions.curriculum', 'Curriculum')}</TableHead>
+                            <TableHead>{t('sessions.instructor', 'Instructor')}</TableHead>
+                            <TableHead>{t('sessions.location', 'Location')}</TableHead>
+                            <TableHead>{t('sessions.type', 'Type')}</TableHead>
+                            <TableHead>{t('sessions.capacity', 'Capacity')}</TableHead>
+                            <TableHead>{t('common.status', 'Status')}</TableHead>
+                            <TableHead className="text-right">{t('common.actions', 'Actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredData.map((session) => (
                             <TableRow key={session.id}>
                                 <TableCell>
-                                    {new Date(session.dateStart).toLocaleDateString()}
+                                    {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
                                 </TableCell>
-                                <TableCell className="font-medium">{session.programmeId}</TableCell>
-                                <TableCell>{session.instructorId}</TableCell>
-                                <TableCell>{session.location}</TableCell>
-                                <TableCell className="capitalize">{session.sessionType}</TableCell>
+                                <TableCell className="font-medium">
+                                    {session.curriculum?.name || session.programme?.name || '-'}
+                                </TableCell>
+                                <TableCell>{session.instructor?.fullName || '-'}</TableCell>
+                                <TableCell>{session.location || '-'}</TableCell>
+                                <TableCell>
+                                    <Badge className={getSessionTypeBadge(session.sessionType)}>
+                                        {session.sessionType}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell>{session.capacity || "-"}</TableCell>
                                 <TableCell>
                                     <Badge className={getStatusColor(session.status)}>

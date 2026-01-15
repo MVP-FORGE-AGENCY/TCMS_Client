@@ -18,7 +18,8 @@ import {
     CheckCircle, 
     MapPin,
     FileText,
-    Award
+    Award,
+    RotateCcw
 } from "lucide-react"
 import type { Session, SessionResult } from "@/types"
 import { api } from "@/lib/api"
@@ -38,6 +39,16 @@ import { Users } from "lucide-react"
 import { ConfirmationModal } from "@/components/common/ConfirmationModal"
 import { useAuth } from "@/context/AuthContext"
 import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import type { ScheduleRetakeRequest, Employee } from "@/types"
 
 export default function SessionDetailPage() {
     const { id } = useParams()
@@ -59,6 +70,18 @@ export default function SessionDetailPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isResultsModalOpen, setIsResultsModalOpen] = useState(false)
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false)
+    
+    // Retake dialog state
+    const [retakeDialogOpen, setRetakeDialogOpen] = useState(false)
+    const [retakeForm, setRetakeForm] = useState<ScheduleRetakeRequest>({
+        traineeId: '',
+        dateStart: '',
+        location: '',
+        instructorId: ''
+    })
+    const [selectedTrainee, setSelectedTrainee] = useState<SessionResult | null>(null)
+    const [scheduling, setScheduling] = useState(false)
+    const [instructors, setInstructors] = useState<Employee[]>([])
 
     const fetchData = async () => {
         if (!id) return
@@ -80,10 +103,23 @@ export default function SessionDetailPage() {
 
     useEffect(() => {
         fetchData()
+        loadInstructors()
         return () => {
             if (id) setLabel(id, '')
         }
     }, [id])
+
+    const loadInstructors = async () => {
+        try {
+            const response = await api.get('/employees')
+            const allEmployees = response.data.data || []
+            setInstructors(allEmployees.filter((e: Employee) => 
+                e.role === 'instructor' || e.role === 'training_manager' || e.role === 'admin'
+            ))
+        } catch (error) {
+            console.error('Failed to load instructors:', error)
+        }
+    }
 
     useEffect(() => {
         if (session && id) {
@@ -164,6 +200,38 @@ export default function SessionDetailPage() {
     const handleResultsSaved = () => {
         fetchData()
         setIsResultsModalOpen(false)
+    }
+
+    const openRetakeDialog = (participant: SessionResult) => {
+        setSelectedTrainee(participant)
+        setRetakeForm({
+            traineeId: participant.userId,
+            dateStart: '',
+            location: session?.location || '',
+            instructorId: session?.instructorId || ''
+        })
+        setRetakeDialogOpen(true)
+    }
+
+    const handleScheduleRetake = async () => {
+        if (!retakeForm.dateStart) {
+            toast.error('Please select a date')
+            return
+        }
+
+        try {
+            setScheduling(true)
+            const response = await api.post(`/sessions/${id}/schedule-retake`, retakeForm)
+            toast.success(response.data.message || 'Retake session scheduled')
+            setRetakeDialogOpen(false)
+            // Navigate to the new session
+            navigate(`/sessions/${response.data.data.id}`)
+        } catch (error: any) {
+            console.error('Failed to schedule retake:', error)
+            toast.error(error.response?.data?.error?.message || 'Failed to schedule retake')
+        } finally {
+            setScheduling(false)
+        }
     }
 
     if (isLoading) return <div className="p-8">Loading...</div>
@@ -365,6 +433,7 @@ export default function SessionDetailPage() {
                                             </TableCell>
                                         )}
                                         <TableCell className="flex gap-1">
+                                            {/* Certificate actions */}
                                             {p.certificateUrl && (
                                                 <>
                                                     <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
@@ -385,6 +454,17 @@ export default function SessionDetailPage() {
                                                         <Award className="h-4 w-4 mr-1" /> Email
                                                     </Button>
                                                 </>
+                                            )}
+                                            {/* Schedule Retake for failed trainees */}
+                                            {isCompleted && p.overallResult === 'fail' && (
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm"
+                                                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                                                    onClick={() => openRetakeDialog(p)}
+                                                >
+                                                    <RotateCcw className="h-4 w-4 mr-1" /> Retake
+                                                </Button>
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -421,6 +501,79 @@ export default function SessionDetailPage() {
                 onConfirm={confirmModal.action}
                 variant={confirmModal.variant}
             />
+
+            {/* Schedule Retake Dialog */}
+            <Dialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Schedule Retake</DialogTitle>
+                        <DialogDescription>
+                            Schedule a retake session for {selectedTrainee?.fullName}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Trainee</Label>
+                            <Input 
+                                value={selectedTrainee?.fullName || ''}
+                                disabled
+                                className="bg-muted"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Retake Date *</Label>
+                            <Input 
+                                type="datetime-local"
+                                value={retakeForm.dateStart}
+                                onChange={(e) => setRetakeForm({ ...retakeForm, dateStart: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Location</Label>
+                            <Input 
+                                value={retakeForm.location}
+                                onChange={(e) => setRetakeForm({ ...retakeForm, location: e.target.value })}
+                                placeholder={session?.location || 'Enter location'}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Instructor</Label>
+                            <Select 
+                                value={retakeForm.instructorId}
+                                onValueChange={(v) => setRetakeForm({ ...retakeForm, instructorId: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select instructor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {instructors.map((inst) => (
+                                        <SelectItem key={inst.id} value={inst.id}>
+                                            {inst.fullName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
+                            <CardContent className="pt-4">
+                                <p className="text-sm text-amber-800 dark:text-amber-200">
+                                    This will create a new session linked to the original attempt. 
+                                    The trainee will be automatically enrolled.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRetakeDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleScheduleRetake} disabled={scheduling}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            {scheduling ? 'Scheduling...' : 'Schedule Retake'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -12,8 +12,9 @@ const LoginPage = lazy(() => import("@/pages/auth/LoginPage"))
 const PersonnelPage = lazy(() => import("@/pages/personnel/page"))
 
 const DashboardPage = lazy(() => import("@/pages/dashboard/page"))
-const ProgrammesPage = lazy(() => import("@/pages/programmes/page"))
-const ProgrammeDetailPage = lazy(() => import("@/pages/programmes/ProgrammeDetailPage"))
+// DEPRECATED: Programmes replaced by Curriculums
+// const ProgrammesPage = lazy(() => import("@/pages/programmes/page"))
+// const ProgrammeDetailPage = lazy(() => import("@/pages/programmes/ProgrammeDetailPage"))
 const SessionsPage = lazy(() => import("@/pages/sessions/page"))
 const SessionDetailPage = lazy(() => import("@/pages/sessions/SessionDetailPage"))
 const ChecksPage = lazy(() => import("@/pages/checks/page"))
@@ -29,6 +30,12 @@ const EmployeeHistoryPage = lazy(() => import("@/pages/competence/EmployeeHistor
 const ChangePasswordPage = lazy(() => import("@/pages/auth/ChangePasswordPage"))
 const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage"))
 const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
+
+// Curriculum and Campaign routes
+const CurriculumsPage = lazy(() => import("@/pages/curriculums/page"))
+const CurriculumBuilder = lazy(() => import("@/pages/curriculums/CurriculumBuilder"))
+const CampaignsPage = lazy(() => import("@/pages/campaigns/page"))
+const CampaignDetailPage = lazy(() => import("@/pages/campaigns/CampaignDetailPage"))
 
 function ProtectedRoute() {
   const { isAuthenticated, isLoading, user } = useAuth()
@@ -80,8 +87,9 @@ function App() {
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/personnel" element={<PersonnelPage />} />
-                        <Route path="/programmes" element={<ProgrammesPage />} />
-                        <Route path="/programmes/:id" element={<ProgrammeDetailPage />} />
+                        {/* DEPRECATED: Programmes replaced by Curriculums */}
+                        {/* <Route path="/programmes" element={<ProgrammesPage />} /> */}
+                        {/* <Route path="/programmes/:id" element={<ProgrammeDetailPage />} /> */}
                         <Route path="/standards" element={<StandardsPage />} />
                         <Route path="/standards/:id" element={<StandardDetailPage />} />
                         <Route path="/sessions" element={<SessionsPage />} />
@@ -94,7 +102,15 @@ function App() {
                         <Route path="/competence" element={<CompetenceDashboard />} />
                         <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
-                        {/* Duplicate route removed */}
+                        
+                        {/* Curriculum Routes */}
+                        <Route path="/curriculums" element={<CurriculumsPage />} />
+                        <Route path="/curriculums/new" element={<CurriculumBuilder />} />
+                        <Route path="/curriculums/:id" element={<CurriculumBuilder />} />
+                        
+                        {/* Campaign Routes */}
+                        <Route path="/campaigns" element={<CampaignsPage />} />
+                        <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
                         
                         {/* Super Admin Routes */}
                         <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
