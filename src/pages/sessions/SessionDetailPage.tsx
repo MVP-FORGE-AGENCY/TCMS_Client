@@ -400,11 +400,18 @@ export default function SessionDetailPage() {
                                                     <SelectContent>
                                                         <SelectItem value="planned">Planned</SelectItem>
                                                         <SelectItem value="present">Present</SelectItem>
+                                                        <SelectItem value="late">Late</SelectItem>
                                                         <SelectItem value="absent">Absent</SelectItem>
+                                                        <SelectItem value="excused">Excused</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             ) : (
-                                                <Badge variant={p.attendance === 'present' ? 'default' : 'secondary'}>
+                                                <Badge variant={
+                                                    p.attendance === 'present' ? 'default' : 
+                                                    p.attendance === 'late' ? 'secondary' :
+                                                    p.attendance === 'excused' ? 'outline' : 
+                                                    'destructive'
+                                                }>
                                                     {p.attendance}
                                                 </Badge>
                                             )}

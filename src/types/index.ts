@@ -101,7 +101,7 @@ export interface SessionEnrolRequest {
     userIds: string[];
 }
 
-export type AttendanceStatus = 'planned' | 'present' | 'absent';
+export type AttendanceStatus = 'planned' | 'present' | 'absent' | 'late' | 'excused';
 export type AssessmentMethod = 'none' | 'written' | 'oral' | 'computer' | 'practical';
 export type SessionResultStatus = 'not_assessed' | 'pass' | 'fail';
 
