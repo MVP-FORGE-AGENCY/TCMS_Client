@@ -64,6 +64,13 @@ export interface Session {
     status: SessionStatus;
     isSigned?: boolean;
     campaignId?: string;
+    curriculumModule?: {
+        id: string;
+        name: string;
+        durationHours?: number;
+        sequence: number;
+    } | null;
+    isFinalModuleSession?: boolean;
     retakeOf?: string;
     attemptNumber?: number;
     instructor?: {
@@ -317,9 +324,11 @@ export interface GradingElement {
 }
 
 export interface PassCriteria {
-    passThreshold: number;
-    failThreshold: number;
-    mandatoryAllPass: boolean;
+    passThreshold?: number;
+    failThreshold?: number;
+    mandatoryAllPass?: boolean;
+    theoryPassScore?: number;
+    practicalPassScore?: number;
 }
 
 export interface CurriculumModule {

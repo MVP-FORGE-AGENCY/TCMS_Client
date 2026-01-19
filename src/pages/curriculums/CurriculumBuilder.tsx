@@ -591,6 +591,46 @@ export default function CurriculumBuilder() {
                             </div>
                         )}
 
+                        <div className="space-y-4 pt-2 border-t">
+                            <Label className="text-base">{t('curriculums.gradingCriteria', 'Grading Criteria')}</Label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>{t('curriculums.theoryPassScore', 'Theory Pass Score (%)')}</Label>
+                                    <Input 
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={moduleForm.passCriteria?.theoryPassScore || ''}
+                                        onChange={(e) => setModuleForm({ 
+                                            ...moduleForm, 
+                                            passCriteria: { 
+                                                ...moduleForm.passCriteria, 
+                                                theoryPassScore: parseFloat(e.target.value) || undefined
+                                            } 
+                                        })}
+                                        placeholder="e.g., 75"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('curriculums.practicalPassScore', 'Practical Pass Score (%)')}</Label>
+                                    <Input 
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={moduleForm.passCriteria?.practicalPassScore || ''}
+                                        onChange={(e) => setModuleForm({ 
+                                            ...moduleForm, 
+                                            passCriteria: { 
+                                                ...moduleForm.passCriteria, 
+                                                practicalPassScore: parseFloat(e.target.value) || undefined
+                                            } 
+                                        })}
+                                        placeholder="e.g., 80"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <Label>{t('curriculums.moduleDescription', 'Description (Optional)')}</Label>
                             <Textarea 

@@ -50,6 +50,44 @@ import {
 import { Label } from "@/components/ui/label"
 import type { ScheduleRetakeRequest, Employee } from "@/types"
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useQuery } from "@tanstack/react-query"
+import { moduleResults } from "@/lib/api"
+import { SessionModuleGradingForm } from "@/components/forms/SessionModuleGradingForm"
+
+const ModuleGradingSection = ({ sessionId }: { sessionId: string }) => {
+    const { data, isLoading } = useQuery({
+        queryKey: ['session-module-grading', sessionId],
+        queryFn: () => moduleResults.getSessionGrading(sessionId)
+    });
+
+    if (isLoading) return <div>Loading grading data...</div>;
+
+    if (!data?.applicable && data?.message) {
+        return (
+            <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                    {data.message}
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    if (!data?.gradingList) return null;
+
+    return (
+        <Card>
+            <CardContent className="pt-6">
+                <SessionModuleGradingForm 
+                    sessionId={sessionId}
+                    moduleData={data.session.module}
+                    gradingList={data.gradingList}
+                />
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function SessionDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -336,152 +374,166 @@ export default function SessionDetailPage() {
             </div>
 
             {/* Content */}
-            <div className="grid gap-6">
-                {/* Pass Criteria Info (for In Progress/Completed) */}
-                {(isInProgress || isCompleted) && (
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="details">Session Details</TabsTrigger>
+                    {(isInProgress || isCompleted) && (
+                        <TabsTrigger value="grading">Module Grading</TabsTrigger>
+                    )}
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-6">
+                    {/* Pass Criteria Info (for In Progress/Completed) */}
+                    {(isInProgress || isCompleted) && (
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">
+                                    Assessment Criteria
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-8">
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-medium">Theory Pass Score</div>
+                                        <div className="text-2xl font-bold">
+                                            {session.programme?.passScorePercent || 75}%
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-medium">Practical Pass Score</div>
+                                        <div className="text-2xl font-bold">
+                                            {session.programme?.passScorePercent || 75}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Participants Table */}
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Assessment Criteria
-                            </CardTitle>
+                        <CardHeader>
+                            <CardTitle>Participants ({participants.length})</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex gap-8">
-                                <div className="space-y-1">
-                                    <div className="text-sm font-medium">Theory Pass Score</div>
-                                    <div className="text-2xl font-bold">
-                                        {session.programme?.passScorePercent || 75}%
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-sm font-medium">Practical Pass Score</div>
-                                    <div className="text-2xl font-bold">
-                                        {session.programme?.passScorePercent || 75}%
-                                    </div>
-                                </div>
+                        <CardContent className="p-0 md:p-6">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Attendance</TableHead>
+                                        <TableHead>Comments</TableHead>
+                                        {(isCompleted) && <TableHead>Result</TableHead>}
+                                        <TableHead className="w-[100px]">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {participants.map((p) => (
+                                        <TableRow key={p.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{p.fullName}</div>
+                                                <div className="text-xs text-muted-foreground">{p.email}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {isInProgress ? (
+                                                    <Select 
+                                                        value={p.attendance} 
+                                                        onValueChange={(val) => handleUpdateAttendance(p.id, val)}
+                                                    >
+                                                        <SelectTrigger className="w-[130px]">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="planned">Planned</SelectItem>
+                                                            <SelectItem value="present">Present</SelectItem>
+                                                            <SelectItem value="late">Late</SelectItem>
+                                                            <SelectItem value="absent">Absent</SelectItem>
+                                                            <SelectItem value="excused">Excused</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : (
+                                                    <Badge variant={
+                                                        p.attendance === 'present' ? 'default' : 
+                                                        p.attendance === 'late' ? 'secondary' :
+                                                        p.attendance === 'excused' ? 'outline' : 
+                                                        'destructive'
+                                                    }>
+                                                        {p.attendance}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {isInProgress ? (
+                                                    <Input 
+                                                        defaultValue={p.comments || ''}
+                                                        onBlur={(e) => {
+                                                            if (e.target.value !== p.comments) {
+                                                                handleUpdateComments(p.id, e.target.value)
+                                                            }
+                                                        }}
+                                                        className="max-w-[300px]"
+                                                        placeholder="Add comments..."
+                                                    />
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">{p.comments || '-'}</span>
+                                                )}
+                                            </TableCell>
+                                            {isCompleted && (
+                                                <TableCell>
+                                                    <Badge variant={p.overallResult === 'pass' ? 'default' : p.overallResult === 'fail' ? 'destructive' : 'secondary'}>
+                                                        {p.overallResult ? p.overallResult.toUpperCase() : 'N/A'}
+                                                    </Badge>
+                                                </TableCell>
+                                            )}
+                                            <TableCell className="flex gap-1">
+                                                {/* Certificate actions */}
+                                                {p.certificateUrl && (
+                                                    <>
+                                                        <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
+                                                            <FileText className="h-4 w-4 mr-1" /> View
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await api.post(`/sessions/${id}/certificates/send`, { userIds: [p.userId] })
+                                                                    toast.success(`Certificate sent to ${p.email}`)
+                                                                } catch (error) {
+                                                                    toast.error('Failed to send certificate')
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Award className="h-4 w-4 mr-1" /> Email
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {/* Schedule Retake for failed trainees */}
+                                                {isCompleted && p.overallResult === 'fail' && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                                                        onClick={() => openRetakeDialog(p)}
+                                                    >
+                                                        <RotateCcw className="h-4 w-4 mr-1" /> Retake
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                             </div>
                         </CardContent>
                     </Card>
-                )}
+                </TabsContent>
 
-                {/* Participants Table */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Participants ({participants.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 md:p-6">
-                        <div className="overflow-x-auto">
-                            <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Attendance</TableHead>
-                                    <TableHead>Comments</TableHead>
-                                    {(isCompleted) && <TableHead>Result</TableHead>}
-                                    <TableHead className="w-[100px]">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {participants.map((p) => (
-                                    <TableRow key={p.id}>
-                                        <TableCell>
-                                            <div className="font-medium">{p.fullName}</div>
-                                            <div className="text-xs text-muted-foreground">{p.email}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {isInProgress ? (
-                                                <Select 
-                                                    value={p.attendance} 
-                                                    onValueChange={(val) => handleUpdateAttendance(p.id, val)}
-                                                >
-                                                    <SelectTrigger className="w-[130px]">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="planned">Planned</SelectItem>
-                                                        <SelectItem value="present">Present</SelectItem>
-                                                        <SelectItem value="late">Late</SelectItem>
-                                                        <SelectItem value="absent">Absent</SelectItem>
-                                                        <SelectItem value="excused">Excused</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : (
-                                                <Badge variant={
-                                                    p.attendance === 'present' ? 'default' : 
-                                                    p.attendance === 'late' ? 'secondary' :
-                                                    p.attendance === 'excused' ? 'outline' : 
-                                                    'destructive'
-                                                }>
-                                                    {p.attendance}
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {isInProgress ? (
-                                                <Input 
-                                                    defaultValue={p.comments || ''}
-                                                    onBlur={(e) => {
-                                                        if (e.target.value !== p.comments) {
-                                                            handleUpdateComments(p.id, e.target.value)
-                                                        }
-                                                    }}
-                                                    className="max-w-[300px]"
-                                                    placeholder="Add comments..."
-                                                />
-                                            ) : (
-                                                <span className="text-sm text-muted-foreground">{p.comments || '-'}</span>
-                                            )}
-                                        </TableCell>
-                                        {isCompleted && (
-                                            <TableCell>
-                                                <Badge variant={p.overallResult === 'pass' ? 'default' : p.overallResult === 'fail' ? 'destructive' : 'secondary'}>
-                                                    {p.overallResult ? p.overallResult.toUpperCase() : 'N/A'}
-                                                </Badge>
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="flex gap-1">
-                                            {/* Certificate actions */}
-                                            {p.certificateUrl && (
-                                                <>
-                                                    <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
-                                                        <FileText className="h-4 w-4 mr-1" /> View
-                                                    </Button>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        onClick={async () => {
-                                                            try {
-                                                                await api.post(`/sessions/${id}/certificates/send`, { userIds: [p.userId] })
-                                                                toast.success(`Certificate sent to ${p.email}`)
-                                                            } catch (error) {
-                                                                toast.error('Failed to send certificate')
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Award className="h-4 w-4 mr-1" /> Email
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {/* Schedule Retake for failed trainees */}
-                                            {isCompleted && p.overallResult === 'fail' && (
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                                                    onClick={() => openRetakeDialog(p)}
-                                                >
-                                                    <RotateCcw className="h-4 w-4 mr-1" /> Retake
-                                                </Button>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                <TabsContent value="grading">
+                    <ModuleGradingSection sessionId={id || ''} />
+                </TabsContent>
+            </Tabs>
+
 
             <RecordResultsModal 
                 session={session}

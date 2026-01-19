@@ -37,6 +37,9 @@ export default function CampaignDetailPage() {
     const [instructors, setInstructors] = useState<Employee[]>([])
     const [campaignSessions, setCampaignSessions] = useState<Session[]>([])
     const [loadingSessions, setLoadingSessions] = useState(false)
+    const [page, setPage] = useState(1)
+    const [limit] = useState(20)
+    const [totalSessions, setTotalSessions] = useState(0)
 
     // Enrollment dialog
     const [enrollDialogOpen, setEnrollDialogOpen] = useState(false)
@@ -58,15 +61,25 @@ export default function CampaignDetailPage() {
     useEffect(() => {
         loadCampaign()
         loadEmployees()
-        loadCampaignSessions()
     }, [id])
+    
+    useEffect(() => {
+        loadCampaignSessions()
+    }, [id, page])
 
     const loadCampaignSessions = async () => {
         if (!id) return
         try {
             setLoadingSessions(true)
-            const response = await api.get(`/sessions`, { params: { campaignId: id } })
+            const response = await api.get(`/sessions`, { 
+                params: { 
+                    campaignId: id,
+                    page,
+                    limit
+                } 
+            })
             setCampaignSessions(response.data.data || [])
+            setTotalSessions(response.data.pagination?.total || 0)
         } catch (error) {
             console.error('Failed to load campaign sessions:', error)
         } finally {
@@ -578,6 +591,7 @@ export default function CampaignDetailPage() {
                                         <tr>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.date', 'Date')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.time', 'Time')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.module', 'Module')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.location', 'Location')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.instructor', 'Instructor')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
@@ -591,7 +605,19 @@ export default function CampaignDetailPage() {
                                                     {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
-                                                    {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd), 'HH:mm')}
+                                                    {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd || session.dateStart), 'HH:mm')}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">
+                                                            {session.curriculumModule?.name || '-'}
+                                                        </span>
+                                                        {session.isFinalModuleSession && (
+                                                            <Badge variant="secondary" className="mt-1 w-fit text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                                                {t('sessions.finalExam', 'Final / Assessment')}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">{session.location || '-'}</td>
                                                 <td className="px-4 py-3">{session.instructor?.fullName || '-'}</td>
@@ -618,6 +644,33 @@ export default function CampaignDetailPage() {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    )}
+                    
+                    {totalSessions > limit && (
+                        <div className="flex items-center justify-end space-x-2 py-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1 || loadingSessions}
+                            >
+                                {t('common.previous', 'Previous')}
+                            </Button>
+                            <div className="text-sm text-muted-foreground">
+                                {t('common.pageOf', 'Page {current} of {total}', { 
+                                    current: page, 
+                                    total: Math.ceil(totalSessions / limit) 
+                                })}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => p + 1)}
+                                disabled={page >= Math.ceil(totalSessions / limit) || loadingSessions}
+                            >
+                                {t('common.next', 'Next')}
+                            </Button>
                         </div>
                     )}
                 </TabsContent>

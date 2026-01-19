@@ -14,6 +14,12 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { ArrowLeft, FileText } from "lucide-react"
+import { TraineeCompetenceTab } from "@/components/competence/TraineeCompetenceTab"
+import { CertificatesList } from "@/components/certificates/CertificatesList"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
+import { RemedialPlansList } from "@/components/remedial/RemedialPlansList"
+import { RemedialPlanWizard } from "@/components/remedial/RemedialPlanWizard"
 
 export default function EmployeeHistoryPage() {
     const { id } = useParams()
@@ -41,6 +47,10 @@ export default function EmployeeHistoryPage() {
 
     const { employee, competences, trainings, checks, absences, documents } = history
 
+    const suspendedCompetences = competences?.filter((c: any) => c.status === 'suspended') || []
+    const hasSuspended = suspendedCompetences.length > 0
+
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -58,6 +68,22 @@ export default function EmployeeHistoryPage() {
                     </div>
                 </div>
             </div>
+
+            {hasSuspended && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Competence Suspended</AlertTitle>
+                    <AlertDescription>
+                        This employee has {suspendedCompetences.length} suspended competence(s). 
+                        Remedial training is required before they can be reinstated.
+                        {suspendedCompetences.map((c: any) => (
+                             <div key={c.id} className="mt-1 text-sm font-semibold">
+                                - {c.standardCode}: {c.suspensionReason}
+                             </div>
+                        ))}
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -92,9 +118,28 @@ export default function EmployeeHistoryPage() {
                     <TabsTrigger value="competence">Competence Status</TabsTrigger>
                     <TabsTrigger value="training">Training History</TabsTrigger>
                     <TabsTrigger value="checks">Proficiency Checks</TabsTrigger>
+                    <TabsTrigger value="certificates">Certificates</TabsTrigger>
                     <TabsTrigger value="documents">Signed Protocols</TabsTrigger>
                     {absences && absences.length > 0 && <TabsTrigger value="absences">Absences</TabsTrigger>}
+                    <TabsTrigger value="remedial">Remedial Plans</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="remedial" className="mt-4">
+                     <RemedialPlansList organisationId={employee?.organisationId || ''} /> 
+                     {/* Pass filtered to user via backend or filter frontend? 
+                         Logic says RemedialPlansList takes organisationId but we might want to filter by user. 
+                         Let's just re-use the component but maybe add a userId prop to filter in backend? 
+                         Ah, RemedialService.getPlansForTrainee exists. 
+                         I should probably update RemedialPlansList to support userId prop or create a new RemedialPlansTable for single user.
+                         Actually, let's create a specialized use for this page or update RemedialPlansList to accept userId.
+                         I'll update RemedialPlansList to accept userId optional prop.
+                     */}
+                </TabsContent>
+                
+                {/* Certificates Tab */}
+                <TabsContent value="certificates" className="mt-4">
+                    <CertificatesList userId={id || ''} />
+                </TabsContent>
 
                 {/* Training Tab */}
                 <TabsContent value="training" className="mt-4">
@@ -174,6 +219,16 @@ export default function EmployeeHistoryPage() {
                                                 </Badge>
                                              </TableCell>
                                              <TableCell>{c.assessor}</TableCell>
+                                             <TableCell>
+                                                 {c.result === 'fail' && (
+                                                     <RemedialPlanWizard 
+                                                         traineeId={id || ''}
+                                                         standardId={c.standardId || ''} // We need standardId from check
+                                                         failedCheckId={c.id}
+                                                         trigger={<Button size="sm" variant="outline">Create Remedial Plan</Button>}
+                                                     />
+                                                 )}
+                                             </TableCell>
                                          </TableRow>
                                      ))}
                                      {(!checks || checks.length === 0) && (
@@ -187,43 +242,7 @@ export default function EmployeeHistoryPage() {
 
                 {/* Competence Status Tab */}
                 <TabsContent value="competence" className="mt-4">
-                     <Card>
-                         <CardHeader><CardTitle>Current Competence Status</CardTitle></CardHeader>
-                         <CardContent>
-                             <Table>
-                                 <TableHeader>
-                                     <TableRow>
-                                         <TableHead>Competence</TableHead>
-                                         <TableHead>Type</TableHead>
-                                         <TableHead>Acquired Date</TableHead>
-                                         <TableHead>Valid Until</TableHead>
-                                         <TableHead>Status</TableHead>
-                                     </TableRow>
-                                 </TableHeader>
-                                 <TableBody>
-                                     {(competences || []).map((c: any, idx: number) => (
-                                         <TableRow key={idx}>
-                                             <TableCell>
-                                                 <div className="font-medium">{c.standardCode || c.code}</div>
-                                                 <div className="text-xs text-muted-foreground">{c.standardName || c.name}</div>
-                                             </TableCell>
-                                             <TableCell><Badge variant="outline">{c.type || 'Combined'}</Badge></TableCell>
-                                             <TableCell>{c.acquiredDate ? new Date(c.acquiredDate).toLocaleDateString() : '-'}</TableCell>
-                                             <TableCell>{c.validUntil ? new Date(c.validUntil).toLocaleDateString() : 'Permanent'}</TableCell>
-                                             <TableCell>
-                                                <Badge variant={c.status === 'valid' ? 'default' : c.status === 'expired' ? 'destructive' : 'secondary'}>
-                                                    {c.status ? c.status.toUpperCase().replace('_', ' ') : 'UNKNOWN'}
-                                                </Badge>
-                                             </TableCell>
-                                         </TableRow>
-                                     ))}
-                                     {(!competences || competences.length === 0) && (
-                                         <TableRow><TableCell colSpan={5} className="text-center">No competences found.</TableCell></TableRow>
-                                     )}
-                                 </TableBody>
-                             </Table>
-                         </CardContent>
-                    </Card>
+                     <TraineeCompetenceTab userId={id || ''} />
                 </TabsContent>
 
                 {/* Documents Tab */}

@@ -411,4 +411,98 @@ export const curriculums = {
         const response = await api.post(`/curriculums/${id}/materials`, data)
         return response.data
     },
+    checkCompletion: async (id: string, userId: string) => {
+        const response = await api.get(`/curriculums/${id}/completion-status/${userId}`)
+        return response.data
+    },
+    complete: async (id: string, userId: string) => {
+        const response = await api.post(`/curriculums/${id}/complete/${userId}`)
+        return response.data
+    },
+}
+
+// Competence API
+export const competence = {
+    getDashboard: async (params?: { userId?: string; standardId?: string; status?: string; department?: string; role?: string; page?: number; limit?: number }) => {
+        const response = await api.get("/competence", { params })
+        return response.data
+    },
+    getSummary: async (params?: { department?: string; standardId?: string }) => {
+        const response = await api.get("/competence/summary", { params })
+        return response.data
+    },
+    getExpiring: async (withinDays: number = 90) => {
+        const response = await api.get("/competence/expiring", { params: { withinDays } })
+        return response.data
+    },
+    refresh: async () => {
+        const response = await api.post("/competence/refresh")
+        return response.data
+    },
+    getEvents: async (id: string) => {
+        const response = await api.get(`/competence/${id}/events`)
+        return response.data
+    },
+    reinstate: async (id: string, notes: string) => {
+        const response = await api.post(`/competence/${id}/reinstate`, { notes })
+        return response.data
+    },
+    getEmployeeHistory: async (userId: string) => {
+        const response = await api.get(`/employees/${userId}/history`)
+        return response.data
+    }
+}
+
+// Certificates API
+export const certificates = {
+    getMyCertificates: async () => {
+        const response = await api.get("/certificates")
+        return response.data
+    },
+    getUserCertificates: async (userId: string) => {
+        const response = await api.get("/certificates", { params: { userId } })
+        return response.data
+    },
+    getDownloadUrl: async (id: string) => {
+        const response = await api.get(`/certificates/${id}/download`)
+        return response.data
+    }
+}
+
+// Module Results & Grading
+export const moduleResults = {
+    getCurriculumResults: async (curriculumId: string, params?: { userId?: string }) => {
+        const response = await api.get(`/curriculums/${curriculumId}/module-results`, { params })
+        return response.data
+    },
+    getModuleResults: async (moduleId: string) => {
+        const response = await api.get(`/modules/${moduleId}/results`)
+        return response.data
+    },
+    getResultAttempts: async (resultId: string) => {
+        const response = await api.get(`/module-results/${resultId}/attempts`)
+        return response.data
+    },
+    gradeModule: async (moduleId: string, data: {
+        userId: string
+        theoryScore?: number
+        practicalScore?: number
+        comments?: string
+        strengths?: string
+        areasForImprovement?: string
+        sessionId?: string
+        forceResult?: string
+    }) => {
+        const response = await api.post(`/modules/${moduleId}/grade`, data)
+        return response.data
+    },
+    createAttempt: async (resultId: string, data: { notes: string }) => {
+        const response = await api.post(`/module-results/${resultId}/new-attempt`, data)
+        return response.data
+    },
+    // Session specific grading view
+    getSessionGrading: async (sessionId: string) => {
+        const response = await api.get(`/sessions/${sessionId}/module-grading`)
+        return response.data
+    }
 }

@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Upload, Download, Check, Archive, FileText, Pencil, BookOpen, ClipboardCheck, Clock, Users } from "lucide-react"
+import { ModuleResultsTable } from "@/components/curriculums/ModuleResultsTable"
+import { RetakeWizard } from "@/components/RetakeWizard"
 
 interface Material {
     id: string
@@ -184,10 +186,13 @@ export default function CurriculumDetailPage() {
                         History
                     </Button> */}
                     {canManage && (
-                        <Button onClick={() => navigate(`/curriculums/${id}/edit`)} size="sm">
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                        </Button>
+                        <>
+                            <RetakeWizard curriculumId={id!} />
+                            <Button onClick={() => navigate(`/curriculums/${id}/edit`)} size="sm">
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -197,6 +202,7 @@ export default function CurriculumDetailPage() {
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="modules">Modules</TabsTrigger>
                     <TabsTrigger value="materials">Materials</TabsTrigger>
+                    <TabsTrigger value="trainees">Trainees</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
@@ -461,6 +467,10 @@ export default function CurriculumDetailPage() {
                             </TableBody>
                         </Table>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="trainees">
+                    <ModuleResultsTable curriculumId={id!} modules={modules} />
                 </TabsContent>
             </Tabs>
         </div>
