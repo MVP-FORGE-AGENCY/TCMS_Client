@@ -405,6 +405,7 @@ export const curriculums = {
     uploadMaterial: async (id: string, data: {
         title: string
         type: string
+        moduleId?: string
         fileSize?: number
         mimeType?: string
     }) => {

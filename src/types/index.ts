@@ -345,6 +345,7 @@ export interface CurriculumModule {
     gradingElements?: GradingElement[];
     passCriteria?: PassCriteria;
     requiredAssessors?: number;
+    requiresFinalAssessment?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -359,6 +360,13 @@ export interface CurriculumModuleCreate {
     gradingElements?: GradingElement[];
     passCriteria?: PassCriteria;
     requiredAssessors?: number;
+    // Explicit grading configuration
+    requiresTheory?: boolean;
+    requiresPractical?: boolean;
+    allowsNotScored?: boolean;
+    theoryPassScore?: number;
+    practicalPassScore?: number;
+    requiresFinalAssessment?: boolean;
 }
 
 export interface Curriculum {
@@ -482,6 +490,7 @@ export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'
 
 export interface GenerateScheduleRequest {
     instructorId?: string;
+    moduleInstructors?: Record<string, string>; // { [moduleId]: instructorId } - per-module instructor mapping
     location?: string;
     sessionDurationHours?: number;
     preferredDays?: WeekDay[];

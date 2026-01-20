@@ -32,6 +32,8 @@ interface Material {
     version: number
     status: string
     storagePath?: string
+    moduleId?: string
+    moduleName?: string
     uploadedByName?: string
     approvedByName?: string
     approvedAt?: string
@@ -44,7 +46,7 @@ export default function CurriculumDetailPage() {
     const queryClient = useQueryClient()
     const { user } = useAuth()
     const [isUploadOpen, setIsUploadOpen] = useState(false)
-    const [uploadData, setUploadData] = useState({ title: "", type: "pdf" })
+    const [uploadData, setUploadData] = useState({ title: "", type: "pdf", moduleId: "" })
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
     const canManage = user?.role && ["admin", "training_manager"].includes(user.role)
@@ -68,6 +70,7 @@ export default function CurriculumDetailPage() {
             const response = await curriculums.uploadMaterial(id!, {
                 title: uploadData.title,
                 type: uploadData.type,
+                moduleId: uploadData.moduleId || undefined,
                 fileSize: selectedFile?.size,
                 mimeType: selectedFile?.type,
             })
@@ -100,7 +103,7 @@ export default function CurriculumDetailPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["curriculum-materials", id] })
             setIsUploadOpen(false)
-            setUploadData({ title: "", type: "pdf" })
+            setUploadData({ title: "", type: "pdf", moduleId: "" })
             setSelectedFile(null)
             toast.success("Material uploaded successfully")
         },
@@ -370,6 +373,25 @@ export default function CurriculumDetailPage() {
                                             </Select>
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right">Module</Label>
+                                            <Select
+                                                value={uploadData.moduleId}
+                                                onValueChange={(v) => setUploadData({ ...uploadData, moduleId: v === 'none' ? '' : v })}
+                                            >
+                                                <SelectTrigger className="col-span-3">
+                                                    <SelectValue placeholder="(All Modules / General)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">(All Modules / General)</SelectItem>
+                                                    {modules.map((m: any) => (
+                                                        <SelectItem key={m.id} value={m.id}>
+                                                            {m.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
                                             <Label className="text-right">File</Label>
                                             <Input
                                                 type="file"
@@ -396,6 +418,7 @@ export default function CurriculumDetailPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Title</TableHead>
+                                    <TableHead>Module</TableHead>
                                     <TableHead>Type</TableHead>
                                     <TableHead className="text-center">Version</TableHead>
                                     <TableHead className="text-center">Status</TableHead>
@@ -406,7 +429,7 @@ export default function CurriculumDetailPage() {
                             <TableBody>
                                 {!materialsData || materialsData.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                             No materials uploaded yet
                                         </TableCell>
                                     </TableRow>
@@ -418,6 +441,13 @@ export default function CurriculumDetailPage() {
                                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                                     {m.title}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {m.moduleName ? (
+                                                    <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">General</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="uppercase text-xs">{m.type}</TableCell>
                                             <TableCell className="text-center">v{m.version}</TableCell>

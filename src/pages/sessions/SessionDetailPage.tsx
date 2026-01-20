@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -91,8 +91,13 @@ const ModuleGradingSection = ({ sessionId }: { sessionId: string }) => {
 export default function SessionDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { user } = useAuth()
     const { setLabel } = useBreadcrumb()
+    
+    // Campaign context from URL params
+    const campaignId = searchParams.get('campaignId')
+    const campaignName = searchParams.get('campaignName')
     
     // Modal states
     const [confirmModal, setConfirmModal] = useState<{
@@ -161,9 +166,16 @@ export default function SessionDetailPage() {
 
     useEffect(() => {
         if (session && id) {
-            setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+            if (campaignId && campaignName) {
+                // Campaign context - show campaign name > module name
+                const moduleName = (session as any).curriculumModule?.name || session.programme?.code
+                setLabel(id, `${decodeURIComponent(campaignName)} > ${moduleName}`)
+            } else {
+                // Default context
+                setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+            }
         }
-    }, [session, id])
+    }, [session, id, campaignId, campaignName])
 
     const handleStartSession = async () => {
         if (!confirm("Are you sure you want to start this session?")) return
@@ -284,7 +296,7 @@ export default function SessionDetailPage() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate("/sessions")} className="shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(campaignId ? `/campaigns/${campaignId}` : "/sessions")} className="shrink-0">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="min-w-0">

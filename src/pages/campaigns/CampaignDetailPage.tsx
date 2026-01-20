@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
     ArrowLeft, Calendar, Users, Play, Pause, 
-    UserPlus, Wand2, Trash2, CheckCircle2, XCircle
+    UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,8 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
-import type { Campaign, Employee, GenerateScheduleRequest, Session } from '@/types'
+import { api, curriculums, materialActions } from '@/lib/api'
+import type { Campaign, Employee, GenerateScheduleRequest, Session, CurriculumModule } from '@/types'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -49,6 +49,8 @@ export default function CampaignDetailPage() {
     // Auto-scheduler dialog
     const [schedulerDialogOpen, setSchedulerDialogOpen] = useState(false)
     const [scheduling, setScheduling] = useState(false)
+    const [curriculumModules, setCurriculumModules] = useState<CurriculumModule[]>([])
+    const [moduleInstructors, setModuleInstructors] = useState<Record<string, string>>({})
     const [schedulerForm, setSchedulerForm] = useState<GenerateScheduleRequest>({
         instructorId: '',
         location: '',
@@ -58,10 +60,46 @@ export default function CampaignDetailPage() {
         breakBetweenMinutes: 60
     })
 
+    // Edit session dialog
+    const [editSessionDialogOpen, setEditSessionDialogOpen] = useState(false)
+    const [editingSession, setEditingSession] = useState<Session | null>(null)
+    const [editSessionForm, setEditSessionForm] = useState({ instructorId: '', location: '' })
+    const [savingSession, setSavingSession] = useState(false)
+
+    // Manual schedule dialog
+    const [manualScheduleDialogOpen, setManualScheduleDialogOpen] = useState(false)
+    const [manualScheduling, setManualScheduling] = useState(false)
+    const [manualScheduleForm, setManualScheduleForm] = useState({
+        moduleId: '',
+        scheduleAll: false,
+        dateStart: '',
+        instructorId: '',
+        location: ''
+    })
+
+    // Materials state
+    interface Material {
+        id: string
+        title: string
+        type: string
+        version: number
+        status: string
+        moduleId?: string
+        moduleName?: string
+    }
+    const [materials, setMaterials] = useState<Material[]>([])
+    const [loadingMaterials, setLoadingMaterials] = useState(false)
+
     useEffect(() => {
         loadCampaign()
         loadEmployees()
     }, [id])
+
+    useEffect(() => {
+        if (campaign?.curriculum?.id) {
+            loadMaterials(campaign.curriculum.id)
+        }
+    }, [campaign?.curriculum?.id])
     
     useEffect(() => {
         loadCampaignSessions()
@@ -113,6 +151,28 @@ export default function CampaignDetailPage() {
         }
     }
 
+    const loadMaterials = async (curriculumId: string) => {
+        try {
+            setLoadingMaterials(true)
+            const response = await curriculums.getMaterials(curriculumId)
+            // Only show approved materials
+            setMaterials((response || []).filter((m: Material) => m.status === 'approved'))
+        } catch (error) {
+            console.error('Failed to load curriculum materials:', error)
+        } finally {
+            setLoadingMaterials(false)
+        }
+    }
+
+    const handleDownload = async (materialId: string) => {
+        try {
+            const { url } = await materialActions.getDownloadUrl(materialId)
+            window.open(url, '_blank')
+        } catch (error) {
+            toast.error(t('materials.downloadError', 'Failed to get download URL'))
+        }
+    }
+
     const handleEnroll = async () => {
         if (selectedEmployees.length === 0) {
             toast.error(t('campaigns.selectEmployees', 'Select at least one employee'))
@@ -145,21 +205,98 @@ export default function CampaignDetailPage() {
         }
     }
 
+    // Load curriculum modules for the campaign's curriculum
+    const loadCurriculumModules = async (curriculumId: string) => {
+        try {
+            const response = await api.get(`/curriculums/${curriculumId}`)
+            const modules = response.data.data?.modules || []
+            setCurriculumModules(modules.sort((a: CurriculumModule, b: CurriculumModule) => a.sequence - b.sequence))
+        } catch (error) {
+            console.error('Failed to load curriculum modules:', error)
+        }
+    }
+
+    // Load modules when campaign loads
+    useEffect(() => {
+        if (campaign?.curriculum?.id) {
+            loadCurriculumModules(campaign.curriculum.id)
+        }
+    }, [campaign?.curriculum?.id])
+
     const handleGenerateSchedule = async () => {
         try {
             setScheduling(true)
-            const response = await api.post(`/campaigns/${id}/generate-schedule`, schedulerForm)
+            // Include moduleInstructors in the request
+            const requestData = {
+                ...schedulerForm,
+                moduleInstructors: Object.keys(moduleInstructors).length > 0 ? moduleInstructors : undefined
+            }
+            const response = await api.post(`/campaigns/${id}/generate-schedule`, requestData)
             toast.success(t('campaigns.scheduleGenerated', '{count} sessions created', { 
                 count: response.data.summary.sessionsCreated 
             }))
             setSchedulerDialogOpen(false)
+            setModuleInstructors({}) // Reset
             loadCampaign()
-            loadCampaignSessions() // Reload sessions to show generated schedule
+            loadCampaignSessions()
         } catch (error: any) {
             console.error('Failed to generate schedule:', error)
             toast.error(error.response?.data?.error?.message || t('errors.scheduleError', 'Failed to generate'))
         } finally {
             setScheduling(false)
+        }
+    }
+
+    // Edit session handlers
+    const openEditSessionDialog = (session: Session) => {
+        setEditingSession(session)
+        setEditSessionForm({
+            instructorId: session.instructorId || '',
+            location: session.location || ''
+        })
+        setEditSessionDialogOpen(true)
+    }
+
+    const handleSaveSession = async () => {
+        if (!editingSession) return
+        try {
+            setSavingSession(true)
+            await api.patch(`/sessions/${editingSession.id}`, {
+                instructorId: editSessionForm.instructorId || undefined,
+                location: editSessionForm.location || undefined
+            })
+            toast.success(t('sessions.updated', 'Session updated'))
+            setEditSessionDialogOpen(false)
+            loadCampaignSessions()
+        } catch (error: any) {
+            console.error('Failed to update session:', error)
+            toast.error(error.response?.data?.error?.message || t('errors.updateError', 'Failed to update'))
+        } finally {
+            setSavingSession(false)
+        }
+    }
+
+    // Manual schedule handlers
+    const handleManualSchedule = async () => {
+        if (!manualScheduleForm.moduleId || !manualScheduleForm.dateStart) {
+            toast.error(t('validation.required', 'Module and date are required'))
+            return
+        }
+        try {
+            setManualScheduling(true)
+            const response = await api.post(`/campaigns/${id}/schedule-module`, manualScheduleForm)
+            toast.success(t('campaigns.sessionsScheduled', '{count} session(s) scheduled', {
+                count: response.data.summary.sessionsCreated
+            }))
+            setManualScheduleDialogOpen(false)
+            setManualScheduleForm({ moduleId: '', scheduleAll: false, dateStart: '', instructorId: '', location: '' })
+            loadCampaign()
+            loadCampaignSessions()
+        } catch (error: any) {
+            console.error('Failed to schedule sessions:', error)
+            toast.error(error.response?.data?.error?.message || t('errors.scheduleError', 'Failed to schedule'))
+        } finally {
+            setManualScheduling(false)
         }
     }
 
@@ -300,6 +437,7 @@ export default function CampaignDetailPage() {
                 <TabsList>
                     <TabsTrigger value="enrollments">{t('campaigns.enrollments', 'Enrollments')}</TabsTrigger>
                     <TabsTrigger value="schedule">{t('campaigns.schedule', 'Schedule')}</TabsTrigger>
+                    <TabsTrigger value="materials">{t('campaigns.materials', 'Materials')}</TabsTrigger>
                     <TabsTrigger value="settings">{t('campaigns.settings', 'Settings')}</TabsTrigger>
                 </TabsList>
 
@@ -400,6 +538,47 @@ export default function CampaignDetailPage() {
                                                 </SelectContent>
                                             </Select>
                                         </div>
+
+                                        {/* Per-module instructor selection */}
+                                        {curriculumModules.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label>{t('campaigns.instructorByModule', 'Instructor by Module')}</Label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {t('campaigns.instructorByModuleDesc', 'Optionally assign different instructors per module. Leave blank to use default.')}
+                                                </p>
+                                                <div className="max-h-48 overflow-auto space-y-2 border rounded-md p-2">
+                                                    {curriculumModules.map(mod => (
+                                                        <div key={mod.id} className="flex items-center gap-2">
+                                                            <span className="w-40 text-sm truncate" title={mod.name}>
+                                                                {mod.name}
+                                                            </span>
+                                                            <Select 
+                                                                value={moduleInstructors[mod.id] || ''}
+                                                                onValueChange={(v) => setModuleInstructors({
+                                                                    ...moduleInstructors, 
+                                                                    [mod.id]: v
+                                                                })}
+                                                            >
+                                                                <SelectTrigger className="flex-1">
+                                                                    <SelectValue placeholder={t('common.default', 'Default')} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="">
+                                                                        {t('common.default', 'Default')}
+                                                                    </SelectItem>
+                                                                    {instructors.map((i) => (
+                                                                        <SelectItem key={i.id} value={i.id}>
+                                                                            {i.fullName}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="space-y-2">
                                             <Label>{t('campaigns.location', 'Location')}</Label>
                                             <Input 
@@ -567,9 +746,19 @@ export default function CampaignDetailPage() {
                                 </span>
                             )}
                         </h3>
-                        <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
-                            {t('campaigns.viewInSchedule', 'View in Schedule')}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setManualScheduleDialogOpen(true)}
+                            >
+                                <CalendarPlus className="mr-2 h-4 w-4" />
+                                {t('campaigns.scheduleSession', 'Schedule Session')}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
+                                {t('campaigns.viewInSchedule', 'View in Schedule')}
+                            </Button>
+                        </div>
                     </div>
                     
                     {loadingSessions ? (
@@ -630,11 +819,20 @@ export default function CampaignDetailPage() {
                                                         {session.status}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
+                                                <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                                                    {session.status === 'planned' && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm"
+                                                            onClick={() => openEditSessionDialog(session)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm"
-                                                        onClick={() => navigate(`/sessions/${session.id}`)}
+                                                        onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}`)}
                                                     >
                                                         {t('common.view', 'View')}
                                                     </Button>
@@ -672,6 +870,74 @@ export default function CampaignDetailPage() {
                                 {t('common.next', 'Next')}
                             </Button>
                         </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="materials" className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium">{t('campaigns.trainingMaterials', 'Training Materials')}</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {t('campaigns.materialsFromCurriculum', 'Materials from curriculum: {name}', { name: campaign.curriculum?.name || '' })}
+                        </p>
+                    </div>
+
+                    {loadingMaterials ? (
+                        <div className="flex items-center justify-center h-32">
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        </div>
+                    ) : materials.length === 0 ? (
+                        <Card>
+                            <CardContent className="py-8 text-center text-muted-foreground">
+                                {t('campaigns.noMaterials', 'No approved materials available for this curriculum.')}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <CardContent className="p-0">
+                                <table className="w-full">
+                                    <thead className="border-b bg-muted/50">
+                                        <tr>
+                                            <th className="text-left p-3 font-medium">{t('materials.title', 'Title')}</th>
+                                            <th className="text-left p-3 font-medium">{t('materials.module', 'Module')}</th>
+                                            <th className="text-left p-3 font-medium">{t('materials.type', 'Type')}</th>
+                                            <th className="text-center p-3 font-medium">{t('materials.version', 'Version')}</th>
+                                            <th className="text-right p-3 font-medium">{t('common.actions', 'Actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {materials.map((m) => (
+                                            <tr key={m.id} className="border-b last:border-0 hover:bg-muted/30">
+                                                <td className="p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="font-medium">{m.title}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3">
+                                                    {m.moduleName ? (
+                                                        <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">General</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-3 uppercase text-xs text-muted-foreground">{m.type}</td>
+                                                <td className="p-3 text-center">v{m.version}</td>
+                                                <td className="p-3 text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDownload(m.id)}
+                                                    >
+                                                        <Download className="h-4 w-4 mr-1" />
+                                                        {t('common.download', 'Download')}
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </CardContent>
+                        </Card>
                     )}
                 </TabsContent>
 
@@ -717,6 +983,150 @@ export default function CampaignDetailPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Edit Session Dialog */}
+            <Dialog open={editSessionDialogOpen} onOpenChange={setEditSessionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('sessions.editSession', 'Edit Session')}</DialogTitle>
+                        <DialogDescription>
+                            {t('sessions.editSessionDesc', 'Update session details. Only available for planned sessions.')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>{t('sessions.module', 'Module')}</Label>
+                            <Input 
+                                value={editingSession?.curriculumModule?.name || '-'}
+                                disabled
+                                className="bg-muted"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('sessions.instructor', 'Instructor')}</Label>
+                            <Select 
+                                value={editSessionForm.instructorId}
+                                onValueChange={(v) => setEditSessionForm({ ...editSessionForm, instructorId: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {instructors.map((i) => (
+                                        <SelectItem key={i.id} value={i.id}>
+                                            {i.fullName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('sessions.location', 'Location')}</Label>
+                            <Input 
+                                value={editSessionForm.location}
+                                onChange={(e) => setEditSessionForm({ ...editSessionForm, location: e.target.value })}
+                                placeholder="e.g., Training Center A"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditSessionDialogOpen(false)}>
+                            {t('common.cancel', 'Cancel')}
+                        </Button>
+                        <Button onClick={handleSaveSession} disabled={savingSession}>
+                            {savingSession ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Manual Schedule Session Dialog */}
+            <Dialog open={manualScheduleDialogOpen} onOpenChange={setManualScheduleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('campaigns.scheduleSession', 'Schedule Session')}</DialogTitle>
+                        <DialogDescription>
+                            {t('campaigns.scheduleSessionDesc', 'Manually schedule a session for a specific module.')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>{t('sessions.module', 'Module')} *</Label>
+                            <Select 
+                                value={manualScheduleForm.moduleId}
+                                onValueChange={(v) => setManualScheduleForm({ ...manualScheduleForm, moduleId: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('campaigns.selectModule', 'Select module')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {curriculumModules.map((mod) => (
+                                        <SelectItem key={mod.id} value={mod.id}>
+                                            {mod.name} ({mod.durationHours || 0}h)
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Checkbox 
+                                id="scheduleAll"
+                                checked={manualScheduleForm.scheduleAll}
+                                onCheckedChange={(checked) => setManualScheduleForm({ 
+                                    ...manualScheduleForm, 
+                                    scheduleAll: checked as boolean 
+                                })}
+                            />
+                            <label htmlFor="scheduleAll" className="text-sm">
+                                {t('campaigns.scheduleAllForModule', 'Schedule all remaining sessions for this module')}
+                            </label>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('sessions.dateTime', 'Date & Time')} *</Label>
+                            <Input 
+                                type="datetime-local"
+                                value={manualScheduleForm.dateStart}
+                                onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, dateStart: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('sessions.instructor', 'Instructor')}</Label>
+                            <Select 
+                                value={manualScheduleForm.instructorId}
+                                onValueChange={(v) => setManualScheduleForm({ ...manualScheduleForm, instructorId: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {instructors.map((i) => (
+                                        <SelectItem key={i.id} value={i.id}>
+                                            {i.fullName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('sessions.location', 'Location')}</Label>
+                            <Input 
+                                value={manualScheduleForm.location}
+                                onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, location: e.target.value })}
+                                placeholder="e.g., Training Center A"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setManualScheduleDialogOpen(false)}>
+                            {t('common.cancel', 'Cancel')}
+                        </Button>
+                        <Button onClick={handleManualSchedule} disabled={manualScheduling}>
+                            <CalendarPlus className="mr-2 h-4 w-4" />
+                            {manualScheduling ? t('campaigns.scheduling', 'Scheduling...') : t('campaigns.schedule', 'Schedule')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

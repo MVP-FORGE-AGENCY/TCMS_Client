@@ -649,7 +649,17 @@
         },
         "loadError": "Failed to load curriculum",
         "created": "Curriculum created",
-        "updated": "Curriculum updated"
+        "updated": "Curriculum updated",
+        "gradingCriteria": "Grading Criteria",
+        "gradingType": "Grading Type",
+        "theoryPassScore": "Theory Pass Score (%)",
+        "practicalPassScore": "Practical Pass Score (%)",
+        "grading": {
+            "none": "No Scoring (Instruction Only)",
+            "theory": "Theory Only",
+            "practical": "Practical Only",
+            "both": "Both Theory & Practical"
+        }
     },
     "campaigns": {
         "title": "Campaigns",

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, AlertCircle } from "lucide-react";
+import { Check, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface GradingListIn {
@@ -28,6 +28,7 @@ interface SessionModuleGradingFormProps {
         practical_pass_score?: number;
         requires_theory?: boolean;
         requires_practical?: boolean;
+        allows_not_scored?: boolean;
     };
     gradingList: GradingListIn[];
 }
@@ -132,6 +133,19 @@ export const SessionModuleGradingForm: React.FC<SessionModuleGradingFormProps> =
                    </div>
                 </div>
             </div>
+
+            {/* Instruction-only module message */}
+            {!moduleData.requires_theory && !moduleData.requires_practical && (
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-dashed">
+                    <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0" />
+                    <div>
+                        <p className="font-medium">Instruction Only Module</p>
+                        <p className="text-sm text-muted-foreground">
+                            This module does not require scoring. Trainees are marked as completed once they attend.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="rounded-md border">
                 <Table>
