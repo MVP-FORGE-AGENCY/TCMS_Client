@@ -21,6 +21,7 @@ const ChecksPage = lazy(() => import("@/pages/checks/page"))
 const CheckDetailPage = lazy(() => import("@/pages/checks/CheckDetailPage"))
 const ExpiringReport = lazy(() => import("@/pages/reports/ExpiringReport"))
 const SettingsPage = lazy(() => import("@/pages/settings/page"))
+const AutomationCenter = lazy(() => import("@/pages/settings/AutomationCenter"))
 const StandardsPage = lazy(() => import("@/pages/standards/page"))
 const StandardDetailPage = lazy(() => import("@/pages/standards/StandardDetailPage"))
 const ProceduresPage = lazy(() => import("@/pages/procedures/page"))
@@ -103,6 +104,7 @@ function App() {
                         <Route path="/competence" element={<CompetenceDashboard />} />
                         <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/settings/automation" element={<AutomationCenter />} />
                         
                         {/* Curriculum Routes */}
                         <Route path="/curriculums" element={<CurriculumsPage />} />

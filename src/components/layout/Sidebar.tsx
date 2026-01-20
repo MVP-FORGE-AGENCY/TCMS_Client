@@ -20,6 +20,7 @@ import {
     GraduationCap,
     Library,
     Target,
+    Bot,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
@@ -173,6 +174,12 @@ export function Sidebar({ className }: SidebarProps) {
                     href: "/standards",
                     icon: Library,
                     roles: ["admin", "training_manager", "super_admin"],
+                },
+                {
+                    title: t("nav.automation", "Automation Center"),
+                    href: "/settings/automation",
+                    icon: Bot,
+                    roles: ["admin", "super_admin"],
                 },
                 {
                     title: t("nav.settings"),
