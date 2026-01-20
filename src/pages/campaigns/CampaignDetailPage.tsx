@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
-    ArrowLeft, Calendar, Users, Play, Pause, 
+    ArrowLeft, Calendar, Users, Play, Pause, Award,
     UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -377,6 +377,15 @@ export default function CampaignDetailPage() {
                         <Button variant="outline" onClick={() => handleStatusChange('paused')}>
                             <Pause className="mr-2 h-4 w-4" />
                             {t('campaigns.pause', 'Pause')}
+                        </Button>
+                    )}
+                    {campaign.progressPercent === 100 && (
+                        <Button 
+                            variant="outline" 
+                            onClick={() => toast.info('Certificate generation for campaigns coming soon!')}
+                        >
+                            <Award className="mr-2 h-4 w-4" />
+                            {t('campaigns.generateCertificates', 'Generate Certificates')}
                         </Button>
                     )}
                 </div>
@@ -788,7 +797,17 @@ export default function CampaignDetailPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {campaignSessions.map((session) => (
+                                        {campaignSessions.map((session) => {
+                                            // Compute session number within the module
+                                            const moduleId = session.curriculumModuleId || session.curriculumModule?.id
+                                            const moduleSessions = campaignSessions.filter(s => 
+                                                (s.curriculumModuleId || s.curriculumModule?.id) === moduleId
+                                            ).sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+                                            const sessionNumber = moduleSessions.findIndex(s => s.id === session.id) + 1
+                                            const totalModuleSessions = moduleSessions.length
+                                            const moduleName = session.curriculumModule?.name || ''
+                                            
+                                            return (
                                             <tr key={session.id} className="hover:bg-muted/25">
                                                 <td className="px-4 py-3 font-medium">
                                                     {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
@@ -799,7 +818,8 @@ export default function CampaignDetailPage() {
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col">
                                                         <span className="font-medium">
-                                                            {session.curriculumModule?.name || '-'}
+                                                            {moduleName || '-'}
+                                                            {totalModuleSessions > 1 && ` (${sessionNumber}/${totalModuleSessions})`}
                                                         </span>
                                                         {session.isFinalModuleSession && (
                                                             <Badge variant="secondary" className="mt-1 w-fit text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
@@ -832,13 +852,13 @@ export default function CampaignDetailPage() {
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm"
-                                                        onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}`)}
+                                                        onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}&moduleName=${encodeURIComponent(moduleName)}&sessionNumber=${sessionNumber}&totalSessions=${totalModuleSessions}`)}
                                                     >
                                                         {t('common.view', 'View')}
                                                     </Button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )})}
                                     </tbody>
                                 </table>
                             </div>

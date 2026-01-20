@@ -98,6 +98,9 @@ export default function SessionDetailPage() {
     // Campaign context from URL params
     const campaignId = searchParams.get('campaignId')
     const campaignName = searchParams.get('campaignName')
+    const urlModuleName = searchParams.get('moduleName')
+    const sessionNumber = searchParams.get('sessionNumber')
+    const totalSessions = searchParams.get('totalSessions')
     
     // Modal states
     const [confirmModal, setConfirmModal] = useState<{
@@ -167,26 +170,58 @@ export default function SessionDetailPage() {
     useEffect(() => {
         if (session && id) {
             if (campaignId && campaignName) {
-                // Campaign context - show campaign name > module name
-                const moduleName = (session as any).curriculumModule?.name || session.programme?.code
-                setLabel(id, `${decodeURIComponent(campaignName)} > ${moduleName}`)
+                // Campaign context - show module name with session number
+                const moduleName = urlModuleName || (session as any).curriculumModule?.name || session.programme?.code || ''
+                const sessionLabel = sessionNumber && totalSessions && parseInt(totalSessions) > 1
+                    ? `${moduleName} - Session ${sessionNumber}`
+                    : moduleName
+                setLabel(id, sessionLabel)
             } else {
-                // Default context
-                setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+                // Default context - handle both programme and curriculum-based sessions
+                const sessionName = session.programme?.code || 
+                    (session as any).curriculumModule?.name || 
+                    'Session';
+                setLabel(id, `${sessionName} - ${new Date(session.dateStart).toLocaleDateString()}`)
             }
         }
-    }, [session, id, campaignId, campaignName])
+    }, [session, id, campaignId, campaignName, urlModuleName, sessionNumber, totalSessions])
 
-    const handleStartSession = async () => {
-        if (!confirm("Are you sure you want to start this session?")) return
-        try {
-            await api.patch(`/sessions/${id}/start`)
-            toast.success("Session started successfully")
-            fetchData()
-        } catch (error: any) {
-            console.error("Failed to start session:", error)
-            toast.error(error.response?.data?.error?.message || "Failed to start session")
-        }
+    const handleStartSession = () => {
+        setConfirmModal({
+            open: true,
+            title: 'Start Session',
+            description: 'You are about to start this training session. Once started, participants will be marked as attending and the session cannot be reverted to planned status. Are you sure you want to proceed?',
+            action: async () => {
+                try {
+                    await api.patch(`/sessions/${id}/start`)
+                    toast.success("Session started successfully")
+                    fetchData()
+                    setConfirmModal(prev => ({ ...prev, open: false }))
+                } catch (error: any) {
+                    console.error("Failed to start session:", error)
+                    toast.error(error.response?.data?.error?.message || "Failed to start session")
+                }
+            }
+        })
+    }
+
+    const handleEndSession = () => {
+        setConfirmModal({
+            open: true,
+            title: 'End Session',
+            description: 'You are about to end this session. You will still be able to update attendance and comments afterward, but the session status will change to completed.',
+            action: async () => {
+                try {
+                    await api.patch(`/sessions/${id}/end`)
+                    toast.success("Session ended successfully")
+                    fetchData()
+                    setConfirmModal(prev => ({ ...prev, open: false }))
+                } catch (error: any) {
+                    console.error("Failed to end session:", error)
+                    toast.error(error.response?.data?.error?.message || "Failed to end session")
+                }
+            }
+        })
     }
 
     const handleUpdateAttendance = async (participantId: string, attendance: string) => {
@@ -301,7 +336,13 @@ export default function SessionDetailPage() {
                     </Button>
                     <div className="min-w-0">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-                            {session.programme?.code} - {session.programme?.name}
+                            {campaignId && urlModuleName ? (
+                                sessionNumber && totalSessions && parseInt(totalSessions) > 1
+                                    ? `${decodeURIComponent(urlModuleName)} - Session ${sessionNumber}`
+                                    : decodeURIComponent(urlModuleName)
+                            ) : (
+                                `${session.programme?.code || (session as any).curriculumModule?.name || 'Session'} - ${session.programme?.name || new Date(session.dateStart).toLocaleDateString()}`
+                            )}
                         </h1>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground mt-1 text-sm">
                             <Badge variant={
@@ -330,12 +371,12 @@ export default function SessionDetailPage() {
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                    {(isPlanned || isInProgress || isCompleted) && (
+                    {isCompleted && (
                         <Button variant="outline" onClick={handleGenerateAttendance}>
                             <FileText className="mr-2 h-4 w-4" /> Attendance Sheet
                         </Button>
                     )}
-                    {isCompleted && (
+                    {isCompleted && !campaignId && (
                         <>
                             <Button variant="outline" onClick={handleGenerateCertificates}>
                                 <Award className="mr-2 h-4 w-4" /> Generate Certificates
@@ -378,9 +419,15 @@ export default function SessionDetailPage() {
                         </>
                     )}
                     {isInProgress && (
-                        <Button variant="default" onClick={() => setIsResultsModalOpen(true)}>
-                            <CheckCircle className="mr-2 h-4 w-4" /> End & Record Results
-                        </Button>
+                        (session as any).isFinalModuleSession ? (
+                            <Button variant="default" onClick={() => setIsResultsModalOpen(true)}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> End & Record Results
+                            </Button>
+                        ) : (
+                            <Button variant="default" onClick={handleEndSession}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> End Session
+                            </Button>
+                        )
                     )}
                 </div>
             </div>
@@ -389,7 +436,7 @@ export default function SessionDetailPage() {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="details">Session Details</TabsTrigger>
-                    {(isInProgress || isCompleted) && (
+                    {(isInProgress || isCompleted) && (session as any).isFinalModuleSession && (
                         <TabsTrigger value="grading">Module Grading</TabsTrigger>
                     )}
                 </TabsList>

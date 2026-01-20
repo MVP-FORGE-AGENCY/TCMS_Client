@@ -41,7 +41,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 // Column definitions
 const ALL_COLUMNS = [
     { id: 'date', label: 'Date', defaultVisible: true },
-    { id: 'curriculum', label: 'Curriculum', defaultVisible: true },
+    { id: 'curriculum', label: 'Campaign', defaultVisible: true },
     { id: 'module', label: 'Module', defaultVisible: true },
     { id: 'instructor', label: 'Instructor', defaultVisible: true },
     { id: 'location', label: 'Location', defaultVisible: true },
@@ -107,6 +107,7 @@ export default function SessionsPage() {
     const [calendarDate, setCalendarDate] = useState(new Date())
     const [calendarSessions, setCalendarSessions] = useState<Session[]>([])
     const [loadingCalendar, setLoadingCalendar] = useState(false)
+    const [calendarCache, setCalendarCache] = useState<Record<string, Session[]>>({})
 
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [isResultsOpen, setIsResultsOpen] = useState(false)
@@ -243,6 +244,16 @@ export default function SessionsPage() {
 
     // Fetch all sessions for calendar view when calendar is shown or month changes
     const fetchCalendarData = async () => {
+        // Create cache key from month + filters
+        const monthKey = format(calendarDate, 'yyyy-MM')
+        const filterKey = `${monthKey}-${filterCurriculum}-${filterModule}-${filterInstructor}-${filterStatus}`
+        
+        // Check if we have cached data for this month + filter combo
+        if (calendarCache[filterKey]) {
+            setCalendarSessions(calendarCache[filterKey])
+            return
+        }
+
         try {
             setLoadingCalendar(true)
             
@@ -259,14 +270,18 @@ export default function SessionsPage() {
             params.append('from', format(monthStart, 'yyyy-MM-dd'))
             params.append('to', format(monthEnd, 'yyyy-MM-dd'))
             
-            // Fetch all sessions for the month (high limit to get all)
-            params.append('limit', '500')
+            // Fetch all sessions for the month (reasonable limit)
+            params.append('limit', '200')
             
             const queryString = `?${params.toString()}`
             const sessionsRes = await api.get(`/sessions${queryString}`)
 
             const sessionsData = sessionsRes.data?.data || []
-            setCalendarSessions(Array.isArray(sessionsData) ? sessionsData : [])
+            const sessionsArray = Array.isArray(sessionsData) ? sessionsData : []
+            
+            // Store in cache
+            setCalendarCache(prev => ({ ...prev, [filterKey]: sessionsArray }))
+            setCalendarSessions(sessionsArray)
         } catch (error) {
             console.error("Failed to fetch calendar sessions:", error)
         } finally {
@@ -621,7 +636,7 @@ export default function SessionsPage() {
                                     {format(calendarDate, 'MMMM yyyy')}
                                 </h2>
                                 <p className="text-xs text-muted-foreground">
-                                    {loadingCalendar ? t("common.loading", "Loading...") : t("sessions.sessionsInMonth", "{count} sessions", { count: calendarSessions.length })}
+                                    {loadingCalendar ? t("common.loading", "Loading...") : `${calendarSessions.length} sessions`}
                                 </p>
                             </div>
                             <Button variant="outline" size="sm" onClick={() => setCalendarDate(addMonths(calendarDate, 1))}>

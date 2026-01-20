@@ -41,15 +41,15 @@ export function SessionsTable({
     const [filterSearch, setFilterSearch] = useState("")
 
     const filteredData = (data || []).filter((session) => {
-        // Search by curriculum name, module name, instructor name, or location
+        // Search by campaign name, module name, instructor name, or location
         const searchLower = filterSearch.toLowerCase()
-        const curriculumName = session.curriculum?.name || session.programme?.name || ''
+        const campaignName = (session as any).campaign?.name || session.programme?.name || ''
         const moduleName = (session as any).curriculumModule?.name || ''
         const instructorName = session.instructor?.fullName || ''
         const location = session.location || ''
         
         const matchesSearch = !filterSearch || 
-            curriculumName.toLowerCase().includes(searchLower) ||
+            campaignName.toLowerCase().includes(searchLower) ||
             moduleName.toLowerCase().includes(searchLower) ||
             instructorName.toLowerCase().includes(searchLower) ||
             location.toLowerCase().includes(searchLower)
@@ -94,7 +94,7 @@ export function SessionsTable({
         <div className="space-y-4">
             <div className="flex items-center gap-4">
                 <Input
-                    placeholder={t('sessions.searchPlaceholder', 'Search by curriculum, module, instructor, or location...')}
+                    placeholder={t('sessions.searchPlaceholder', 'Search by campaign, module, instructor, or location...')}
                     value={filterSearch}
                     onChange={(e) => setFilterSearch(e.target.value)}
                     className="max-w-sm"
@@ -109,7 +109,7 @@ export function SessionsTable({
                                 <TableHead>{t('sessions.date', 'Date')}</TableHead>
                             )}
                             {isColumnVisible('curriculum') && (
-                                <TableHead>{t('sessions.curriculum', 'Curriculum')}</TableHead>
+                                <TableHead>{t('sessions.campaign', 'Campaign')}</TableHead>
                             )}
                             {isColumnVisible('module') && (
                                 <TableHead>{t('sessions.module', 'Module')}</TableHead>
@@ -149,7 +149,7 @@ export function SessionsTable({
                                     )}
                                     {isColumnVisible('curriculum') && (
                                         <TableCell className="font-medium">
-                                            {session.curriculum?.name || session.programme?.name || '-'}
+                                            {(session as any).campaign?.name || session.programme?.name || '-'}
                                         </TableCell>
                                     )}
                                     {isColumnVisible('module') && (
