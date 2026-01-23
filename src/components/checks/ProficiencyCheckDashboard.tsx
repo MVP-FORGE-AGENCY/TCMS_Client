@@ -59,6 +59,7 @@ export function ProficiencyCheckDashboard() {
     const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
     const [preselectedCandidates, setPreselectedCandidates] = useState<string[]>([])
     const [preselectedStandardId, setPreselectedStandardId] = useState<string | undefined>()
+    const [preselectedEligibleStandards, setPreselectedEligibleStandards] = useState<Array<{id: string; code: string; name: string}>>([])
 
     // Fetch eligible trainees
     const { data: eligibleData, isLoading: loadingTrainees } = useQuery({
@@ -106,20 +107,48 @@ export function ProficiencyCheckDashboard() {
     }
 
     const handleScheduleSingle = (traineeId: string, standardId?: string) => {
+        // Get eligible standards for this trainee
+        const trainee = eligibleData?.find(t => t.id === traineeId)
+        const standards = trainee?.eligibleStandards || []
+        
         setPreselectedCandidates([traineeId])
         setPreselectedStandardId(standardId)
+        setPreselectedEligibleStandards(standards)
         setScheduleModalOpen(true)
     }
 
     const handleScheduleMultiple = () => {
+        // Compute intersection of eligible standards across all selected trainees
+        const selectedTraineeData = eligibleData?.filter(t => selectedTrainees.includes(t.id)) || []
+        
+        let commonStandards: Array<{id: string; code: string; name: string}> = []
+        if (selectedTraineeData.length > 0) {
+            // Start with first trainee's standards
+            commonStandards = [...selectedTraineeData[0].eligibleStandards]
+            
+            // Intersect with each subsequent trainee
+            for (let i = 1; i < selectedTraineeData.length; i++) {
+                const traineeStandardIds = new Set(selectedTraineeData[i].eligibleStandards.map(s => s.id))
+                commonStandards = commonStandards.filter(s => traineeStandardIds.has(s.id))
+            }
+        }
+        
         setPreselectedCandidates(selectedTrainees)
         setPreselectedStandardId(undefined)
+        setPreselectedEligibleStandards(commonStandards)
         setScheduleModalOpen(true)
     }
 
     const handleScheduleFromStandard = (traineeIds: string[], standardId: string) => {
+        // When scheduling from a standard view, pass that single standard
+        const standard = standardsData?.find(s => s.id === standardId)
+        const eligibleStandards = standard 
+            ? [{ id: standard.id, code: standard.code, name: standard.name }]
+            : []
+        
         setPreselectedCandidates(traineeIds)
         setPreselectedStandardId(standardId)
+        setPreselectedEligibleStandards(eligibleStandards)
         setScheduleModalOpen(true)
     }
 
@@ -410,9 +439,11 @@ export function ProficiencyCheckDashboard() {
                     setSelectedTrainees([])
                     setPreselectedCandidates([])
                     setPreselectedStandardId(undefined)
+                    setPreselectedEligibleStandards([])
                 }}
                 preselectedCandidates={preselectedCandidates}
                 preselectedStandardId={preselectedStandardId}
+                eligibleStandards={preselectedEligibleStandards}
             />
         </div>
     )

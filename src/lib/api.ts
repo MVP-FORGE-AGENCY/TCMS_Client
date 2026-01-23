@@ -225,8 +225,12 @@ export const checks = {
         return response.data
     },
     // Updated to support both single trainee (legacy) and group checks (new)
+    // Also supports new standard-based flow with checkType
     create: async (data: {
-        profileId: string
+        profileId?: string           // Legacy profile-based flow
+        standardId?: string          // New: standard-based flow
+        checkType?: 'full_renewal' | 'partial'  // New: check type
+        selectedItemIds?: string[]   // New: specific items for partial checks
         traineeId?: string          // Legacy single trainee
         candidateIds?: string[]     // New: array of candidate IDs for group checks
         assessorId?: string         // Legacy single assessor

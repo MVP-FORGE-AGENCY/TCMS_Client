@@ -42,6 +42,7 @@ interface ScheduleCheckModalProps {
     onClose: () => void
     preselectedCandidates?: string[]
     preselectedStandardId?: string
+    eligibleStandards?: Array<{ id: string; code: string; name: string }>
 }
 
 interface Candidate {
@@ -50,11 +51,15 @@ interface Candidate {
     email: string
 }
 
-interface Profile {
+interface Standard {
     id: string
     code: string
     name: string
-    standardId?: string
+    checkDefinition?: {
+        items: { id: string; text: string; is_mandatory: boolean }[]
+        requiredAssessors: number
+        intervalMonths: number
+    }
 }
 
 interface Assessor {
@@ -76,14 +81,16 @@ export function ScheduleCheckModal({
     isOpen, 
     onClose, 
     preselectedCandidates = [],
-    preselectedStandardId 
+    preselectedStandardId,
+    eligibleStandards = []
 }: ScheduleCheckModalProps) {
     const { t } = useTranslation()
     const queryClient = useQueryClient()
     
     const [step, setStep] = useState(1)
     const [candidates, setCandidates] = useState<Candidate[]>([])
-    const [selectedProfileId, setSelectedProfileId] = useState<string>('')
+    const [selectedStandardId, setSelectedStandardId] = useState<string>('')
+    const [checkType, setCheckType] = useState<'full_renewal' | 'partial'>('full_renewal')
     const [dateStart, setDateStart] = useState('')
     const [location, setLocation] = useState('')
     const [selectedAssessorIds, setSelectedAssessorIds] = useState<string[]>([])
@@ -96,15 +103,21 @@ export function ScheduleCheckModal({
         }
     }, [preselectedCandidates])
 
-    // Fetch profiles
-    const { data: profiles } = useQuery({
-        queryKey: ['proficiency-profiles'],
+    // Use passed-in eligible standards if provided, otherwise fetch all (fallback)
+    const { data: allStandards } = useQuery({
+        queryKey: ['standards-for-checks'],
         queryFn: async () => {
-            const res = await api.get('/proficiency-profiles')
-            return res.data.data as Profile[]
+            const res = await api.get('/standards', { params: { isActive: true } })
+            return (res.data.data || res.data) as Standard[]
         },
-        enabled: isOpen
+        // Only fetch all if no eligible standards are provided
+        enabled: isOpen && eligibleStandards.length === 0
     })
+
+    // Use eligible standards if provided, otherwise fall back to all standards
+    const availableStandards: Standard[] = eligibleStandards.length > 0 
+        ? eligibleStandards.map(s => ({ ...s, checkDefinition: undefined }))
+        : (allStandards || [])
 
     // Fetch available assessors
     const { data: assessors } = useQuery({
@@ -138,7 +151,8 @@ export function ScheduleCheckModal({
     const createCheckMutation = useMutation({
         mutationFn: async () => {
             return checks.create({
-                profileId: selectedProfileId,
+                standardId: selectedStandardId,
+                checkType,
                 candidateIds: candidates.map(c => c.id),
                 assessorIds: selectedAssessorIds,
                 dateStart,
@@ -166,7 +180,8 @@ export function ScheduleCheckModal({
     const handleClose = () => {
         setStep(1)
         setCandidates([])
-        setSelectedProfileId('')
+        setSelectedStandardId('')
+        setCheckType('full_renewal')
         setDateStart('')
         setLocation('')
         setSelectedAssessorIds([])
@@ -234,7 +249,7 @@ export function ScheduleCheckModal({
     const canProceed = () => {
         switch (step) {
             case 1: return candidates.length > 0
-            case 2: return !!selectedProfileId
+            case 2: return !!selectedStandardId
             case 3: return !!dateStart
             case 4: return selectedAssessorIds.length > 0
             case 5: return true
@@ -242,9 +257,10 @@ export function ScheduleCheckModal({
         }
     }
 
-    const filteredProfiles = preselectedStandardId 
-        ? profiles?.filter(p => p.standardId === preselectedStandardId)
-        : profiles
+    // Filter standards by preselected if provided
+    const filteredStandards = preselectedStandardId 
+        ? availableStandards?.filter(s => s.id === preselectedStandardId)
+        : availableStandards
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -317,29 +333,50 @@ export function ScheduleCheckModal({
                         </div>
                     )}
 
-                    {/* Step 2: Select Profile */}
+                    {/* Step 2: Select Standard */}
                     {step === 2 && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <CheckCircle className="h-5 w-5" />
-                                {t('checks.step2', 'Step 2: Select Check Profile')}
+                                {t('checks.step2', 'Step 2: Select Standard')}
                             </div>
                             
-                            <div className="space-y-2">
-                                <Label>{t('checks.profile', 'Proficiency Profile')}</Label>
-                                <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('checks.selectProfile', 'Select a profile...')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {filteredProfiles?.map(profile => (
-                                            <SelectItem key={profile.id} value={profile.id}>
-                                                <span className="font-mono text-xs mr-2">{profile.code}</span>
-                                                {profile.name}
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>{t('checks.standard', 'Training Standard')}</Label>
+                                    <Select value={selectedStandardId} onValueChange={setSelectedStandardId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('checks.selectStandard', 'Select a standard...')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredStandards?.map((std: Standard) => (
+                                                <SelectItem key={std.id} value={std.id}>
+                                                    <span className="font-mono text-xs mr-2">{std.code}</span>
+                                                    {std.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>{t('checks.checkType', 'Check Type')}</Label>
+                                    <Select value={checkType} onValueChange={(v) => setCheckType(v as 'full_renewal' | 'partial')}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="full_renewal">
+                                                {t('checks.fullRenewal', 'Full Renewal')}
+                                                <span className="text-xs text-muted-foreground ml-2">- Extends validity</span>
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                            <SelectItem value="partial">
+                                                {t('checks.partial', 'Partial / Custom')}
+                                                <span className="text-xs text-muted-foreground ml-2">- Does not extend validity</span>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -446,9 +483,15 @@ export function ScheduleCheckModal({
                                     <span className="font-medium">{candidates.length} selected</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('checks.profile', 'Profile')}:</span>
+                                    <span className="text-muted-foreground">{t('checks.standard', 'Standard')}:</span>
                                     <span className="font-medium">
-                                        {profiles?.find(p => p.id === selectedProfileId)?.name || '-'}
+                                        {availableStandards?.find(s => s.id === selectedStandardId)?.name || '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('checks.checkType', 'Check Type')}:</span>
+                                    <span className="font-medium">
+                                        {checkType === 'full_renewal' ? t('checks.fullRenewal', 'Full Renewal') : t('checks.partial', 'Partial')}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
