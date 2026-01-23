@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Upload, Download, Check, Archive, FileText, Pencil, BookOpen, ClipboardCheck, Clock, Users } from "lucide-react"
 import { ModuleResultsTable } from "@/components/curriculums/ModuleResultsTable"
 import { RetakeWizard } from "@/components/RetakeWizard"
+import ScheduleCheckModal from "@/components/checks/ScheduleCheckModal"
 
 interface Material {
     id: string
@@ -49,6 +50,17 @@ export default function CurriculumDetailPage() {
     const [uploadData, setUploadData] = useState({ title: "", type: "pdf", moduleId: "" })
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
+    // Schedule Check Modal State
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+    const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>()
+    const [scheduleInitialTraineeName, setScheduleInitialTraineeName] = useState<string | undefined>()
+
+    const openScheduleCheck = (traineeId: string, traineeName: string) => {
+        setScheduleInitialTraineeId(traineeId)
+        setScheduleInitialTraineeName(traineeName)
+        setIsScheduleModalOpen(true)
+    }
+
     const canManage = user?.role && ["admin", "training_manager"].includes(user.role)
     const canUpload = user?.role && ["admin", "training_manager", "instructor"].includes(user.role)
 
@@ -61,6 +73,12 @@ export default function CurriculumDetailPage() {
     const { data: materialsData } = useQuery({
         queryKey: ["curriculum-materials", id],
         queryFn: () => curriculums.getMaterials(id!),
+        enabled: !!id,
+    })
+
+    const { data: traineesData } = useQuery({
+        queryKey: ["curriculum-trainees", id],
+        queryFn: () => curriculums.getTrainees(id!),
         enabled: !!id,
     })
 
@@ -499,10 +517,94 @@ export default function CurriculumDetailPage() {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="trainees">
-                    <ModuleResultsTable curriculumId={id!} modules={modules} />
+                <TabsContent value="trainees" className="space-y-6">
+                    {/* Ready for Proficiency Check Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium tracking-tight">Ready for Proficiency Check</h3>
+                        </div>
+                        
+                        {traineesData?.data?.trainees?.length > 0 ? (
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Trainee</TableHead>
+                                            <TableHead>Campaign</TableHead>
+                                            <TableHead>Eligible Standards</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {traineesData.data.trainees.map((trainee: any) => (
+                                            <TableRow key={trainee.id}>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{trainee.fullName}</span>
+                                                        <span className="text-xs text-muted-foreground">{trainee.email}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{trainee.campaignName}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {trainee.eligibleStandards.map((std: any) => (
+                                                            <Badge key={std.id} variant="outline" className="text-xs">
+                                                                {std.code}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={
+                                                        trainee.status === 'ready_for_check' ? 'bg-green-500' :
+                                                        trainee.status === 'check_scheduled' ? 'bg-blue-500' : 'bg-gray-500'
+                                                    }>
+                                                        {trainee.status === 'ready_for_check' ? 'Ready' :
+                                                         trainee.status === 'check_scheduled' ? 'Scheduled' : 'Completed'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {trainee.status === 'ready_for_check' && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            onClick={() => openScheduleCheck(trainee.userId, trainee.fullName)}
+                                                        >
+                                                            Schedule Check
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="rounded-md border p-8 text-center text-muted-foreground">
+                                No trainees currently ready for proficiency checks.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 pt-6 bt-2 border-t">
+                        <div className="flex items-center justify-between">
+                             <h3 className="text-lg font-medium tracking-tight">Module Results Overview</h3>
+                        </div>
+                        <ModuleResultsTable curriculumId={id!} modules={modules} />
+                    </div>
                 </TabsContent>
             </Tabs>
+
+            <ScheduleCheckModal 
+                open={isScheduleModalOpen} 
+                onOpenChange={setIsScheduleModalOpen}
+                onSuccess={() => {
+                    toast.success("Proficiency check scheduled successfully")
+                    queryClient.invalidateQueries({ queryKey: ["curriculum-trainees", id] })
+                }}
+                initialTraineeId={scheduleInitialTraineeId}
+                initialTraineeName={scheduleInitialTraineeName}
+            />
         </div>
     )
 }

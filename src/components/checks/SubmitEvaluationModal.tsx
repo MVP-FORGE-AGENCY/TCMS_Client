@@ -17,11 +17,12 @@ interface SubmitEvaluationModalProps {
     checkType?: string;
     standard?: any;
     traineeName: string;
+    candidateId?: string; // Add optional candidateId
     onSuccess: () => void;
 }
 
 const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({ 
-    open, onOpenChange, checkId, profile, checkType = 'combined', standard, traineeName, onSuccess 
+    open, onOpenChange, checkId, profile, checkType = 'combined', standard, traineeName, candidateId, onSuccess 
 }) => {
     const [loading, setLoading] = useState(false);
     
@@ -77,6 +78,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             const signatureData = sigCanvas.current?.toDataURL('image/png');
 
             await api.post(`/checks/${checkId}/assessor-evaluations`, {
+                candidateId, // Include candidateId
                 elementsResults,
                 result: overallResult,
                 comments,

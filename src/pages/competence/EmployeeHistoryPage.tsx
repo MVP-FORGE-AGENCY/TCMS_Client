@@ -13,6 +13,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { ArrowLeft, FileText } from "lucide-react"
 import { TraineeCompetenceTab } from "@/components/competence/TraineeCompetenceTab"
 import { CertificatesList } from "@/components/certificates/CertificatesList"
@@ -26,6 +34,12 @@ export default function EmployeeHistoryPage() {
     const navigate = useNavigate()
     const [history, setHistory] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
+
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('')
+    const [resultFilter, setResultFilter] = useState('all')
+    const [typeFilter, setTypeFilter] = useState('all')
+    const [campaignFilter, setCampaignFilter] = useState('all')
 
     useEffect(() => {
         const fetchData = async () => {
@@ -49,6 +63,19 @@ export default function EmployeeHistoryPage() {
 
     const suspendedCompetences = competences?.filter((c: any) => c.status === 'suspended') || []
     const hasSuspended = suspendedCompetences.length > 0
+
+    const uniqueCampaigns = Array.from(new Set(trainings?.map((t: any) => t.campaignName).filter(Boolean)))
+
+    const filteredTrainings = (trainings || []).filter((t: any) => {
+        const matchesSearch = (t.moduleName || t.programmeCode || t.programmeName || '').toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesResult = resultFilter === 'all' || 
+                              (resultFilter === 'pass' && t.result === 'pass') ||
+                              (resultFilter === 'fail' && t.result === 'fail') ||
+                              (resultFilter === 'absent' && t.attendance === 'absent')
+        const matchesType = typeFilter === 'all' || t.type === typeFilter
+        const matchesCampaign = campaignFilter === 'all' || t.campaignName === campaignFilter
+        return matchesSearch && matchesResult && matchesType && matchesCampaign
+    })
 
 
     return (
@@ -148,42 +175,104 @@ export default function EmployeeHistoryPage() {
                             <CardTitle>Training Sessions</CardTitle>
                         </CardHeader>
                         <CardContent>
+                             {/* Filters */}
+                             <div className="flex flex-wrap gap-4 mb-4">
+                                <div className="w-[200px]">
+                                    <Input 
+                                        placeholder="Search module..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <Select value={resultFilter} onValueChange={setResultFilter}>
+                                    <SelectTrigger className="w-[150px]">
+                                        <SelectValue placeholder="Result" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Results</SelectItem>
+                                        <SelectItem value="pass">Pass</SelectItem>
+                                        <SelectItem value="fail">Fail</SelectItem>
+                                        <SelectItem value="absent">Absent</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                    <SelectTrigger className="w-[150px]">
+                                        <SelectValue placeholder="Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Types</SelectItem>
+                                        <SelectItem value="theory">Theory</SelectItem>
+                                        <SelectItem value="practical">Practical</SelectItem>
+                                        <SelectItem value="combined">Combined</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {uniqueCampaigns.length > 0 && (
+                                     <Select value={campaignFilter} onValueChange={setCampaignFilter}>
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Campaign" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Campaigns</SelectItem>
+                                            {uniqueCampaigns.map((c: any) => (
+                                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                                <Button variant="outline" onClick={() => {
+                                    setSearchTerm('')
+                                    setResultFilter('all')
+                                    setTypeFilter('all')
+                                    setCampaignFilter('all')
+                                }}>
+                                    Reset
+                                </Button>
+                             </div>
+
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Date</TableHead>
-                                        <TableHead>Programme</TableHead>
                                         <TableHead>Type</TableHead>
+                                        <TableHead>Module</TableHead>
+                                        <TableHead>Campaign</TableHead>
                                         <TableHead>Result</TableHead>
-                                        <TableHead>Certificate</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {(trainings || []).map((t: any) => (
+                                    {filteredTrainings.map((t: any) => (
                                         <TableRow key={t.id || Math.random()}>
                                             <TableCell>{t.date ? new Date(t.date).toLocaleDateString() : '-'}</TableCell>
+                                            <TableCell className="capitalize">{t.type || 'Training'}</TableCell>
                                             <TableCell>
-                                                <div className="font-medium">{t.programme || t.programmeCode}</div>
-                                                <div className="text-xs text-muted-foreground">{t.programmeName}</div>
+                                                <div className="font-medium">{t.moduleName || t.programmeCode || t.programmeName || '-'}</div>
+                                                {/* Show detailed name if we showed code above */}
+                                                {(t.moduleName || t.programmeCode) && t.programmeName && t.programmeName !== t.moduleName && (
+                                                    <div className="text-xs text-muted-foreground">{t.programmeName}</div>
+                                                )}
                                             </TableCell>
-                                            <TableCell>{t.type || t.sessionType || 'Training'}</TableCell>
                                             <TableCell>
-                                                <Badge variant={t.result === 'pass' ? 'default' : t.result === 'fail' ? 'destructive' : 'secondary'}>
-                                                    {t.result ? t.result.toUpperCase() : 'N/A'}
+                                                {t.campaignName || '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={
+                                                    t.attendance === 'absent' || t.status === 'No Show' || t.status === 'Absent'
+                                                        ? "bg-orange-500 hover:bg-orange-600"
+                                                        : t.result === 'pass'
+                                                        ? "bg-green-500 hover:bg-green-600"
+                                                        : t.result === 'fail'
+                                                        ? "bg-red-500 hover:bg-red-600"
+                                                        : "bg-gray-500 hover:bg-gray-600"
+                                                }>
+                                                    {t.attendance === 'absent' || t.status === 'No Show' || t.status === 'Absent' 
+                                                        ? 'ABSENT' 
+                                                        : (t.result ? t.result.toUpperCase() : 'PLANNED')}
                                                 </Badge>
-                                                {t.status === 'No Show' && <Badge variant="destructive" className="ml-2">NO SHOW</Badge>}
-                                            </TableCell>
-                                            <TableCell>
-                                                {t.certificateUrl ? (
-                                                     <Button variant="ghost" size="sm" onClick={() => window.open(t.certificateUrl, '_blank')}>
-                                                        <FileText className="h-4 w-4 mr-1" /> {t.certificateNumber || 'View'}
-                                                     </Button>
-                                                ) : '-'}
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {(!trainings || trainings.length === 0) && (
-                                        <TableRow><TableCell colSpan={5} className="text-center">No training history found.</TableCell></TableRow>
+                                    {filteredTrainings.length === 0 && (
+                                        <TableRow><TableCell colSpan={5} className="text-center">No matching training history found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>

@@ -27,6 +27,7 @@ const CheckDetailPage = () => {
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
     const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
     const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+    const [selectedCandidate, setSelectedCandidate] = useState<{id: string, name: string} | null>(null);
 
     useEffect(() => {
         if (check && id) {
@@ -68,10 +69,14 @@ const CheckDetailPage = () => {
         }
     };
 
-    const handleDownloadProtocol = async () => {
+    const handleDownloadProtocol = async (candidateId?: string) => {
         try {
+            const url = candidateId 
+                ? `/checks/${id}/protocol?candidateId=${candidateId}`
+                : `/checks/${id}/protocol`;
+
             toast.promise(
-                api.get(`/checks/${id}/protocol`, { responseType: 'blob' }),
+                api.get(url, { responseType: 'blob' }),
                 {
                     loading: 'Generating Protocol PDF...',
                     success: (response) => {
@@ -140,6 +145,14 @@ const CheckDetailPage = () => {
         return name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
     };
 
+    const getCandidateStatus = (candidate: any) => {
+         // Use check_candidates outcome
+         if (candidate.outcome && candidate.outcome !== 'pending') return candidate.outcome;
+         
+         // Or derive from evaluations if outcome not yet finalized 
+         return 'pending';
+    };
+
 
 
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading check details...</div>;
@@ -174,7 +187,7 @@ const CheckDetailPage = () => {
 
                             {/* Generate Official Protocol - Only for finalized checks */}
                             {(check.finalDecision === 'pass' || check.finalDecision === 'fail') && (
-                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={handleDownloadProtocol}>
+                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={() => handleDownloadProtocol()}>
                                     <FileText className="w-4 h-4" /> Generate Official Protocol
                                 </Button>
                             )}
@@ -183,6 +196,7 @@ const CheckDetailPage = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid md:grid-cols-3 gap-4 mb-6">
+                            {!check.isGroupCheck && (
                             <div className="flex items-center space-x-2 text-sm">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <div>
@@ -190,6 +204,7 @@ const CheckDetailPage = () => {
                                     <p className="text-muted-foreground">{check.trainee?.full_name}</p>
                                 </div>
                             </div>
+                            )}
                             <div className="flex items-center space-x-2 text-sm">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div>
@@ -205,6 +220,67 @@ const CheckDetailPage = () => {
                                     <p className="font-medium">Location</p>
                                     <p className="text-muted-foreground">{check.location || 'N/A'}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <Separator className="my-6" />
+
+                        {/* Candidates List (Group & Single) */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-3">
+                                {check.isGroupCheck ? 'Candidates' : 'Evaluation Status'}
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                                {check.candidates?.map((candidate: any) => {
+                                    const status = getCandidateStatus(candidate);
+                                    // Check if current user (assessor) has evaluated this candidate
+                                    const myEvaluation = candidate.evaluations?.find((e: any) => e.assessor_id === user?.id);
+                                    const isAssessor = check.assessors?.some((a: any) => a.id === user?.id);
+
+                                    return (
+                                    <div key={candidate.id} className="flex flex-col md:flex-row items-center justify-between border rounded-lg p-4 bg-card hover:bg-muted/10">
+                                        <div className="flex items-center space-x-3 w-full md:w-auto">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback>{getInitials(candidate.fullName)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{candidate.fullName}</p>
+                                                <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 mt-3 md:mt-0">
+                                            {/* Status Badge */}
+                                            {status === 'pending' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Pending</Badge>}
+                                            {status === 'pass' && <Badge className="bg-green-500 hover:bg-green-600">Passed</Badge>}
+                                            {status === 'fail' && <Badge variant="destructive">Failed</Badge>}
+
+                                            {/* Protocol Download */}
+                                            {status !== 'pending' && (
+                                                <Button size="sm" variant="ghost" onClick={() => handleDownloadProtocol(candidate.id)}>
+                                                    <FileText className="w-4 h-4 mr-1" /> Protocol
+                                                </Button>
+                                            )}
+
+                                            {/* Evaluate Action */}
+                                            {isAssessor && check.result === 'pending' && (
+                                                myEvaluation ? (
+                                                    <Badge variant="outline" className="text-green-600 border-green-200">
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> Submitted
+                                                    </Badge>
+                                                ) : (
+                                                    <Button size="sm" onClick={() => {
+                                                        setSelectedCandidate({ id: candidate.id, name: candidate.fullName });
+                                                        setIsSubmitModalOpen(true);
+                                                    }}>
+                                                        <PenTool className="w-3 h-3 mr-1" /> Evaluate
+                                                    </Button>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -300,8 +376,12 @@ const CheckDetailPage = () => {
                 profile={check.profile}
                 checkType={check.check_type || 'combined'}
                 standard={check.profile?.training_standards}
-                traineeName={check.trainee?.full_name}
-                onSuccess={fetchCheck}
+                traineeName={selectedCandidate?.name || check.trainee?.full_name}
+                candidateId={selectedCandidate?.id}
+                onSuccess={() => {
+                    fetchCheck();
+                    setSelectedCandidate(null);
+                }}
             />
 
             <SignatureModal
@@ -323,43 +403,48 @@ const CheckDetailPage = () => {
                     </DialogHeader>
                     
                     <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                        {/* Summary of Evaluations */}
-                        {check.assessors?.map((assessor: any) => (
-                            <div key={assessor.id} className="border rounded-md p-3 bg-muted/20">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <span className="font-semibold text-sm">{assessor.full_name}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">({assessor.role || 'Assessor'})</span>
-                                    </div>
-                                    <Badge className={
-                                        assessor.evaluation?.result === 'pass' ? 'bg-green-500' : 'bg-red-500'
-                                    }>
-                                        {assessor.evaluation?.result?.toUpperCase() || 'PENDING'}
-                                    </Badge>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                                    {(assessor.evaluation?.theory_score !== undefined && assessor.evaluation?.theory_score !== null) && (
-                                        <div>Theory: <strong>{assessor.evaluation.theory_score}%</strong></div>
-                                    )}
-                                    {(assessor.evaluation?.practical_score !== undefined && assessor.evaluation?.practical_score !== null) && (
-                                        <div>Practical: <strong>{assessor.evaluation.practical_score}%</strong></div>
-                                    )}
-                                </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Review the evaluations below. This will finalize the check and record competence for passing candidates.
+                        </p>
 
-                                {assessor.evaluation?.comments && (
-                                    <div className="text-sm italic text-muted-foreground bg-white p-2 rounded">
-                                        "{assessor.evaluation?.comments}"
+                        {/* Iterate Candidates */}
+                        <div className="space-y-6">
+                        {check.candidates?.map((candidate: any) => {
+                            // Calculate candidate specific status
+                            const candidateEvals = candidate.evaluations || [];
+                            const allPass = candidateEvals.length > 0 && candidateEvals.length >= check.profile?.required_assessors && candidateEvals.every((e: any) => e.result === 'pass');
+                            const outcome = allPass ? 'pass' : 'fail';
+                            // If insufficient evals, it's technically a fail or pending, but here we assume validation happened
+                            
+                            return (
+                                <div key={candidate.id} className="border rounded-md p-4">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h4 className="font-semibold">{candidate.fullName}</h4>
+                                        <Badge className={outcome === 'pass' ? 'bg-green-600' : 'bg-red-600'}>
+                                            PROPOSED: {outcome.toUpperCase()}
+                                        </Badge>
                                     </div>
-                                )}
-                            </div>
-                        ))}
-
-                        <div className="flex items-center justify-between border-t pt-4 mt-4">
-                            <span className="font-bold text-lg">Proposed Final Decision:</span>
-                            <Badge className={`text-lg px-4 py-1 ${getDerivedDecision() === 'pass' ? 'bg-green-600' : 'bg-red-600'}`}>
-                                {getDerivedDecision().toUpperCase()}
-                            </Badge>
+                                    
+                                    <div className="grid gap-2 pl-4 border-l-2">
+                                        {check.assessors?.map((assessor: any) => {
+                                            const evaluation = candidateEvals.find((e: any) => e.assessor_id === assessor.id);
+                                            return (
+                                                <div key={assessor.id} className="flex justify-between items-center text-sm">
+                                                    <span>{assessor.fullName}</span>
+                                                    {evaluation ? (
+                                                        <span className={evaluation.result === 'pass' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                                            {evaluation.result.toUpperCase()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-500 italic">Pending</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
                         </div>
                     </div>
 

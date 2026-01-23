@@ -224,11 +224,13 @@ export const checks = {
         const response = await api.get(`/checks/${id}`)
         return response.data
     },
+    // Updated to support both single trainee (legacy) and group checks (new)
     create: async (data: {
         profileId: string
-        traineeId: string
-        assessorId: string
-        assessorIds?: string[]
+        traineeId?: string          // Legacy single trainee
+        candidateIds?: string[]     // New: array of candidate IDs for group checks
+        assessorId?: string         // Legacy single assessor
+        assessorIds?: string[]      // New: array of assessor IDs
         dateStart: string
         location?: string
     }) => {
@@ -268,6 +270,15 @@ export const checks = {
         comments?: string
     }) => {
         const response = await api.patch(`/checks/${id}/finalise`, data)
+        return response.data
+    },
+    // New: Eligibility endpoints
+    getEligibleTrainees: async () => {
+        const response = await api.get("/checks/eligible-trainees")
+        return response.data
+    },
+    getEligibleByStandard: async () => {
+        const response = await api.get("/checks/eligible-by-standard")
         return response.data
     },
 }
@@ -410,6 +421,10 @@ export const curriculums = {
         mimeType?: string
     }) => {
         const response = await api.post(`/curriculums/${id}/materials`, data)
+        return response.data
+    },
+    getTrainees: async (id: string) => {
+        const response = await api.get(`/curriculums/${id}/trainees`)
         return response.data
     },
     checkCompletion: async (id: string, userId: string) => {

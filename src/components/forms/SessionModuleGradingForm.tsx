@@ -17,6 +17,11 @@ interface GradingListIn {
     attendance: string;
     existingResult?: any;
     canGrade: boolean;
+    // New absence tracking fields
+    moduleAbsences?: number;
+    moduleAttended?: number;
+    moduleTotalSessions?: number;
+    shouldAutoFail?: boolean;
 }
 
 interface SessionModuleGradingFormProps {
@@ -153,6 +158,7 @@ export const SessionModuleGradingForm: React.FC<SessionModuleGradingFormProps> =
                         <TableRow>
                             <TableHead>Trainee</TableHead>
                             <TableHead>Attendance</TableHead>
+                            <TableHead>Module Absences</TableHead>
                             {moduleData.requires_theory && <TableHead className="w-[120px]">Theory</TableHead>}
                             {moduleData.requires_practical && <TableHead className="w-[120px]">Practical</TableHead>}
                             <TableHead>Result</TableHead>
@@ -167,14 +173,30 @@ export const SessionModuleGradingForm: React.FC<SessionModuleGradingFormProps> =
                             
                             if (!item.canGrade) {
                                 return (
-                                    <TableRow key={item.participant.id} className="opacity-60 bg-muted/20">
-                                        <TableCell>{item.participant.full_name}</TableCell>
+                                    <TableRow key={item.participant.id} className={`opacity-60 ${item.shouldAutoFail ? 'bg-red-50' : 'bg-muted/20'}`}>
                                         <TableCell>
-                                            <Badge variant="outline">{item.attendance}</Badge>
+                                            {item.participant.full_name}
+                                            {item.shouldAutoFail && (
+                                                <div className="text-xs text-red-500 font-medium">Auto-fail: Absent from final session</div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={item.attendance === 'absent' ? 'bg-red-100 text-red-700 border-red-300' : ''}>
+                                                {item.attendance}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className={(item.moduleAbsences ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                                {item.moduleAbsences ?? 0} / {item.moduleTotalSessions ?? 0}
+                                            </span>
                                         </TableCell>
                                         {moduleData.requires_theory && <TableCell>-</TableCell>}
                                         {moduleData.requires_practical && <TableCell>-</TableCell>}
-                                        <TableCell>-</TableCell>
+                                        <TableCell>
+                                            {item.shouldAutoFail ? (
+                                                <Badge className="bg-red-500">FAIL</Badge>
+                                            ) : '-'}
+                                        </TableCell>
                                         <TableCell>-</TableCell>
                                         <TableCell></TableCell>
                                     </TableRow>
@@ -190,6 +212,16 @@ export const SessionModuleGradingForm: React.FC<SessionModuleGradingFormProps> =
                                          <Badge variant={isPresent ? "default" : "secondary"}>
                                             {item.attendance}
                                          </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={(item.moduleAbsences ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                            {item.moduleAbsences ?? 0} / {item.moduleTotalSessions ?? 0}
+                                        </span>
+                                        {(item.moduleAbsences ?? 0) > 0 && (
+                                            <div className="text-xs text-orange-500">
+                                                ({item.moduleAttended ?? 0} attended)
+                                            </div>
+                                        )}
                                     </TableCell>
                                     
                                     {moduleData.requires_theory && (

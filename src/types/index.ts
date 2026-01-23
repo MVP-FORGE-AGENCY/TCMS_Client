@@ -425,6 +425,16 @@ export interface CampaignEnrollment {
     enrolledAt: string;
     completedAt?: string;
     notes?: string;
+    // Absence tracking
+    absenceCount?: number;
+    attendedCount?: number;
+    totalSessions?: number;
+    // Module failure tracking
+    hasFailedModules?: boolean;
+    failedModuleCount?: number;
+    passedModuleCount?: number;
+    totalModules?: number;
+    allModulesPassed?: boolean;
     user?: {
         id: string;
         fullName: string;

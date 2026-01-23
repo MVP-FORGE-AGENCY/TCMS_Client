@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,25 +18,13 @@ import { useTranslation } from 'react-i18next';
 
 const ChecksPage = () => {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState('allocated');
+    const queryClient = useQueryClient();
+    const [activeTab, setActiveTab] = useState('eligible');
+    
+    // New modal state for group check support
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [scheduleInitialProfileId, setScheduleInitialProfileId] = useState<string | undefined>();
-    const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>();
-    const [scheduleInitialTraineeName, setScheduleInitialTraineeName] = useState<string | undefined>();
-
-    const openScheduleGroupCheck = () => {
-        setScheduleInitialProfileId(undefined);
-        setScheduleInitialTraineeId(undefined);
-        setScheduleInitialTraineeName(undefined);
-        setIsScheduleModalOpen(true);
-    };
-
-    const openScheduleSingleCheck = (profileId: string, traineeId: string, traineeName: string) => {
-        setScheduleInitialProfileId(profileId);
-        setScheduleInitialTraineeId(traineeId);
-        setScheduleInitialTraineeName(traineeName);
-        setIsScheduleModalOpen(true);
-    };
+    const [preselectedCandidates, setPreselectedCandidates] = useState<string[]>([]);
+    const [preselectedStandardId, setPreselectedStandardId] = useState<string | undefined>();
     
     // Profile Management State
     const [profiles, setProfiles] = useState<any[]>([]);
@@ -46,7 +35,39 @@ const ChecksPage = () => {
 
     // To refresh lists after scheduling
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const handleRefresh = () => setRefreshTrigger(prev => prev + 1);
+    const handleRefresh = () => {
+        setRefreshTrigger(prev => prev + 1);
+        queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] });
+        queryClient.invalidateQueries({ queryKey: ['eligible-by-standard'] });
+    };
+
+    // Handler for EligibleTraineesTable - new signature
+    const handleScheduleClick = (traineeId: string, traineeIds?: string[], standardId?: string) => {
+        if (traineeIds && traineeIds.length > 0) {
+            // Bulk scheduling
+            setPreselectedCandidates(traineeIds);
+        } else if (traineeId) {
+            // Single trainee
+            setPreselectedCandidates([traineeId]);
+        } else {
+            setPreselectedCandidates([]);
+        }
+        setPreselectedStandardId(standardId);
+        setIsScheduleModalOpen(true);
+    };
+
+    const openScheduleGroupCheck = () => {
+        setPreselectedCandidates([]);
+        setPreselectedStandardId(undefined);
+        setIsScheduleModalOpen(true);
+    };
+
+    const handleModalClose = () => {
+        setIsScheduleModalOpen(false);
+        setPreselectedCandidates([]);
+        setPreselectedStandardId(undefined);
+        handleRefresh();
+    };
 
     // Initial Data Fetch (Profiles & Standards)
     useEffect(() => {
@@ -69,11 +90,10 @@ const ChecksPage = () => {
 
     const fetchStandards = async () => {
         try {
-            const res = await api.get('/standards'); // Assuming this endpoint exists and returns list
+            const res = await api.get('/standards');
             setStandards(res.data.data || res.data || []); 
         } catch (error) {
             console.error("Failed to fetch standards", error);
-            // Don't block UI if standards fail, but form wont work well
         }
     };
 
@@ -83,7 +103,7 @@ const ChecksPage = () => {
             await api.post('/proficiency-profiles', values);
             toast.success(t("checks.toast.profileCreated", "Profile created successfully"));
             setIsProfileFormOpen(false);
-            handleRefresh(); // Refresh other tabs too
+            handleRefresh();
         } catch (error: any) {
             console.error(error);
             toast.error(error.response?.data?.error?.message || t("checks.toast.createError", "Failed to create profile"));
@@ -142,13 +162,13 @@ const ChecksPage = () => {
                         </Button>
                     ) : (
                         <Button onClick={openScheduleGroupCheck} className="w-full sm:w-auto">
-                            <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck")}
+                            <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck", "Schedule Check")}
                         </Button>
                     )}
                 </div>
             </div>
 
-            <Tabs defaultValue="allocated" className="w-full" onValueChange={setActiveTab}>
+            <Tabs defaultValue="eligible" className="w-full" onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[600px]">
                     <TabsTrigger value="eligible">{t("checks.eligibleTrainees")}</TabsTrigger>
                     <TabsTrigger value="allocated">{t("checks.scheduledChecks")}</TabsTrigger>
@@ -161,20 +181,17 @@ const ChecksPage = () => {
                         <CardHeader>
                             <CardTitle>{t("checks.eligibleTrainees")}</CardTitle>
                             <CardDescription>
-                                {t("checks.eligibleDescription")}
+                                {t("checks.eligibleDescription", "Trainees who have completed training and require proficiency checks")}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <EligibleTraineesTable 
-                                onScheduleClick={openScheduleSingleCheck}
-                                refreshTrigger={refreshTrigger}
+                                onScheduleClick={handleScheduleClick}
                             />
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* ... existing tabs content ... */}
-                
                 <TabsContent value="allocated" className="mt-6">
                     <Card>
                         <CardHeader>
@@ -232,13 +249,12 @@ const ChecksPage = () => {
                 </TabsContent>
             </Tabs>
 
+            {/* New Schedule Check Modal with group support */}
             <ScheduleCheckModal 
-                open={isScheduleModalOpen} 
-                onOpenChange={setIsScheduleModalOpen}
-                onSuccess={handleRefresh}
-                initialProfileId={scheduleInitialProfileId}
-                initialTraineeId={scheduleInitialTraineeId}
-                initialTraineeName={scheduleInitialTraineeName}
+                isOpen={isScheduleModalOpen} 
+                onClose={handleModalClose}
+                preselectedCandidates={preselectedCandidates}
+                preselectedStandardId={preselectedStandardId}
             />
 
             <Dialog open={isProfileFormOpen} onOpenChange={setIsProfileFormOpen}>

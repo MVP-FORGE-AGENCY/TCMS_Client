@@ -8,7 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
     ArrowLeft, Save, Plus, Trash2, 
-    BookOpen, ClipboardCheck, Clock, Users, Settings2
+    BookOpen, ClipboardCheck, Clock, Users, Settings2,
+    Check, ChevronsUpDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -21,7 +22,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { api, standards } from '@/lib/api'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { StandardCreationDialog } from '@/components/standards/StandardCreationDialog'
 import type { 
     CurriculumCreate, CurriculumModule, CurriculumModuleCreate, 
     CurriculumType, DeliveryMethod 
@@ -43,9 +50,15 @@ export default function CurriculumBuilder() {
     const [type, setType] = useState<CurriculumType>('recurrent')
     const [validityMonths, setValidityMonths] = useState<number | undefined>(12)
     const [standardTags, setStandardTags] = useState<string[]>([])
-    const [standardTagInput, setStandardTagInput] = useState('')
     const [description, setDescription] = useState('')
     const [modules, setModules] = useState<CurriculumModuleCreate[]>([])
+
+    // Standard combobox state
+    const [openCombobox, setOpenCombobox] = useState(false)
+    const [availableStandards, setAvailableStandards] = useState<any[]>([])
+    const [creationDialogOpen, setCreationDialogOpen] = useState(false)
+    const [creationDialogCode, setCreationDialogCode] = useState('')
+    const [searchValue, setSearchValue] = useState('')
 
     // Module dialog
     const [moduleDialogOpen, setModuleDialogOpen] = useState(false)
@@ -81,12 +94,22 @@ export default function CurriculumBuilder() {
         })
     }
 
-    // Load existing curriculum
+    // Load existing curriculum and standards
     useEffect(() => {
+        loadStandards()
         if (isEditing) {
             loadCurriculum()
         }
     }, [id])
+
+    const loadStandards = async () => {
+        try {
+            const data = await standards.list({ isActive: true })
+            setAvailableStandards(data || [])
+        } catch (error) {
+            console.error('Failed to load standards:', error)
+        }
+    }
 
     const loadCurriculum = async () => {
         try {
@@ -175,11 +198,19 @@ export default function CurriculumBuilder() {
         }
     }
 
-    const addStandardTag = () => {
-        if (standardTagInput.trim() && !standardTags.includes(standardTagInput.trim())) {
-            setStandardTags([...standardTags, standardTagInput.trim().toUpperCase()])
-            setStandardTagInput('')
+    const addStandardTag = (tag: string) => {
+        if (tag && !standardTags.includes(tag)) {
+            setStandardTags([...standardTags, tag])
         }
+        setOpenCombobox(false)
+        setSearchValue('')
+    }
+
+    const handleCreateStandard = (std: any) => {
+        // Add new standard to the available list so it appears in suggestions
+        setAvailableStandards(prev => [...prev, std])
+        // Also add it to the selected tags
+        addStandardTag(std.code)
     }
 
     const removeStandardTag = (tag: string) => {
@@ -357,16 +388,82 @@ export default function CurriculumBuilder() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex gap-2">
-                                <Input 
-                                    value={standardTagInput}
-                                    onChange={(e) => setStandardTagInput(e.target.value)}
-                                    placeholder="e.g., EASA-ORO-FC-230"
-                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addStandardTag())}
-                                />
-                                <Button variant="outline" onClick={addStandardTag}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
+                            <div className="flex flex-col gap-2">
+                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openCombobox}
+                                            className="w-full justify-between"
+                                        >
+                                            {t('curriculums.selectStandard', 'Select standard...')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0" align="start">
+                                        <div className="p-2 border-b">
+                                            <Input
+                                                placeholder={t('curriculums.searchStandards', 'Search or type new...')}
+                                                value={searchValue}
+                                                onChange={(e) => setSearchValue(e.target.value)}
+                                                className="h-8"
+                                            />
+                                        </div>
+                                        <div className="max-h-[200px] overflow-y-auto">
+                                            {/* Create New Option - Always at top when typing */}
+                                            {searchValue && (
+                                                <div
+                                                    className="flex items-center gap-2 px-3 py-2 cursor-pointer border-l-2 border-l-transparent hover:border-l-primary transition-colors"
+                                                    onClick={() => {
+                                                        setCreationDialogCode(searchValue)
+                                                        setCreationDialogOpen(true)
+                                                        setOpenCombobox(false)
+                                                        setSearchValue('')
+                                                    }}
+                                                >
+                                                    <Plus className="h-4 w-4 text-primary" />
+                                                    <span className="font-medium text-primary">Create "{searchValue}"</span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Existing Standards */}
+                                            {availableStandards
+                                                .filter(std => 
+                                                    !searchValue || 
+                                                    std.code.toLowerCase().includes(searchValue.toLowerCase()) || 
+                                                    std.name.toLowerCase().includes(searchValue.toLowerCase())
+                                                )
+                                                .map((std) => (
+                                                    <div
+                                                        key={std.id}
+                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer border-l-2 border-l-transparent hover:border-l-primary transition-colors"
+                                                        onClick={() => {
+                                                            addStandardTag(std.code)
+                                                            setSearchValue('')
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "h-4 w-4",
+                                                                standardTags.includes(std.code) ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm">{std.code}</span>
+                                                            <span className="text-xs text-muted-foreground">{std.name}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            
+                                            {availableStandards.length === 0 && !searchValue && (
+                                                <div className="py-4 text-center text-sm text-muted-foreground">
+                                                    Type to search or create a new standard.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {standardTags.map((tag) => (
@@ -726,6 +823,13 @@ export default function CurriculumBuilder() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {/* Standard Creation Dialog */}
+            <StandardCreationDialog 
+                isOpen={creationDialogOpen}
+                onClose={() => setCreationDialogOpen(false)}
+                onSuccess={handleCreateStandard}
+                initialCode={creationDialogCode}
+            />
         </div>
     )
 }

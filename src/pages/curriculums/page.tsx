@@ -17,6 +17,8 @@ import { api } from '@/lib/api'
 import type { Curriculum, CurriculumType } from '@/types'
 import { cn } from '@/lib/utils'
 import { CurriculumHistoryModal } from '@/components/curriculums/CurriculumHistoryModal'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { StandardsList } from '@/components/standards/StandardsList'
 
 export default function CurriculumsPage() {
     const { t } = useTranslation()
@@ -81,81 +83,92 @@ export default function CurriculumsPage() {
                         {t('curriculums.subtitle', 'Define training and assessment modules for your organization.')}
                     </p>
                 </div>
-                <Button onClick={() => navigate('/curriculums/new')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t('curriculums.createCurriculum', 'Create Curriculum')}
-                </Button>
             </div>
+            {/* Tabs */}
+            <Tabs defaultValue="curriculums" className="space-y-6">
+                <TabsList>
+                    <TabsTrigger value="curriculums">{t('curriculums.tabs.curriculums', 'Curriculums')}</TabsTrigger>
+                    <TabsTrigger value="standards">{t('curriculums.tabs.standards', 'Training Standards')}</TabsTrigger>
+                </TabsList>
 
-            {/* Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                <form onSubmit={handleSearch} className="flex-1">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder={t('curriculums.searchPlaceholder', 'Search curriculums...')}
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9"
-                        />
+                <TabsContent value="curriculums" className="space-y-6">
+                    {/* Header Actions */}
+                    <div className="flex justify-end">
+                        <Button onClick={() => navigate('/curriculums/new')}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            {t('curriculums.createCurriculum', 'Create Curriculum')}
+                        </Button>
                     </div>
-                </form>
-                <div className="flex gap-2">
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                        <SelectTrigger className="w-[150px]">
-                            <SelectValue placeholder={t('common.type', 'Type')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
-                            <SelectItem value="initial">{t('curriculums.types.initial', 'Initial')}</SelectItem>
-                            <SelectItem value="recurrent">{t('curriculums.types.recurrent', 'Recurrent')}</SelectItem>
-                            <SelectItem value="refresher">{t('curriculums.types.refresher', 'Refresher')}</SelectItem>
-                            <SelectItem value="conversion">{t('curriculums.types.conversion', 'Conversion')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[130px]">
-                            <SelectValue placeholder={t('common.status', 'Status')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
-                            <SelectItem value="active">{t('common.active', 'Active')}</SelectItem>
-                            <SelectItem value="inactive">{t('common.inactive', 'Inactive')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
 
-            {/* Grid */}
-            {loading ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {[...Array(6)].map((_, i) => (
-                        <Card key={i}>
-                            <CardHeader>
-                                <Skeleton className="h-5 w-32" />
-                                <Skeleton className="h-4 w-48" />
-                            </CardHeader>
-                            <CardContent>
-                                <Skeleton className="h-20 w-full" />
-                            </CardContent>
+                    {/* Filters */}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                        <form onSubmit={handleSearch} className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder={t('curriculums.searchPlaceholder', 'Search curriculums...')}
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+                        </form>
+                        <div className="flex gap-2">
+                            <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <SelectTrigger className="w-[150px]">
+                                    <SelectValue placeholder={t('common.type', 'Type')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
+                                    <SelectItem value="initial">{t('curriculums.types.initial', 'Initial')}</SelectItem>
+                                    <SelectItem value="recurrent">{t('curriculums.types.recurrent', 'Recurrent')}</SelectItem>
+                                    <SelectItem value="refresher">{t('curriculums.types.refresher', 'Refresher')}</SelectItem>
+                                    <SelectItem value="conversion">{t('curriculums.types.conversion', 'Conversion')}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[130px]">
+                                    <SelectValue placeholder={t('common.status', 'Status')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
+                                    <SelectItem value="active">{t('common.active', 'Active')}</SelectItem>
+                                    <SelectItem value="inactive">{t('common.inactive', 'Inactive')}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Grid */}
+                    {loading ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {[...Array(6)].map((_, i) => (
+                                <Card key={i}>
+                                    <CardHeader>
+                                        <Skeleton className="h-5 w-32" />
+                                        <Skeleton className="h-4 w-48" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Skeleton className="h-20 w-full" />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : filteredCurriculums.length === 0 ? (
+                        <Card className="p-12 text-center">
+                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                <BookOpen className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-lg font-semibold">{t('curriculums.noCurriculums', 'No curriculums found')}</h3>
+                            <p className="text-muted-foreground mb-4">
+                                {t('curriculums.getStarted', 'Get started by creating your first curriculum.')}
+                            </p>
+                            <Button onClick={() => navigate('/curriculums/new')}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                {t('curriculums.createCurriculum', 'Create Curriculum')}
+                            </Button>
                         </Card>
-                    ))}
-                </div>
-            ) : filteredCurriculums.length === 0 ? (
-                <Card className="p-12 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                        <BookOpen className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold">{t('curriculums.noCurriculums', 'No curriculums found')}</h3>
-                    <p className="text-muted-foreground mb-4">
-                        {t('curriculums.getStarted', 'Get started by creating your first curriculum.')}
-                    </p>
-                    <Button onClick={() => navigate('/curriculums/new')}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {t('curriculums.createCurriculum', 'Create Curriculum')}
-                    </Button>
-                </Card>
-            ) : (
+                    ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredCurriculums.map((curriculum) => (
                         <Card 
@@ -247,6 +260,12 @@ export default function CurriculumsPage() {
                     ))}
                 </div>
             )}
+            </TabsContent>
+
+            <TabsContent value="standards">
+                <StandardsList />
+            </TabsContent>
+            </Tabs>
 
             {/* History Modal */}
             <CurriculumHistoryModal

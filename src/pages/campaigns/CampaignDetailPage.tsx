@@ -90,6 +90,70 @@ export default function CampaignDetailPage() {
     const [materials, setMaterials] = useState<Material[]>([])
     const [loadingMaterials, setLoadingMaterials] = useState(false)
 
+    // Modules tab state
+    interface CampaignModuleStats {
+        id: string
+        name: string
+        type: string
+        sequence: number
+        durationHours?: number
+        requiresTheory?: boolean
+        requiresPractical?: boolean
+        totalSessions: number
+        completedSessions: number
+        totalTrainees: number
+    }
+    const [campaignModulesStats, setCampaignModulesStats] = useState<CampaignModuleStats[]>([])
+    const [loadingModules, setLoadingModules] = useState(false)
+    
+    // Module detail dialog
+    interface ModuleTrainee {
+        userId: string
+        fullName: string
+        email: string
+        sessionsAttended: number
+        sessionsAbsent: number
+        totalSessions: number
+        theoryScore?: number | null
+        practicalScore?: number | null
+        result: string
+    }
+    const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null)
+    const [moduleTrainees, setModuleTrainees] = useState<ModuleTrainee[]>([])
+    const [loadingModuleTrainees, setLoadingModuleTrainees] = useState(false)
+    const [moduleDetailOpen, setModuleDetailOpen] = useState(false)
+
+    // Trainee details dialog state
+    interface TraineeModuleResult {
+        id: string
+        name: string
+        type: string
+        sequence: number
+        result: string
+        theoryScore?: number | null
+        practicalScore?: number | null
+        sessionsAttended: number
+        sessionsAbsent: number
+        totalSessions: number
+        isComplete: boolean
+    }
+    interface TraineeDetailsData {
+        trainee: { id: string; fullName: string; email: string } | null
+        campaign: { id: string; name: string }
+        modules: TraineeModuleResult[]
+    }
+    const [traineeDetailsOpen, setTraineeDetailsOpen] = useState(false)
+    const [traineeDetailsData, setTraineeDetailsData] = useState<TraineeDetailsData | null>(null)
+    const [loadingTraineeDetails, setLoadingTraineeDetails] = useState(false)
+    
+    // Retake session dialog
+    const [retakeDialogOpen, setRetakeDialogOpen] = useState(false)
+    const [selectedRetakeModule, setSelectedRetakeModule] = useState<TraineeModuleResult | null>(null)
+    const [retakeDate, setRetakeDate] = useState('')
+    const [retakeInstructor, setRetakeInstructor] = useState('')
+    const [creatingRetake, setCreatingRetake] = useState(false)
+
+
     useEffect(() => {
         loadCampaign()
         loadEmployees()
@@ -163,6 +227,88 @@ export default function CampaignDetailPage() {
             setLoadingMaterials(false)
         }
     }
+
+    const loadCampaignModules = async () => {
+        if (!id) return
+        try {
+            setLoadingModules(true)
+            const response = await api.get(`/campaigns/${id}/modules`)
+            setCampaignModulesStats(response.data.data || [])
+        } catch (error) {
+            console.error('Failed to load campaign modules:', error)
+        } finally {
+            setLoadingModules(false)
+        }
+    }
+
+    const loadModuleTrainees = async (moduleId: string) => {
+        if (!id) return
+        try {
+            setLoadingModuleTrainees(true)
+            setSelectedModuleId(moduleId)
+            const response = await api.get(`/campaigns/${id}/modules/${moduleId}/trainees`)
+            setModuleTrainees(response.data.data?.trainees || [])
+            setModuleDetailOpen(true)
+        } catch (error) {
+            console.error('Failed to load module trainees:', error)
+            toast.error(t('campaigns.loadModuleError', 'Failed to load module details'))
+        } finally {
+            setLoadingModuleTrainees(false)
+        }
+    }
+
+    const loadTraineeModules = async (userId: string) => {
+        if (!id) return
+        try {
+            setLoadingTraineeDetails(true)
+            const response = await api.get(`/campaigns/${id}/trainees/${userId}/modules`)
+            setTraineeDetailsData(response.data.data)
+            setTraineeDetailsOpen(true)
+        } catch (error) {
+            console.error('Failed to load trainee modules:', error)
+            toast.error(t('campaigns.loadTraineeError', 'Failed to load trainee details'))
+        } finally {
+            setLoadingTraineeDetails(false)
+        }
+    }
+
+    const handleScheduleRetake = (module: TraineeModuleResult) => {
+        setSelectedRetakeModule(module)
+        setRetakeDate('')
+        setRetakeInstructor('')
+        setRetakeDialogOpen(true)
+    }
+
+    const createRetake = async () => {
+        if (!id || !selectedRetakeModule || !traineeDetailsData?.trainee || !retakeDate) return
+        try {
+            setCreatingRetake(true)
+            await api.post(`/campaigns/${id}/sessions/retake`, {
+                moduleId: selectedRetakeModule.id,
+                userIds: [traineeDetailsData.trainee.id],
+                dateStart: retakeDate,
+                instructorId: retakeInstructor || undefined,
+                sessionType: 'combined'
+            })
+            toast.success(t('campaigns.retakeCreated', 'Retake session created'))
+            setRetakeDialogOpen(false)
+            // Refresh trainee details
+            loadTraineeModules(traineeDetailsData.trainee.id)
+            loadCampaign()
+        } catch (error) {
+            console.error('Failed to create retake session:', error)
+            toast.error(t('campaigns.retakeError', 'Failed to create retake session'))
+        } finally {
+            setCreatingRetake(false)
+        }
+    }
+
+    // Load modules when campaign loads
+    useEffect(() => {
+        if (id) {
+            loadCampaignModules()
+        }
+    }, [id])
 
     const handleDownload = async (materialId: string) => {
         try {
@@ -442,15 +588,16 @@ export default function CampaignDetailPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="enrollments">
+            <Tabs defaultValue="trainees">
                 <TabsList>
-                    <TabsTrigger value="enrollments">{t('campaigns.enrollments', 'Enrollments')}</TabsTrigger>
+                    <TabsTrigger value="trainees">{t('campaigns.trainees', 'Trainees')}</TabsTrigger>
+                    <TabsTrigger value="modules">{t('campaigns.modules', 'Modules')}</TabsTrigger>
                     <TabsTrigger value="schedule">{t('campaigns.schedule', 'Schedule')}</TabsTrigger>
                     <TabsTrigger value="materials">{t('campaigns.materials', 'Materials')}</TabsTrigger>
                     <TabsTrigger value="settings">{t('campaigns.settings', 'Settings')}</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="enrollments" className="space-y-4">
+                <TabsContent value="trainees" className="space-y-4">
                     <div className="flex justify-between">
                         <h3 className="text-lg font-medium">{t('campaigns.enrolledTrainees', 'Enrolled Trainees')}</h3>
                         <div className="flex gap-2">
@@ -694,7 +841,7 @@ export default function CampaignDetailPage() {
                         </div>
                     </div>
 
-                    {/* Enrollments table */}
+                    {/* Trainees table */}
                     <div className="rounded-lg border">
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -703,38 +850,73 @@ export default function CampaignDetailPage() {
                                         <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
                                         <th className="px-4 py-3 text-left text-sm font-medium">{t('common.email', 'Email')}</th>
                                         <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
+                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.absences', 'Absences')}</th>
                                         <th className="px-4 py-3 text-left text-sm font-medium">{t('common.enrolledAt', 'Enrolled')}</th>
                                         <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {campaign.enrollments?.map((enrollment) => (
-                                        <tr key={enrollment.id} className="hover:bg-muted/25">
-                                            <td className="px-4 py-3 font-medium">{enrollment.user?.fullName}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{enrollment.user?.email}</td>
-                                            <td className="px-4 py-3">
-                                                <Badge className={getStatusColor(enrollment.status)}>
-                                                    {enrollment.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                {format(new Date(enrollment.enrolledAt), 'MMM d, yyyy')}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm"
-                                                    className="text-destructive hover:text-destructive"
-                                                    onClick={() => handleUnenroll(enrollment.userId)}
-                                                >
-                                                    <XCircle className="h-4 w-4" />
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {campaign.enrollments?.map((enrollment) => {
+                                        // Map status based on module results
+                                        const getDisplayStatus = () => {
+                                            // If trainee has any failed modules, show Failed
+                                            if (enrollment.hasFailedModules) {
+                                                return { label: 'Failed', color: 'bg-red-500' }
+                                            }
+                                            // If all modules passed, show Passed
+                                            if (enrollment.allModulesPassed) {
+                                                return { label: 'Passed', color: 'bg-green-500' }
+                                            }
+                                            // Otherwise, ongoing
+                                            return { label: 'Ongoing', color: 'bg-blue-500' }
+                                        }
+                                        const displayStatus = getDisplayStatus()
+                                        
+                                        return (
+                                            <tr key={enrollment.id} className="hover:bg-muted/25">
+                                                <td className="px-4 py-3 font-medium">{enrollment.user?.fullName}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{enrollment.user?.email}</td>
+                                                <td className="px-4 py-3">
+                                                    <Badge className={displayStatus.color}>
+                                                        {displayStatus.label}
+                                                    </Badge>
+                                                    {enrollment.hasFailedModules && (
+                                                        <span className="ml-2 text-xs text-red-500">
+                                                            ({enrollment.failedModuleCount} failed)
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={(enrollment.absenceCount ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                                        {enrollment.absenceCount ?? 0} of {enrollment.totalSessions ?? 0}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {format(new Date(enrollment.enrolledAt), 'MMM d, yyyy')}
+                                                </td>
+                                                <td className="px-4 py-3 text-right flex justify-end gap-1">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => loadTraineeModules(enrollment.userId)}
+                                                    >
+                                                        {t('common.viewDetails', 'View Details')}
+                                                    </Button>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm"
+                                                        className="text-destructive hover:text-destructive"
+                                                        onClick={() => handleUnenroll(enrollment.userId)}
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                     {(!campaign.enrollments || campaign.enrollments.length === 0) && (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                                                 {t('campaigns.noEnrollments', 'No trainees enrolled yet.')}
                                             </td>
                                         </tr>
@@ -743,6 +925,154 @@ export default function CampaignDetailPage() {
                             </table>
                         </div>
                     </div>
+                </TabsContent>
+
+                {/* Modules Tab */}
+                <TabsContent value="modules" className="space-y-4">
+                    <div className="flex justify-between">
+                        <h3 className="text-lg font-medium">{t('campaigns.curriculumModules', 'Curriculum Modules')}</h3>
+                    </div>
+                    
+                    {loadingModules ? (
+                        <Card className="p-8 text-center">
+                            <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+                        </Card>
+                    ) : campaignModulesStats.length === 0 ? (
+                        <Card className="p-8 text-center">
+                            <p className="text-muted-foreground">
+                                {t('campaigns.noModules', 'No modules found for this curriculum.')}
+                            </p>
+                        </Card>
+                    ) : (
+                        <div className="rounded-lg border">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-muted/50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">#</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.type', 'Type')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.sessions', 'Sessions')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.progress', 'Progress')}</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {campaignModulesStats.map((mod, idx) => (
+                                            <tr key={mod.id} className="hover:bg-muted/25">
+                                                <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
+                                                <td className="px-4 py-3 font-medium">{mod.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
+                                                        {mod.type}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="text-muted-foreground">
+                                                        {mod.completedSessions} / {mod.totalSessions}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Progress 
+                                                        value={mod.totalSessions > 0 ? (mod.completedSessions / mod.totalSessions) * 100 : 0} 
+                                                        className="w-24" 
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => loadModuleTrainees(mod.id)}
+                                                    >
+                                                        {t('common.viewDetails', 'View Details')}
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Module Detail Dialog */}
+                    <Dialog open={moduleDetailOpen} onOpenChange={setModuleDetailOpen}>
+                        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    {t('campaigns.moduleTrainees', 'Module Trainees')}
+                                    {selectedModuleId && campaignModulesStats.find(m => m.id === selectedModuleId) && (
+                                        <span className="ml-2 text-muted-foreground font-normal">
+                                            - {campaignModulesStats.find(m => m.id === selectedModuleId)?.name}
+                                        </span>
+                                    )}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {t('campaigns.moduleTraineesDesc', 'Trainee attendance and results for this module.')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            
+                            {loadingModuleTrainees ? (
+                                <div className="p-8 text-center">
+                                    <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+                                </div>
+                            ) : moduleTrainees.length === 0 ? (
+                                <div className="p-8 text-center">
+                                    <p className="text-muted-foreground">{t('campaigns.noTraineesForModule', 'No trainees found for this module.')}</p>
+                                </div>
+                            ) : (
+                                <table className="w-full">
+                                    <thead className="bg-muted/50">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium">{t('common.attendance', 'Attendance')}</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium">{t('campaigns.theoryScore', 'Theory')}</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium">{t('campaigns.practicalScore', 'Practical')}</th>
+                                            <th className="px-4 py-2 text-left text-sm font-medium">{t('common.result', 'Result')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {moduleTrainees.map((trainee) => (
+                                            <tr key={trainee.userId} className="hover:bg-muted/25">
+                                                <td className="px-4 py-2">
+                                                    <div className="font-medium">{trainee.fullName}</div>
+                                                    <div className="text-xs text-muted-foreground">{trainee.email}</div>
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <span className={trainee.sessionsAbsent > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                                        {trainee.sessionsAttended} / {trainee.totalSessions}
+                                                    </span>
+                                                    {trainee.sessionsAbsent > 0 && (
+                                                        <div className="text-xs text-orange-500">
+                                                            ({trainee.sessionsAbsent} absent)
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-2 text-muted-foreground">
+                                                    {trainee.theoryScore != null ? `${trainee.theoryScore}%` : '-'}
+                                                </td>
+                                                <td className="px-4 py-2 text-muted-foreground">
+                                                    {trainee.practicalScore != null ? `${trainee.practicalScore}%` : '-'}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <Badge className={
+                                                        trainee.result === 'pass' ? 'bg-green-500' :
+                                                        trainee.result === 'fail' ? 'bg-red-500' :
+                                                        trainee.result === 'in_progress' ? 'bg-blue-500' :
+                                                        'bg-gray-500'
+                                                    }>
+                                                        {trainee.result === 'in_progress' ? 'In Progress' : 
+                                                         trainee.result === 'not_assessed' ? 'Not Assessed' :
+                                                         trainee.result.toUpperCase()}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </TabsContent>
 
                 <TabsContent value="schedule" className="space-y-4">
@@ -1003,6 +1333,144 @@ export default function CampaignDetailPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Trainee Details Dialog */}
+            <Dialog open={traineeDetailsOpen} onOpenChange={setTraineeDetailsOpen}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t('campaigns.traineeDetails', 'Trainee Module Results')}
+                            {traineeDetailsData?.trainee && (
+                                <span className="ml-2 text-muted-foreground font-normal">
+                                    - {traineeDetailsData.trainee.fullName}
+                                </span>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t('campaigns.traineeDetailsDesc', 'View module results and schedule retakes for failed modules.')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    {loadingTraineeDetails ? (
+                        <div className="p-8 text-center">
+                            <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+                        </div>
+                    ) : traineeDetailsData ? (
+                        <table className="w-full">
+                            <thead className="bg-muted/50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left text-sm font-medium">{t('common.module', 'Module')}</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium">{t('common.type', 'Type')}</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium">{t('common.attendance', 'Attendance')}</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium">{t('campaigns.scores', 'Scores')}</th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium">{t('common.result', 'Result')}</th>
+                                    <th className="px-4 py-2 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {traineeDetailsData.modules.map((mod) => (
+                                    <tr key={mod.id} className={`hover:bg-muted/25 ${mod.result === 'fail' ? 'bg-red-50' : ''}`}>
+                                        <td className="px-4 py-2 font-medium">{mod.name}</td>
+                                        <td className="px-4 py-2">
+                                            <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
+                                                {mod.type}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <span className={mod.sessionsAbsent > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                                {mod.sessionsAttended} / {mod.totalSessions}
+                                            </span>
+                                            {mod.sessionsAbsent > 0 && (
+                                                <div className="text-xs text-orange-500">({mod.sessionsAbsent} absent)</div>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 text-muted-foreground">
+                                            {mod.theoryScore != null && <span>T: {mod.theoryScore}%</span>}
+                                            {mod.practicalScore != null && <span className="ml-2">P: {mod.practicalScore}%</span>}
+                                            {mod.theoryScore == null && mod.practicalScore == null && '-'}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <Badge className={
+                                                mod.result === 'pass' ? 'bg-green-500' :
+                                                mod.result === 'fail' ? 'bg-red-500' :
+                                                mod.result === 'in_progress' ? 'bg-blue-500' :
+                                                'bg-gray-500'
+                                            }>
+                                                {mod.result === 'in_progress' ? 'In Progress' :
+                                                 mod.result === 'not_assessed' ? 'Not Assessed' :
+                                                 mod.result.toUpperCase()}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-2 text-right">
+                                            {mod.result === 'fail' && (
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline"
+                                                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                                                    onClick={() => handleScheduleRetake(mod)}
+                                                >
+                                                    {t('campaigns.scheduleRetake', 'Schedule Retake')}
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
+            
+            {/* Schedule Retake Dialog */}
+            <Dialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('campaigns.scheduleRetake', 'Schedule Retake Session')}</DialogTitle>
+                        <DialogDescription>
+                            {selectedRetakeModule && (
+                                <span>Module: <strong>{selectedRetakeModule.name}</strong></span>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="retakeDate">{t('common.dateTime', 'Date & Time')}</Label>
+                            <Input
+                                id="retakeDate"
+                                type="datetime-local"
+                                value={retakeDate}
+                                onChange={(e) => setRetakeDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="retakeInstructor">{t('common.instructor', 'Instructor')}</Label>
+                            <Select value={retakeInstructor} onValueChange={setRetakeInstructor}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('common.selectInstructor', 'Select instructor')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {instructors.map((instructor) => (
+                                        <SelectItem key={instructor.id} value={instructor.id}>
+                                            {instructor.fullName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRetakeDialogOpen(false)}>
+                            {t('common.cancel', 'Cancel')}
+                        </Button>
+                        <Button 
+                            onClick={createRetake}
+                            disabled={!retakeDate || creatingRetake}
+                        >
+                            {creatingRetake ? t('common.creating', 'Creating...') : t('campaigns.createRetake', 'Create Retake Session')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Session Dialog */}
             <Dialog open={editSessionDialogOpen} onOpenChange={setEditSessionDialogOpen}>
