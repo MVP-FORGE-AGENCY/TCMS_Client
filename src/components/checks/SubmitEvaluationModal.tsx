@@ -15,14 +15,20 @@ interface SubmitEvaluationModalProps {
     checkId: string;
     profile: any;
     checkType?: string;
+    passCriteria?: {
+        required: string[];
+        theory?: number;
+        practical?: string;
+    };
     standard?: any;
     traineeName: string;
     candidateId?: string; // Add optional candidateId
+    skipSignature?: boolean; // New: allow skipping signature step for batch grading
     onSuccess: () => void;
 }
 
 const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({ 
-    open, onOpenChange, checkId, profile, checkType = 'combined', standard, traineeName, candidateId, onSuccess 
+    open, onOpenChange, checkId, profile, checkType = 'combined', passCriteria, standard, traineeName, candidateId, skipSignature, onSuccess 
 }) => {
     const [loading, setLoading] = useState(false);
     
@@ -38,18 +44,21 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
 
     const clearSignature = () => sigCanvas.current?.clear();
 
-    const handleNext = () => {
+    const handleScoreSubmit = async () => {
          // Validate Step 1
          if (!overallResult) {
             toast.error('Overall result is required');
             return;
         }
 
-        if ((checkType === 'theory' || checkType === 'combined') && !theoryScore) {
+        const isTheoryRequired = passCriteria ? passCriteria.required?.includes('theory') : (checkType === 'theory' || checkType === 'combined');
+        const isPracticalRequired = passCriteria ? passCriteria.required?.includes('practical') : (checkType === 'practical' || checkType === 'combined');
+
+        if (isTheoryRequired && !theoryScore) {
              toast.error('Theory score is required');
              return;
         }
-        if ((checkType === 'practical' || checkType === 'combined') && !practicalScore) {
+        if (isPracticalRequired && !practicalScore) {
              toast.error('Practical score is required');
              return;
         }
@@ -63,10 +72,34 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
               }
         }
         
-        setStep(2);
+        // Submit Evaluation Score
+        setLoading(true);
+        try {
+            await api.post(`/checks/${checkId}/assessor-evaluations`, {
+                candidateId, 
+                elementsResults,
+                result: overallResult,
+                comments,
+                theoryScore: theoryScore ? parseInt(theoryScore) : null,
+                practicalScore: practicalScore ? parseInt(practicalScore) : null
+            });
+            
+            if (skipSignature) {
+                toast.success('Evaluation submitted.');
+                onSuccess();
+                onOpenChange(false);
+            } else {
+                setStep(2);
+            }
+        } catch (error: any) {
+             console.error(error);
+             toast.error(error.response?.data?.error?.message || 'Failed to submit evaluation');
+        } finally {
+             setLoading(false);
+        }
     };
 
-    const handleSubmit = async () => {
+    const handleSignSubmit = async () => {
         // Validate Signature
         if (sigCanvas.current?.isEmpty()) {
             toast.error('Signature is required');
@@ -77,22 +110,16 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
         try {
             const signatureData = sigCanvas.current?.toDataURL('image/png');
 
-            await api.post(`/checks/${checkId}/assessor-evaluations`, {
-                candidateId, // Include candidateId
-                elementsResults,
-                result: overallResult,
-                comments,
-                theoryScore: theoryScore ? parseInt(theoryScore) : null,
-                practicalScore: practicalScore ? parseInt(practicalScore) : null,
-                signatureUrl: signatureData, // Base64 string
-                signedAt: new Date().toISOString()
+            await api.post(`/checks/${checkId}/sign`, {
+                signatureData
             });
-            toast.success('Evaluation submitted and protocol signed.');
+            
+            toast.success('Protocol signed and check completed.');
             onSuccess();
             onOpenChange(false);
         } catch (error: any) {
             console.error(error);
-            toast.error(error.response?.data?.error?.message || 'Failed to submit evaluation');
+            toast.error(error.response?.data?.error?.message || 'Failed to submit signature');
         } finally {
             setLoading(false);
         }
@@ -107,7 +134,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                     </DialogTitle>
                     <DialogDescription>
                         {step === 1 
-                            ? `Evaluate proficiency for ${traineeName} against ${profile?.code}.` 
+                            ? `Evaluate proficiency for ${traineeName || 'Candidate'} against ${standard?.code || profile?.code || 'Check Standard'}.` 
                             : 'Please sign below to certify this evaluation protocol.'}
                     </DialogDescription>
                 </DialogHeader>
@@ -118,13 +145,15 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                         <>
                             {/* Scores Section */}
                             <div className="grid grid-cols-2 gap-4">
-                                {(checkType === 'theory' || checkType === 'combined') && (
+                                {(passCriteria ? passCriteria.required?.includes('theory') : (checkType === 'theory' || checkType === 'combined' || checkType === 'full_renewal')) && (
                                     <div className="space-y-2">
                                         <Label className="flex justify-between">
                                             Theory Score (0-100)
-                                            {standard?.theory_pass_score && (
-                                                <span className="text-xs text-muted-foreground">Pass: {standard.theory_pass_score}%</span>
-                                            )}
+                                            {passCriteria?.theory ? (
+                                                <span className="text-xs text-muted-foreground">Min Pass: {passCriteria.theory}%</span>
+                                            ) : (standard?.theoryPassScore || standard?.theory_pass_score) ? (
+                                                <span className="text-xs text-muted-foreground">Pass: {standard.theoryPassScore || standard.theory_pass_score}%</span>
+                                            ) : null}
                                         </Label>
                                         <Input 
                                             type="number" 
@@ -135,12 +164,12 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                         />
                                     </div>
                                 )}
-                                {(checkType === 'practical' || checkType === 'combined') && (
+                                {(passCriteria ? passCriteria.required?.includes('practical') : (checkType === 'practical' || checkType === 'combined' || checkType === 'full_renewal')) && (
                                     <div className="space-y-2">
                                         <Label className="flex justify-between">
                                             Practical Score (0-100)
-                                            {standard?.practical_pass_score && (
-                                                <span className="text-xs text-muted-foreground">Pass: {standard.practical_pass_score}%</span>
+                                            {(standard?.practicalPassScore || standard?.practical_pass_score) && (
+                                                <span className="text-xs text-muted-foreground">Pass: {standard.practicalPassScore || standard.practical_pass_score}%</span>
                                             )}
                                         </Label>
                                         <Input 
@@ -241,9 +270,11 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                     </Button>
                     
                     {step === 1 ? (
-                         <Button onClick={handleNext}>Next: Sign Protocol</Button>
+                         <Button onClick={handleScoreSubmit}>
+                             {skipSignature ? 'Submit Evaluation' : 'Next: Sign Protocol'}
+                         </Button>
                     ) : (
-                         <Button onClick={handleSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+                         <Button onClick={handleSignSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
                              {loading ? 'Submitting...' : 'Sign & Complete Evaluation'}
                          </Button>
                     )}

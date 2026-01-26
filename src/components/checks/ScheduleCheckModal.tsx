@@ -94,7 +94,23 @@ export function ScheduleCheckModal({
     const [dateStart, setDateStart] = useState('')
     const [location, setLocation] = useState('')
     const [selectedAssessorIds, setSelectedAssessorIds] = useState<string[]>([])
+
     const [conflicts, setConflicts] = useState<Conflict[]>([])
+    
+    // Score Configuration
+    const [scoreConfig, setScoreConfig] = useState<{
+        theoryRequired: boolean
+        theoryMinScore: number
+        practicalRequired: boolean
+        practicalMode: 'pass_fail' | 'percentage'
+        practicalMinScore: number
+    }>({
+        theoryRequired: false,
+        theoryMinScore: 75,
+        practicalRequired: true,
+        practicalMode: 'pass_fail',
+        practicalMinScore: 75
+    })
 
     // Fetch candidates when preselectedCandidates changes
     useEffect(() => {
@@ -102,6 +118,13 @@ export function ScheduleCheckModal({
             loadCandidates(preselectedCandidates)
         }
     }, [preselectedCandidates])
+
+    // Auto-select standard if preselected
+    useEffect(() => {
+        if (preselectedStandardId) {
+            setSelectedStandardId(preselectedStandardId)
+        }
+    }, [preselectedStandardId])
 
     // Use passed-in eligible standards if provided, otherwise fetch all (fallback)
     const { data: allStandards } = useQuery({
@@ -156,7 +179,14 @@ export function ScheduleCheckModal({
                 candidateIds: candidates.map(c => c.id),
                 assessorIds: selectedAssessorIds,
                 dateStart,
-                location: location || undefined
+                location: location || undefined,
+                passCriteria: {
+                    required: [
+                        ...(scoreConfig.theoryRequired ? ['theory'] : []),
+                        ...(scoreConfig.practicalRequired ? ['practical'] : [])
+                    ],
+                    practical: (scoreConfig.practicalMode === 'percentage' ? scoreConfig.practicalMinScore : 'pass') as any
+                }
             })
         },
         onSuccess: (data) => {
@@ -381,37 +411,139 @@ export function ScheduleCheckModal({
                         </div>
                     )}
 
-                    {/* Step 3: Logistics */}
+                    {/* Step 3: Logistics & Configuration */}
                     {step === 3 && (
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <Calendar className="h-5 w-5" />
-                                {t('checks.step3', 'Step 3: Schedule & Location')}
+                                {t('checks.step3', 'Step 3: Schedule & Configuration')}
                             </div>
-                            
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="dateStart">{t('common.dateTime', 'Date & Time')}</Label>
-                                    <Input
-                                        id="dateStart"
-                                        type="datetime-local"
-                                        value={dateStart}
-                                        onChange={(e) => setDateStart(e.target.value)}
-                                    />
-                                </div>
+
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-medium text-sm">{t('checks.passCriteria', 'Pass Criteria')}</h3>
                                 
-                                <div className="space-y-2">
-                                    <Label htmlFor="location" className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        {t('common.location', 'Location')}
-                                    </Label>
-                                    <Input
-                                        id="location"
-                                        placeholder={t('checks.locationPlaceholder', 'e.g., Sim Room 1, Training Center')}
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                    />
+                                <div className="space-y-4">
+                                    <div className="flex items-start space-x-3">
+                                        <Checkbox 
+                                            id="req-practical" 
+                                            checked={scoreConfig.practicalRequired}
+                                            onCheckedChange={(c) => setScoreConfig(p => ({ ...p, practicalRequired: !!c }))}
+                                        />
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label
+                                                htmlFor="req-practical"
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                {t('checks.practicalAssessment', 'Practical Assessment')}
+                                            </label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('checks.practicalDesc', 'Assessor grades practical elements (Pass/Fail)')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {scoreConfig.practicalRequired && (
+                                        <div className="ml-7 grid gap-3">
+                                            <div className="grid gap-2">
+                                                <label className="text-sm font-medium">{t('checks.gradingMethod', 'Grading Method')}</label>
+                                                <div className="flex gap-4">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input 
+                                                            type="radio" 
+                                                            id="mode-pass" 
+                                                            name="practicalMode" 
+                                                            checked={scoreConfig.practicalMode === 'pass_fail'}
+                                                            onChange={() => setScoreConfig(p => ({ ...p, practicalMode: 'pass_fail' }))}
+                                                            className="h-4 w-4"
+                                                        />
+                                                        <label htmlFor="mode-pass" className="text-sm">Pass/Fail</label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <input 
+                                                            type="radio" 
+                                                            id="mode-percent" 
+                                                            name="practicalMode" 
+                                                            checked={scoreConfig.practicalMode === 'percentage'}
+                                                            onChange={() => setScoreConfig(p => ({ ...p, practicalMode: 'percentage' }))}
+                                                            className="h-4 w-4"
+                                                        />
+                                                        <label htmlFor="mode-percent" className="text-sm">Percentage Score</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {scoreConfig.practicalMode === 'percentage' && (
+                                                <div className="grid gap-2">
+                                                    <label className="text-sm font-medium">{t('checks.minScore', 'Minimum Score (%)')}</label>
+                                                    <Input 
+                                                        type="number" 
+                                                        min="0" 
+                                                        max="100"
+                                                        value={scoreConfig.practicalMinScore}
+                                                        onChange={(e) => setScoreConfig(p => ({ ...p, practicalMinScore: parseInt(e.target.value) || 0 }))}
+                                                        className="w-32"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-start space-x-3">
+                                        <Checkbox 
+                                            id="req-theory" 
+                                            checked={scoreConfig.theoryRequired}
+                                            onCheckedChange={(c) => setScoreConfig(p => ({ ...p, theoryRequired: !!c }))}
+                                        />
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label
+                                                htmlFor="req-theory"
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                {t('checks.theoryAssessment', 'Theory Assessment')}
+                                            </label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('checks.theoryDesc', 'Written or oral theory exam')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {scoreConfig.theoryRequired && (
+                                        <div className="ml-7 grid gap-2">
+                                            <label className="text-sm font-medium">{t('checks.minScore', 'Minimum Theory Score (%)')}</label>
+                                            <Input 
+                                                type="number" 
+                                                min="0" 
+                                                max="100"
+                                                value={scoreConfig.theoryMinScore}
+                                                onChange={(e) => setScoreConfig(p => ({ ...p, theoryMinScore: parseInt(e.target.value) || 0 }))}
+                                                className="w-32"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="dateStart">{t('common.dateTime', 'Date & Time')}</Label>
+                                <Input
+                                    id="dateStart"
+                                    type="datetime-local"
+                                    value={dateStart}
+                                    onChange={(e) => setDateStart(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="location" className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    {t('common.location', 'Location')}
+                                </Label>
+                                <Input
+                                    id="location"
+                                    placeholder={t('checks.locationPlaceholder', 'e.g., Sim Room 1, Training Center')}
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                />
                             </div>
                         </div>
                     )}
@@ -461,16 +593,27 @@ export function ScheduleCheckModal({
                             </div>
 
                             {/* Conflict warnings */}
+                            {/* Conflict warnings */}
                             {conflicts.length > 0 && (
-                                <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4 space-y-2">
-                                    <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        {t('checks.conflictWarning', 'Potential Conflicts Detected')}
+                                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-3">
+                                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold">
+                                        <AlertTriangle className="h-5 w-5" />
+                                        {t('checks.conflictWarning', 'Conflict of Interest Detected')}
                                     </div>
-                                    <div className="space-y-1 text-sm">
+                                    <p className="text-sm text-muted-foreground bg-background/50 p-2 rounded">
+                                        The following assessor-candidate pairs violate the "No Self-Checking" rule (training conducted within restricted window).
+                                    </p>
+                                    <div className="space-y-2 text-sm">
                                         {conflicts.map((conflict, i) => (
-                                            <div key={i} className="text-muted-foreground">
-                                                ⚠️ {conflict.message}
+                                            <div key={i} className="flex flex-col gap-1 p-2 border border-red-200 dark:border-red-900/50 rounded bg-background/50">
+                                                <div className="font-semibold flex items-center gap-2">
+                                                    <span className="text-red-600">Assessor: {conflict.assessorName}</span>
+                                                    <span className="text-muted-foreground">→</span>
+                                                    <span>Candidate: {conflict.candidateName}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground ml-4">
+                                                    Reason: {conflict.message}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

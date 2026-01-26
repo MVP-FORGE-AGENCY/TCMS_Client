@@ -235,6 +235,11 @@ export const checks = {
         candidateIds?: string[]     // New: array of candidate IDs for group checks
         assessorId?: string         // Legacy single assessor
         assessorIds?: string[]      // New: array of assessor IDs
+        passCriteria?: {            // New: pass requirements
+            required: string[]
+            theory?: number
+            practical?: string
+        }
         dateStart: string
         location?: string
     }) => {
