@@ -269,8 +269,8 @@ const CheckDetailPage = () => {
                                 </TooltipProvider>
                             )}
                             
-                            {/* Delete Action - Pending checks or Admin Override */}
-                            {(check.finalDecision === 'pending' || (user?.role && ['admin', 'training_manager'].includes(user.role))) && (
+                            {/* Delete Action - Pending checks ONLY (Admin/Manager) */}
+                            {(check.finalDecision === 'pending' && user?.role && ['admin', 'training_manager'].includes(user.role)) && (
                                 <Button size="sm" variant="destructive" onClick={() => setIsDeleteAlertOpen(true)} title="Delete Check">
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -447,8 +447,8 @@ const CheckDetailPage = () => {
                                                     </TooltipProvider>
                                                 )}
 
-                                                {/* Evaluate Button - Show if Started */}
-                                                {(user?.id === assessor.user?.id && check.finalDecision === 'in_progress' && !assessor.evaluationSubmitted) && (
+                                                {/* Evaluate Button - Show if Started and NOT signed */}
+                                                {(user?.id === assessor.user?.id && check.finalDecision === 'in_progress' && !assessor.evaluationSubmitted && !assessor.signatureReceived) && (
                                                     <Button size="sm" className="h-8" onClick={() => {
                                                         // If single candidate, auto-select
                                                         if (check.candidates && check.candidates.length === 1) {
@@ -468,6 +468,13 @@ const CheckDetailPage = () => {
                                                     }}>
                                                         <PenTool className="w-3 h-3 mr-1" /> Evaluate
                                                     </Button>
+                                                )}
+                                                
+                                                {/* Finished Evaluating / Signed Status for Me */}
+                                                {(user?.id === assessor.user?.id && (assessor.evaluationSubmitted || assessor.signatureReceived)) && (
+                                                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 px-3 py-1 ml-2">
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> Evaluation Completed
+                                                    </Badge>
                                                 )}
                                                 
 
