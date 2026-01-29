@@ -246,6 +246,10 @@ export const checks = {
         const response = await api.post("/checks", data)
         return response.data
     },
+    getEligibleStandards: async (candidateIds: string[]) => {
+        const response = await api.get("/checks/eligible-standards", { params: { candidateIds: candidateIds.join(',') } })
+        return response.data
+    },
     complete: async (id: string, data: {
         dateEnd: string
         conditions: string
@@ -266,7 +270,7 @@ export const checks = {
         result: string
         comments?: string
     }) => {
-        const response = await api.post(`/checks/${id}/assessor-evaluations`, data)
+        const response = await api.post(`/checks/${id}/evaluation`, data)
         return response.data
     },
     sign: async (id: string, signatureData: string) => {

@@ -85,9 +85,10 @@ export const ProficiencyCheckList: React.FC = () => {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Date</TableHead>
-                            <TableHead>Trainee</TableHead>
-                            <TableHead>Proficiency Profile</TableHead>
-                            <TableHead>Schedule</TableHead>
+                            <TableHead>Candidates</TableHead>
+                            <TableHead>Assessors</TableHead>
+                            <TableHead>Standard</TableHead>
+                            <TableHead>Progress</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -95,14 +96,28 @@ export const ProficiencyCheckList: React.FC = () => {
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8">Loading...</TableCell>
+                                <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                             </TableRow>
                         ) : filteredChecks?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No checks found</TableCell>
+                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No checks found</TableCell>
                             </TableRow>
                         ) : (
-                            filteredChecks?.map((check: any) => (
+                            filteredChecks?.map((check: any) => {
+                                // Candidates Logic
+                                const candidatesList = check.checkCandidates?.length > 0 
+                                    ? check.checkCandidates.map((c: any) => c.candidate?.fullName).filter(Boolean)
+                                    : [check.users?.fullName || check.trainee?.fullName].filter(Boolean);
+
+                                // Assessors Logic
+                                const assessorsList = check.checkAssessors?.map((a: any) => a.assessor?.fullName).filter(Boolean) || [];
+
+                                // Progress Logic (Unique Assessors who submitted evaluations)
+                                const totalAssessors = check.checkAssessors?.length || 0;
+                                const evaluators = new Set(check.checkAssessorEvaluations?.map((e: any) => e.assessorId));
+                                const evaluatedCount = evaluators.size;
+
+                                return (
                                 <TableRow key={check.id}>
                                     <TableCell>
                                         <div className="font-medium">
@@ -113,15 +128,49 @@ export const ProficiencyCheckList: React.FC = () => {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-medium">{check.trainee.fullName}</div>
-                                        <div className="text-xs text-muted-foreground">{check.trainee.email}</div>
+                                        {candidatesList.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {candidatesList.slice(0, 2).map((name: string, i: number) => (
+                                                    <div key={i} className="font-medium text-sm">{name}</div>
+                                                ))}
+                                                {candidatesList.length > 2 && (
+                                                    <div className="text-xs text-muted-foreground">+{candidatesList.length - 2} more</div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-sm">-</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{check.profile.code}</Badge>
-                                        <div className="text-xs text-muted-foreground mt-1">{check.profile.name}</div>
+                                         {assessorsList.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {assessorsList.slice(0, 2).map((name: string, i: number) => (
+                                                    <div key={i} className="text-sm">{name}</div>
+                                                ))}
+                                                {assessorsList.length > 2 && (
+                                                    <div className="text-xs text-muted-foreground">+{assessorsList.length - 2} more</div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-sm">-</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="text-sm">{check.location || 'TBD'}</div>
+                                        <Badge variant="outline">{check.profile?.code || check.proficiencyProfiles?.code}</Badge>
+                                        <div className="text-xs text-muted-foreground mt-1 max-w-[150px] truncate">
+                                            {check.profile?.name || check.proficiencyProfiles?.name}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="text-sm font-medium">
+                                            {evaluatedCount}/{totalAssessors} Evaluated
+                                        </div>
+                                        <div className="w-full bg-secondary h-1.5 mt-1 rounded-full overflow-hidden">
+                                            <div 
+                                                className="bg-primary h-full transition-all" 
+                                                style={{ width: `${totalAssessors ? (evaluatedCount / totalAssessors) * 100 : 0}%` }}
+                                            />
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge className={`flex w-fit items-center ${getStatusColor(check.finalDecision)}`}>
@@ -139,7 +188,8 @@ export const ProficiencyCheckList: React.FC = () => {
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                            ))
+                                )
+                            })
                         )}
                     </TableBody>
                 </Table>

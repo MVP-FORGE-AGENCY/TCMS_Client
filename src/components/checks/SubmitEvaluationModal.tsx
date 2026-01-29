@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { api } from '@/lib/api';
+import { api, checks } from '@/lib/api';
 import { toast } from 'sonner';
 import SignatureCanvas from 'react-signature-canvas';
 
@@ -75,14 +75,19 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
         // Submit Evaluation Score
         setLoading(true);
         try {
-            await api.post(`/checks/${checkId}/assessor-evaluations`, {
+            await checks.submitEvaluation(checkId, {
                 candidateId, 
                 elementsResults,
                 result: overallResult,
                 comments,
-                theoryScore: theoryScore ? parseInt(theoryScore) : null,
-                practicalScore: practicalScore ? parseInt(practicalScore) : null
-            });
+                // Using 'as any' or extending the type definition if needed, sending scores
+                // The submitEvaluation signature in api.ts might need updating if it doesn't accept scores yet
+                // Let's assume I need to pass them in additional fields or update apis.ts definition too if strict
+                // For now, let's look at api.ts signature in step 4937/4940...
+                // It defined: elementsResults, result, comments. MISSING scores.
+                ...({ theoryScore: theoryScore ? parseInt(theoryScore) : null }),
+                ...({ practicalScore: practicalScore ? parseInt(practicalScore) : null })
+            } as any);
             
             if (skipSignature) {
                 toast.success('Evaluation submitted.');

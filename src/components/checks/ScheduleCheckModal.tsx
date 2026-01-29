@@ -60,6 +60,10 @@ interface Standard {
         requiredAssessors: number
         intervalMonths: number
     }
+    hasTheory?: boolean
+    theoryPassScore?: number
+    hasPractical?: boolean
+    practicalPassScore?: number
 }
 
 interface Assessor {
@@ -94,23 +98,7 @@ export function ScheduleCheckModal({
     const [dateStart, setDateStart] = useState('')
     const [location, setLocation] = useState('')
     const [selectedAssessorIds, setSelectedAssessorIds] = useState<string[]>([])
-
     const [conflicts, setConflicts] = useState<Conflict[]>([])
-    
-    // Score Configuration
-    const [scoreConfig, setScoreConfig] = useState<{
-        theoryRequired: boolean
-        theoryMinScore: number
-        practicalRequired: boolean
-        practicalMode: 'pass_fail' | 'percentage'
-        practicalMinScore: number
-    }>({
-        theoryRequired: false,
-        theoryMinScore: 75,
-        practicalRequired: true,
-        practicalMode: 'pass_fail',
-        practicalMinScore: 75
-    })
 
     // Fetch candidates when preselectedCandidates changes
     useEffect(() => {
@@ -126,21 +114,33 @@ export function ScheduleCheckModal({
         }
     }, [preselectedStandardId])
 
-    // Use passed-in eligible standards if provided, otherwise fetch all (fallback)
-    const { data: allStandards } = useQuery({
-        queryKey: ['standards-for-checks'],
+    // Use passed-in eligible standards if provided, otherwise fetch suitable standards
+    const { data: fetchedStandards } = useQuery({
+        queryKey: ['standards-for-checks', candidates.map(c => c.id).join(',')],
         queryFn: async () => {
+            // If candidates selected, fetch only eligible standards
+            if (candidates.length > 0) {
+                const res = await checks.getEligibleStandards(candidates.map(c => c.id))
+                return (res.data || []) as Standard[]
+            }
+            // Otherwise show all active standards
             const res = await api.get('/standards', { params: { isActive: true } })
             return (res.data.data || res.data) as Standard[]
         },
-        // Only fetch all if no eligible standards are provided
         enabled: isOpen && eligibleStandards.length === 0
     })
 
-    // Use eligible standards if provided, otherwise fall back to all standards
+    // Use eligible standards if provided via props, otherwise fall back to fetched standards
     const availableStandards: Standard[] = eligibleStandards.length > 0 
         ? eligibleStandards.map(s => ({ ...s, checkDefinition: undefined }))
-        : (allStandards || [])
+        : (fetchedStandards || [])
+
+    const selectedStandard = availableStandards.find(s => s.id === selectedStandardId)
+
+    // Filter standards by preselected if provided
+    const filteredStandards = preselectedStandardId 
+        ? availableStandards.filter(s => s.id === preselectedStandardId)
+        : availableStandards
 
     // Fetch available assessors
     const { data: assessors } = useQuery({
@@ -173,6 +173,8 @@ export function ScheduleCheckModal({
 
     const createCheckMutation = useMutation({
         mutationFn: async () => {
+            if (!selectedStandard) return // Should be blocked by step validation
+
             return checks.create({
                 standardId: selectedStandardId,
                 checkType,
@@ -182,10 +184,11 @@ export function ScheduleCheckModal({
                 location: location || undefined,
                 passCriteria: {
                     required: [
-                        ...(scoreConfig.theoryRequired ? ['theory'] : []),
-                        ...(scoreConfig.practicalRequired ? ['practical'] : [])
+                        ...(selectedStandard.hasTheory ? ['theory'] : []),
+                        ...(selectedStandard.hasPractical ? ['practical'] : [])
                     ],
-                    practical: (scoreConfig.practicalMode === 'percentage' ? scoreConfig.practicalMinScore : 'pass') as any
+                    practical: (selectedStandard.hasPractical ? selectedStandard.practicalPassScore || 70 : 'pass') as any,
+                    theory: (selectedStandard.hasTheory ? selectedStandard.theoryPassScore || 70 : undefined) as any
                 }
             })
         },
@@ -287,14 +290,11 @@ export function ScheduleCheckModal({
         }
     }
 
-    // Filter standards by preselected if provided
-    const filteredStandards = preselectedStandardId 
-        ? availableStandards?.filter(s => s.id === preselectedStandardId)
-        : availableStandards
+    // Removed duplicates
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {t('checks.scheduleCheck', 'Schedule Proficiency Check')}
@@ -419,108 +419,43 @@ export function ScheduleCheckModal({
                                 {t('checks.step3', 'Step 3: Schedule & Configuration')}
                             </div>
 
-                            <div className="space-y-4 rounded-md border p-4">
-                                <h3 className="font-medium text-sm">{t('checks.passCriteria', 'Pass Criteria')}</h3>
+                            <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+                                <h3 className="font-medium text-sm flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-primary" />
+                                    {t('checks.passCriteria', 'Pass Criteria')}
+                                    <Badge variant="outline" className="ml-auto font-normal text-xs">
+                                        Defined by Standard
+                                    </Badge>
+                                </h3>
                                 
-                                <div className="space-y-4">
-                                    <div className="flex items-start space-x-3">
-                                        <Checkbox 
-                                            id="req-practical" 
-                                            checked={scoreConfig.practicalRequired}
-                                            onCheckedChange={(c) => setScoreConfig(p => ({ ...p, practicalRequired: !!c }))}
-                                        />
-                                        <div className="grid gap-1.5 leading-none">
-                                            <label
-                                                htmlFor="req-practical"
-                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                            >
-                                                {t('checks.practicalAssessment', 'Practical Assessment')}
-                                            </label>
-                                            <p className="text-sm text-muted-foreground">
-                                                {t('checks.practicalDesc', 'Assessor grades practical elements (Pass/Fail)')}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {scoreConfig.practicalRequired && (
-                                        <div className="ml-7 grid gap-3">
-                                            <div className="grid gap-2">
-                                                <label className="text-sm font-medium">{t('checks.gradingMethod', 'Grading Method')}</label>
-                                                <div className="flex gap-4">
-                                                    <div className="flex items-center space-x-2">
-                                                        <input 
-                                                            type="radio" 
-                                                            id="mode-pass" 
-                                                            name="practicalMode" 
-                                                            checked={scoreConfig.practicalMode === 'pass_fail'}
-                                                            onChange={() => setScoreConfig(p => ({ ...p, practicalMode: 'pass_fail' }))}
-                                                            className="h-4 w-4"
-                                                        />
-                                                        <label htmlFor="mode-pass" className="text-sm">Pass/Fail</label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <input 
-                                                            type="radio" 
-                                                            id="mode-percent" 
-                                                            name="practicalMode" 
-                                                            checked={scoreConfig.practicalMode === 'percentage'}
-                                                            onChange={() => setScoreConfig(p => ({ ...p, practicalMode: 'percentage' }))}
-                                                            className="h-4 w-4"
-                                                        />
-                                                        <label htmlFor="mode-percent" className="text-sm">Percentage Score</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {scoreConfig.practicalMode === 'percentage' && (
-                                                <div className="grid gap-2">
-                                                    <label className="text-sm font-medium">{t('checks.minScore', 'Minimum Score (%)')}</label>
-                                                    <Input 
-                                                        type="number" 
-                                                        min="0" 
-                                                        max="100"
-                                                        value={scoreConfig.practicalMinScore}
-                                                        onChange={(e) => setScoreConfig(p => ({ ...p, practicalMinScore: parseInt(e.target.value) || 0 }))}
-                                                        className="w-32"
-                                                    />
-                                                </div>
+                                {selectedStandard ? (
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between items-center p-2 rounded bg-background border">
+                                            <span className="text-muted-foreground">{t('checks.theoryAssessment', 'Theory Assessment')}</span>
+                                            {selectedStandard.hasTheory ? (
+                                                <span className="font-medium text-green-600">
+                                                    Required ({selectedStandard.theoryPassScore || 70}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">Not Required</span>
                                             )}
                                         </div>
-                                    )}
-
-                                    <div className="flex items-start space-x-3">
-                                        <Checkbox 
-                                            id="req-theory" 
-                                            checked={scoreConfig.theoryRequired}
-                                            onCheckedChange={(c) => setScoreConfig(p => ({ ...p, theoryRequired: !!c }))}
-                                        />
-                                        <div className="grid gap-1.5 leading-none">
-                                            <label
-                                                htmlFor="req-theory"
-                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                            >
-                                                {t('checks.theoryAssessment', 'Theory Assessment')}
-                                            </label>
-                                            <p className="text-sm text-muted-foreground">
-                                                {t('checks.theoryDesc', 'Written or oral theory exam')}
-                                            </p>
+                                        <div className="flex justify-between items-center p-2 rounded bg-background border">
+                                            <span className="text-muted-foreground">{t('checks.practicalAssessment', 'Practical Assessment')}</span>
+                                            {selectedStandard.hasPractical ? (
+                                                <span className="font-medium text-green-600">
+                                                    Required ({selectedStandard.practicalPassScore || 70}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">Not Required</span>
+                                            )}
                                         </div>
                                     </div>
-
-                                    {scoreConfig.theoryRequired && (
-                                        <div className="ml-7 grid gap-2">
-                                            <label className="text-sm font-medium">{t('checks.minScore', 'Minimum Theory Score (%)')}</label>
-                                            <Input 
-                                                type="number" 
-                                                min="0" 
-                                                max="100"
-                                                value={scoreConfig.theoryMinScore}
-                                                onChange={(e) => setScoreConfig(p => ({ ...p, theoryMinScore: parseInt(e.target.value) || 0 }))}
-                                                className="w-32"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
+                                ) : (
+                                    <div className="text-muted-foreground text-sm italic">
+                                        Please select a standard to view criteria.
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid gap-2">
