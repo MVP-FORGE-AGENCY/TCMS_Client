@@ -155,7 +155,7 @@ export function MyActions() {
 
                 // Get pending proficiency checks
                 try {
-                    const checksRes = await api.get('/checks?result=planned&limit=5')
+                    const checksRes = await api.get('/checks?status=planned&limit=5')
                     const checks = checksRes.data.data || []
                     
                     checks.forEach((check: any) => {
