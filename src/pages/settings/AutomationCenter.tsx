@@ -22,6 +22,7 @@ import { Bot, Mail, Calendar, FileText, Play, RefreshCw, AlertCircle, CheckCircl
 import { toast } from "sonner"
 import { api } from "@/lib/api"
 import { format } from "date-fns"
+import JobConfigsPanel from "@/components/settings/JobConfigsPanel"
 
 interface JobLog {
     id: string
@@ -64,12 +65,12 @@ interface AutomationSettings {
 }
 
 export default function AutomationCenter() {
-    const { t } = useTranslation()
+    useTranslation()
     const [settings, setSettings] = useState<AutomationSettings | null>(null)
     const [logs, setLogs] = useState<JobLog[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
-    const [activeTab, setActiveTab] = useState("settings")
+    const [activeTab, setActiveTab] = useState("jobs")
 
     useEffect(() => {
         fetchData()
@@ -178,9 +179,15 @@ export default function AutomationCenter() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-                    <TabsTrigger value="settings">Configuration</TabsTrigger>
+                    <TabsTrigger value="jobs">Scheduled Jobs</TabsTrigger>
+                    <TabsTrigger value="settings">Legacy Config</TabsTrigger>
                     <TabsTrigger value="logs">Run History</TabsTrigger>
                 </TabsList>
+
+                {/* NEW: Scheduled Jobs Tab */}
+                <TabsContent value="jobs" className="mt-6">
+                    <JobConfigsPanel />
+                </TabsContent>
 
                 <TabsContent value="settings" className="space-y-6 mt-6">
                     

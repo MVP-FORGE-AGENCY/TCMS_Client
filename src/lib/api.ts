@@ -535,3 +535,51 @@ export const moduleResults = {
         return response.data
     }
 }
+
+// Job Configs API (New Scheduler System)
+export const jobConfigs = {
+    list: async () => {
+        const response = await api.get("/admin/job-configs")
+        return response.data
+    },
+    get: async (id: string) => {
+        const response = await api.get(`/admin/job-configs/${id}`)
+        return response.data
+    },
+    create: async (data: {
+        job_type: string
+        cron_expression: string
+        timezone?: string
+        config_payload?: Record<string, any>
+        is_enabled?: boolean
+    }) => {
+        const response = await api.post("/admin/job-configs", data)
+        return response.data
+    },
+    update: async (id: string, data: Partial<{
+        cron_expression: string
+        timezone: string
+        config_payload: Record<string, any>
+        is_enabled: boolean
+    }>) => {
+        const response = await api.put(`/admin/job-configs/${id}`, data)
+        return response.data
+    },
+    delete: async (id: string) => {
+        const response = await api.delete(`/admin/job-configs/${id}`)
+        return response.data
+    },
+    runNow: async (id: string) => {
+        const response = await api.post(`/admin/job-configs/${id}/run-now`)
+        return response.data
+    },
+    getHistory: async (id: string, limit?: number) => {
+        const response = await api.get(`/admin/job-configs/${id}/history`, { params: { limit } })
+        return response.data
+    },
+    getJobTypes: async () => {
+        const response = await api.get("/admin/job-configs/types")
+        return response.data
+    }
+}
+
