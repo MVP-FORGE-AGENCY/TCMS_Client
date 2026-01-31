@@ -173,7 +173,7 @@ export function Sidebar({ className }: SidebarProps) {
                     title: t("nav.regulatoryLibrary"),
                     href: "/standards",
                     icon: Library,
-                    roles: ["admin", "training_manager", "super_admin"],
+                    roles: ["admin", "super_admin"],
                 },
                 {
                     title: t("nav.automation", "Automation Center"),
