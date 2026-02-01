@@ -117,9 +117,9 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
                             <CardHeader className="pb-2">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
-                                        <CardTitle className="text-base">{comp.standardCode}</CardTitle>
-                                        <CardDescription className="line-clamp-1" title={comp.standardName}>
-                                            {comp.standardName}
+                                        <CardTitle className="text-base">{comp.standardCode || (comp as any).competenceCode}</CardTitle>
+                                        <CardDescription className="line-clamp-1" title={comp.standardName || (comp as any).competenceName}>
+                                            {comp.standardName || (comp as any).competenceName}
                                         </CardDescription>
                                     </div>
                                     {getStatusIcon(comp.status)}

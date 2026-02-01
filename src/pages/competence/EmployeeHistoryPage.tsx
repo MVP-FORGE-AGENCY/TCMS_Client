@@ -147,7 +147,7 @@ export default function EmployeeHistoryPage() {
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Active Competences</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-700">
-                             {competences?.filter((c: any) => c.status === 'valid').length || 0}
+                             {competences?.filter((c: any) => c.status === 'valid' || c.status === 'expiring_soon').length || 0}
                         </div>
                     </CardContent>
                 </Card>
@@ -194,7 +194,11 @@ export default function EmployeeHistoryPage() {
                 
                 {/* Certificates Tab */}
                 <TabsContent value="certificates" className="mt-4">
-                    <CertificatesList userId={id || ''} />
+                    <CertificatesList 
+                        userId={id || ''} 
+                        availableCampaigns={(trainings || []).filter((t: any) => t.campaignName && (t.result === 'pass' || t.status === 'COMPLETED'))} // Loose check for passed
+                        availableChecks={(checks || []).filter((c: any) => c.result === 'pass')}
+                    />
                 </TabsContent>
 
                 {/* Training Tab */}
