@@ -8,7 +8,79 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
 import { format } from "date-fns"
-import { Loader2, Search, Filter, RefreshCw, FileDown } from "lucide-react"
+import { Loader2, Search, Filter, RefreshCw, FileDown, ChevronDown, ChevronRight } from "lucide-react"
+
+// Helper component for expandable rows
+function AuditLogRow({ log }: { log: any }) {
+    const [isExpanded, setIsExpanded] = useState(false)
+    const hasDetails = log.details && Object.keys(log.details).length > 0
+    
+    // Determine badge color
+    const getActionBadgeVariant = (action: string) => {
+        switch (action) {
+            case 'CREATE': return 'default'
+            case 'UPDATE': return 'secondary'
+            case 'DELETE': return 'destructive'
+            case 'READ': return 'outline'
+            default: return 'outline'
+        }
+    }
+
+    return (
+        <>
+            <TableRow 
+                className={`cursor-pointer transition-colors hover:bg-muted/50 ${isExpanded ? 'bg-muted/50' : ''}`}
+                onClick={() => hasDetails && setIsExpanded(!isExpanded)}
+            >
+                <TableCell className="whitespace-nowrap font-medium text-xs">
+                    {format(new Date(log.createdAt), "MMM d, yyyy HH:mm:ss")}
+                </TableCell>
+                <TableCell>
+                    <div className="flex flex-col">
+                        <span className="font-medium text-sm">{log.user?.fullName || 'System'}</span>
+                        <span className="text-xs text-muted-foreground">{log.user?.email}</span>
+                    </div>
+                </TableCell>
+                <TableCell>
+                    <Badge variant={getActionBadgeVariant(log.action) as any}>
+                        {log.action}
+                    </Badge>
+                </TableCell>
+                <TableCell className="text-sm font-mono">
+                    {log.entity}
+                    {log.entityId && <span className="block text-[10px] text-muted-foreground truncate max-w-[100px]">{log.entityId}</span>}
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                    {hasDetails ? (
+                         <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-transparent text-muted-foreground">
+                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            <span className="ml-1 text-xs">View Details</span>
+                        </Button>
+                    ) : '-'}
+                </TableCell>
+                <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                    {log.ipAddress || '-'}
+                </TableCell>
+            </TableRow>
+            {isExpanded && hasDetails && (
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={6} className="p-0">
+                        <div className="p-4 pl-4 md:pl-12 border-b">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                                Change Details
+                            </h4>
+                            <div className="rounded-md border bg-background/50 p-2 overflow-x-auto">
+                                <pre className="text-xs font-mono whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">
+                                    {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            )}
+        </>
+    )
+}
 
 export default function AuditLogsPage() {
     const { t } = useTranslation()
@@ -19,7 +91,6 @@ export default function AuditLogsPage() {
     // Filters
     const [actionFilter, setActionFilter] = useState<string>("all")
     const [entityFilter, setEntityFilter] = useState<string>("")
-    const [userFilter, setUserFilter] = useState<string>("")
 
     const fetchLogs = async (page = 1) => {
         setIsLoading(true)
@@ -31,7 +102,6 @@ export default function AuditLogsPage() {
 
             if (actionFilter && actionFilter !== "all") queryParams.append("action", actionFilter)
             if (entityFilter) queryParams.append("entity", entityFilter)
-            // if (userFilter) queryParams.append("userId", userFilter) // Need user ID, not name
 
             const response = await api.get(`/audit-logs?${queryParams.toString()}`)
             setLogs(response.data.data)
@@ -45,21 +115,11 @@ export default function AuditLogsPage() {
 
     useEffect(() => {
         fetchLogs(1)
-    }, [actionFilter]) // Refetch when primary filters change
+    }, [actionFilter])
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= pagination.totalPages) {
             fetchLogs(newPage)
-        }
-    }
-
-    const getActionBadgeVariant = (action: string) => {
-        switch (action) {
-            case 'CREATE': return 'default'
-            case 'UPDATE': return 'secondary'
-            case 'DELETE': return 'destructive'
-            case 'READ': return 'outline'
-            default: return 'outline'
         }
     }
 
@@ -74,7 +134,6 @@ export default function AuditLogsPage() {
                     <Button variant="outline" size="sm" onClick={() => fetchLogs(pagination.page)}>
                         <RefreshCw className="h-4 w-4 mr-2" /> Refresh
                     </Button>
-                     {/* Export button placeholder */}
                 </div>
             </div>
 
@@ -99,14 +158,6 @@ export default function AuditLogsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            {/* <div className="w-[200px]">
-                                <Input 
-                                    placeholder="Filter by Entity..." 
-                                    value={entityFilter}
-                                    onChange={(e) => setEntityFilter(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && fetchLogs(1)}
-                                />
-                            </div> */}
                         </div>
                     </div>
                 </CardHeader>
@@ -138,43 +189,13 @@ export default function AuditLogsPage() {
                                     </TableRow>
                                 ) : (
                                     logs.map((log) => (
-                                        <TableRow key={log.id}>
-                                            <TableCell className="whitespace-nowrap font-medium text-xs">
-                                                {format(new Date(log.createdAt), "MMM d, yyyy HH:mm:ss")}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-sm">{log.user?.fullName || 'System'}</span>
-                                                    <span className="text-xs text-muted-foreground">{log.user?.email}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={getActionBadgeVariant(log.action) as any}>
-                                                    {log.action}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-sm font-mono">
-                                                {log.entity}
-                                                {log.entityId && <span className="block text-[10px] text-muted-foreground truncate max-w-[100px]">{log.entityId}</span>}
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell">
-                                                {log.details ? (
-                                                    <pre className="text-[10px] overflow-hidden max-w-[200px] truncate">
-                                                        {JSON.stringify(log.details)}
-                                                    </pre>
-                                                ) : '-'}
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                                                {log.ipAddress || '-'}
-                                            </TableCell>
-                                        </TableRow>
+                                        <AuditLogRow key={log.id} log={log} />
                                     ))
                                 )}
                             </TableBody>
                         </Table>
                     </div>
 
-                    {/* Pagination */}
                     <div className="flex items-center justify-end space-x-2 py-4">
                         <div className="flex-1 text-sm text-muted-foreground">
                            Page {pagination.page} of {pagination.totalPages}

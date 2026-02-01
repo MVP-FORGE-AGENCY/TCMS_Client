@@ -24,8 +24,13 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
     Mail, Calendar, FileText, Users, Play, AlertCircle,
-    CheckCircle, XCircle, Clock, Plus, Settings2, Trash2, History, AlertTriangle
+    CheckCircle, XCircle, Clock, Plus, Settings2, Trash2, History, AlertTriangle, ChevronDown, ChevronRight
 } from "lucide-react"
 import { toast } from "sonner"
 import { jobConfigs } from "@/lib/api"
@@ -66,7 +71,6 @@ interface JobLog {
     initiated_by: string
 }
 
-// Icon mapping
 const iconMap: Record<string, React.ReactNode> = {
     mail: <Mail className="h-5 w-5 text-blue-500" />,
     calendar: <Calendar className="h-5 w-5 text-orange-500" />,
@@ -74,7 +78,6 @@ const iconMap: Record<string, React.ReactNode> = {
     users: <Users className="h-5 w-5 text-green-500" />
 }
 
-// Frequency options for friendly UI
 const frequencyOptions = [
     { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
@@ -91,7 +94,6 @@ const dayOptions = [
     { value: '6', label: 'Saturday' },
 ]
 
-// Timezone options
 const timezoneOptions = [
     { value: 'UTC', label: 'UTC' },
     { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
@@ -101,6 +103,92 @@ const timezoneOptions = [
     { value: 'America/Los_Angeles', label: 'America/Los_Angeles (PST)' },
     { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
 ]
+
+function HistoryRow({ log }: { log: JobLog }) {
+    const [isOpen, setIsOpen] = useState(false)
+    const duration = log.finished_at && log.started_at
+        ? Math.round((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 1000) + 's'
+        : '-'
+
+    const details = log.metrics?.details as any[]
+    const hasDetails = Array.isArray(details) && details.length > 0
+
+    return (
+        <>
+            <TableRow 
+                className={`cursor-pointer transition-colors hover:bg-muted/50 ${isOpen ? 'bg-muted/50' : ''}`}
+                onClick={() => hasDetails && setIsOpen(!isOpen)}
+            >
+                <TableCell>
+                    <div className="flex items-center gap-2">
+                            {hasDetails ? (
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-transparent">
+                                    {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                </Button>
+                            ) : (
+                                <div className="w-6" />
+                            )}
+                        {log.status === 'success' && <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" /> Success</Badge>}
+                        {log.status === 'failed' && <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Failed</Badge>}
+                        {log.status === 'partial' && <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" /> Partial</Badge>}
+                    </div>
+                </TableCell>
+                <TableCell>{format(new Date(log.started_at), 'MMM dd, HH:mm:ss')}</TableCell>
+                <TableCell>{duration}</TableCell>
+                <TableCell className="max-w-[200px] truncate text-xs">
+                    {log.error_summary
+                        ? <span className="text-red-500">{log.error_summary}</span>
+                        : (
+                            <div className="flex flex-col">
+                                <span>{Object.entries(log.metrics || {})
+                                    .filter(([k]) => k !== 'details')
+                                    .map(([k, v]) => `${k}: ${v}`)
+                                    .join(', ')}</span>
+                            </div>
+                        )
+                    }
+                </TableCell>
+                <TableCell className="text-xs">
+                    {log.initiated_by === 'system' ? 'Scheduled' : 'Manual'}
+                </TableCell>
+            </TableRow>
+            {isOpen && hasDetails && (
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={5} className="p-0">
+                        <div className="p-4 pl-12 border-b">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                <FileText className="h-3 w-3" />
+                                Execution Details
+                            </h4>
+                            <div className="rounded-md border bg-background">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="h-8 hover:bg-transparent">
+                                            {Object.keys(details[0] || {}).map(key => (
+                                                <TableHead key={key} className="h-8 text-xs font-medium">{key}</TableHead>
+                                            ))}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {details.map((item, i) => (
+                                            <TableRow key={i} className="h-8 hover:bg-muted/50 border-t">
+                                                {Object.values(item).map((val: any, j) => (
+                                                    <TableCell key={j} className="h-8 text-xs py-1">
+                                                        {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            )}
+        </>
+    )
+}
 
 export default function JobConfigsPanel() {
     const [configs, setConfigs] = useState<JobConfig[]>([])
@@ -664,31 +752,9 @@ export default function JobConfigsPanel() {
                                         No run history available
                                     </TableCell>
                                 </TableRow>
-                            ) : history.map(log => {
-                                const duration = log.finished_at && log.started_at
-                                    ? Math.round((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 1000) + 's'
-                                    : '-'
-
-                                return (
-                                    <TableRow key={log.id}>
-                                        <TableCell>
-                                            {log.status === 'success' && <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" /> Success</Badge>}
-                                            {log.status === 'failed' && <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Failed</Badge>}
-                                            {log.status === 'partial' && <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" /> Partial</Badge>}
-                                        </TableCell>
-                                        <TableCell>{format(new Date(log.started_at), 'MMM dd, HH:mm:ss')}</TableCell>
-                                        <TableCell>{duration}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate text-xs">
-                                            {log.error_summary
-                                                ? <span className="text-red-500">{log.error_summary}</span>
-                                                : JSON.stringify(log.metrics)}
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            {log.initiated_by === 'system' ? 'Scheduled' : 'Manual'}
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
+                            ) : history.map(log => (
+                                <HistoryRow key={log.id} log={log} />
+                            ))}
                         </TableBody>
                     </Table>
                 </DialogContent>

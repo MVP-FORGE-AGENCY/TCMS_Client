@@ -298,7 +298,7 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <div className={cn(
-            "pb-12 min-h-screen border-r border-border bg-background flex flex-col transition-colors duration-300",
+            "h-screen sticky top-0 border-r border-border bg-background flex flex-col transition-colors duration-300",
             "dark:bg-slate-950 dark:border-slate-800",
             className
         )}>
