@@ -48,6 +48,10 @@ export const employees = {
         const response = await api.get("/employees", { params })
         return response.data
     },
+    inviteAuditor: async (data: { email: string; fullName: string; expiresAt?: Date; reason: string; createWithPassword?: boolean; password?: string; isExternal?: boolean }) => {
+        const response = await api.post("/employees/invite-auditor", data)
+        return response.data
+    },
 }
 
 // Absences CRUD

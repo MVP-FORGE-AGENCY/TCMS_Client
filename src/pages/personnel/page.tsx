@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -11,12 +10,13 @@ import {
 import { PersonnelTable } from "@/components/tables/PersonnelTable"
 import { PersonnelForm } from "@/components/forms/PersonnelForm"
 import { PersonnelHistoryModal } from "@/components/PersonnelHistoryModal"
+import { AuditorInviteModal } from "@/components/forms/AuditorInviteModal"
 import type { Employee } from "@/types"
 import { api, auth, employees as employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Users } from "lucide-react"
+import { Plus, Users, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "react-i18next"
 
@@ -26,6 +26,7 @@ export default function PersonnelPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+    const [isAuditorModalOpen, setIsAuditorModalOpen] = useState(false)
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
 
     const fetchEmployees = async () => {
@@ -49,6 +50,7 @@ export default function PersonnelPage() {
 
     const { user } = useAuth()
     const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
+    const canInviteAuditor = ["admin", "super_admin"].includes(user?.role || "")
 
     const handleCreate = async (values: any) => {
         try {
@@ -130,9 +132,16 @@ export default function PersonnelPage() {
                     </p>
                 </div>
                 {canEdit && (
-                    <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
-                        <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
-                    </Button>
+                  				<div className="flex gap-2 w-full sm:w-auto">
+					{canInviteAuditor && (
+						<Button variant="outline" onClick={() => setIsAuditorModalOpen(true)} className="w-full sm:w-auto">
+							<ShieldCheck className="mr-2 h-4 w-4" /> Add Auditor
+						</Button>
+					)}
+					<Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
+						<Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
+					</Button>
+				</div>
                 )}
             </div>
 
@@ -170,10 +179,15 @@ export default function PersonnelPage() {
                 </DialogContent>
             </Dialog>
 
-            <PersonnelHistoryModal
-                employee={selectedEmployee}
-                open={isHistoryOpen}
-                onOpenChange={setIsHistoryOpen}
+            			<PersonnelHistoryModal
+				employee={selectedEmployee}
+				open={isHistoryOpen}
+				onOpenChange={setIsHistoryOpen}
+			/>
+
+            <AuditorInviteModal 
+                open={isAuditorModalOpen} 
+                onOpenChange={setIsAuditorModalOpen} 
             />
         </div>
     )

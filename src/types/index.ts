@@ -235,7 +235,7 @@ export interface Employee {
     fullName: string;
     email?: string;
     organisationId: string;
-    role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly';
+    role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly' | 'auditor';
     areaOfActivity?: string | null;
     departmentTag?: string | null;
     employmentStart?: string;
