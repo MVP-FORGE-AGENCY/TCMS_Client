@@ -24,16 +24,7 @@ const auditorSchema = z.object({
   reason: z.string().min(5, 'Reason is required'),
   expiresAt: z.date().optional(),
   createWithPassword: z.boolean().default(false),
-  password: z.string().optional(),
   isExternal: z.boolean().default(true),
-}).refine(data => {
-  if (data.createWithPassword && (!data.password || data.password.length < 6)) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Password is required and must be at least 6 characters",
-  path: ["password"],
 });
 
 type AuditorFormValues = z.infer<typeof auditorSchema>;
@@ -44,9 +35,6 @@ interface AuditorInviteModalProps {
 }
 
 export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalProps) {
-  const queryClient = useQueryClient();
-  const [dateOpen, setDateOpen] = useState(false);
-
   // Default to password mode as requested
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<AuditorFormValues>({
     resolver: zodResolver(auditorSchema),
@@ -56,6 +44,8 @@ export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalPro
     }
   });
 
+  const queryClient = useQueryClient();
+  const [dateOpen, setDateOpen] = useState(false);
   const expiresAt = watch('expiresAt');
   const createWithPassword = watch('createWithPassword');
 
@@ -81,7 +71,7 @@ export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invite Auditor</DialogTitle>
           <DialogDescription>
@@ -103,20 +93,20 @@ export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalPro
                 <RadioGroupItem value="external" id="type-external" className="peer sr-only" />
                 <Label
                   htmlFor="type-external"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer group"
                 >
                   <span className="font-semibold">External</span>
-                  <span className="text-xs text-muted-foreground text-center mt-1">Third-party / CAA</span>
+                  <span className="text-xs text-muted-foreground text-center mt-1 group-hover:text-accent-foreground">Third-party / CAA</span>
                 </Label>
               </div>
               <div>
                 <RadioGroupItem value="internal" id="type-internal" className="peer sr-only" />
                 <Label
                   htmlFor="type-internal"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer group"
                 >
                   <span className="font-semibold">Internal</span>
-                  <span className="text-xs text-muted-foreground text-center mt-1">Company Employee</span>
+                  <span className="text-xs text-muted-foreground text-center mt-1 group-hover:text-accent-foreground">Company Employee</span>
                 </Label>
               </div>
             </RadioGroup>
@@ -169,10 +159,15 @@ export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalPro
 
           {createWithPassword && (
              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" {...register('password')} />
-                <p className="text-xs text-muted-foreground">Admin-created password for immediate access.</p>
-                {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+                <div className="rounded-md bg-muted p-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
+                        <Key className="h-4 w-4" />
+                        <span>Auto-Generated Password</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        A secure random password will be generated and emailed to the auditor immediately.
+                    </p>
+                </div>
             </div>
           )}
 
@@ -201,6 +196,9 @@ export function AuditorInviteModal({ open, onOpenChange }: AuditorInviteModalPro
                   }}
                   disabled={(date) => date < new Date()}
                   initialFocus
+                  classNames={{
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  }}
                 />
               </PopoverContent>
             </Popover>

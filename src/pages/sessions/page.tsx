@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { useAuth } from "@/context/AuthContext"
 import { Plus, Calendar, Filter, X, List, ChevronLeft, ChevronRight, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,6 +53,8 @@ const ALL_COLUMNS = [
 
 export default function SessionsPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
     const [sessions, setSessions] = useState<Session[]>([])
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
     const [instructors, setInstructors] = useState<Employee[]>([])
@@ -440,9 +443,11 @@ export default function SessionsPage() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
+                    {!isAuditor && (
                     <Button onClick={() => setIsCreateOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> {t("sessions.scheduleSession")}
                     </Button>
+                    )}
                 </div>
             </div>
 
@@ -558,8 +563,8 @@ export default function SessionsPage() {
                             icon={Calendar}
                             title={t("common.noData")}
                             description={t("common.getStarted")}
-                            actionLabel={t("sessions.scheduleSession")}
-                            onAction={() => setIsCreateOpen(true)}
+                            actionLabel={!isAuditor ? t("sessions.scheduleSession") : undefined}
+                            onAction={!isAuditor ? () => setIsCreateOpen(true) : undefined}
                         />
                     ) : (
                         <>

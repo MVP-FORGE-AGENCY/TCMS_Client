@@ -100,7 +100,7 @@ export default function DashboardPage() {
                 // Fetch all data in parallel with allSettled for resilience
                 // Note: API max limit is 100, so we use that
                 const results = await Promise.allSettled([
-                    api.get("/employees?limit=100"),
+                    api.get("/employees?limit=100&excludeExternal=true"),
                     api.get("/campaigns?status=active&limit=100"), // Switched to active
                     api.get("/reports/expiring?withinDays=90"),
                     api.get("/competence?limit=100"),

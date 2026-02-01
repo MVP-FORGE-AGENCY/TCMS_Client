@@ -240,6 +240,8 @@ export interface Employee {
     departmentTag?: string | null;
     employmentStart?: string;
     employmentEnd?: string | null;
+    isActive?: boolean;
+    accountType?: 'internal' | 'external';
     mustChangePassword?: boolean;
     organisation?: {
         id: string;

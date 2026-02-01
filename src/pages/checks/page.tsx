@@ -11,9 +11,12 @@ import ScheduledChecksTable from '@/components/checks/ScheduledChecksTable';
 import ScheduleCheckModal from '@/components/checks/ScheduleCheckModal';
 
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/context/AuthContext';
 
 const ChecksPage = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly';
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('eligible');
     
@@ -68,9 +71,11 @@ const ChecksPage = () => {
                     <p className="text-muted-foreground text-sm">{t("checks.subtitle")}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                    {!isAuditor && (
                     <Button onClick={openScheduleGroupCheck} className="w-full sm:w-auto">
                         <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck", "Schedule Check")}
                     </Button>
+                    )}
                 </div>
             </div>
 

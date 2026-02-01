@@ -31,6 +31,7 @@ const EmployeeHistoryPage = lazy(() => import("@/pages/competence/EmployeeHistor
 const ChangePasswordPage = lazy(() => import("@/pages/auth/ChangePasswordPage"))
 const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage"))
 const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
+const AuditLogsPage = lazy(() => import("@/pages/audit-logs/page"))
 
 // Curriculum and Campaign routes
 const CurriculumsPage = lazy(() => import("@/pages/curriculums/page"))
@@ -105,6 +106,7 @@ function App() {
                         <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/automation" element={<AutomationCenter />} />
+                        <Route path="/audit-logs" element={<AuditLogsPage />} />
                         
                         {/* Curriculum Routes */}
                         <Route path="/curriculums" element={<CurriculumsPage />} />

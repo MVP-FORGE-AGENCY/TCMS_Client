@@ -1,7 +1,7 @@
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "./NotificationBell"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Sidebar } from "./Sidebar"
 import { Breadcrumbs } from "./Breadcrumbs"
 import {
@@ -48,6 +48,8 @@ export function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[240px]">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
                     <Sidebar className="border-none" />
                 </SheetContent>
             </Sheet>

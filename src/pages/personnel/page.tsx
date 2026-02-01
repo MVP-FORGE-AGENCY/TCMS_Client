@@ -7,6 +7,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PersonnelTable } from "@/components/tables/PersonnelTable"
 import { PersonnelForm } from "@/components/forms/PersonnelForm"
 import { PersonnelHistoryModal } from "@/components/PersonnelHistoryModal"
@@ -105,6 +106,20 @@ export default function PersonnelPage() {
         }
     }
 
+    const handleStatusChange = async (id: string, isActive: boolean) => {
+        try {
+            await api.patch(`/employees/${id}`, { isActive })
+            toast.success(t("personnel.toast.updated", "Status updated successfully"))
+            // Optimistic update or refetch
+            setEmployees(prev => prev.map(emp => 
+                emp.id === id ? { ...emp, isActive } : emp
+            ))
+        } catch (error) {
+            console.error("Failed to update status:", error)
+            toast.error(t("personnel.toast.updateError", "Failed to update status"))
+        }
+    }
+
     const navigate = useNavigate()
 
     const openCreateModal = () => {
@@ -156,12 +171,43 @@ export default function PersonnelPage() {
                     onAction={canEdit ? openCreateModal : undefined}
                 />
             ) : (
-                <PersonnelTable
-                    data={employees}
-                    onEdit={canEdit ? openEditModal : undefined}
-                    onViewHistory={viewHistory}
-                    onDelete={canEdit ? handleDelete : undefined}
-                />
+                <Tabs defaultValue="employees" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
+                        <TabsTrigger value="employees">Employees</TabsTrigger>
+                        <TabsTrigger value="auditors">Auditors</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="employees">
+                        <PersonnelTable
+                            data={employees.filter(e => e.role !== 'auditor')}
+                            onEdit={canEdit ? openEditModal : undefined}
+                            onViewHistory={viewHistory}
+                            onDelete={canEdit ? handleDelete : undefined}
+                            showTypeColumn={false}
+                        />
+                    </TabsContent>
+                    
+                    <TabsContent value="auditors">
+                         {employees.filter(e => e.role === 'auditor').length === 0 ? (
+                            <EmptyState
+                                icon={ShieldCheck}
+                                title="No Auditors Found"
+                                description="Invite an external or internal auditor to get started."
+                                actionLabel={canInviteAuditor ? "Invite Auditor" : undefined}
+                                onAction={canInviteAuditor ? () => setIsAuditorModalOpen(true) : undefined}
+                            />
+                        ) : (
+                            <PersonnelTable
+                                data={employees.filter(e => e.role === 'auditor')}
+                                onEdit={canEdit ? openEditModal : undefined}
+                                onViewHistory={viewHistory}
+                                onDelete={canEdit ? handleDelete : undefined}
+                                onStatusChange={canEdit ? handleStatusChange : undefined}
+                                showTypeColumn={true}
+                            />
+                        )}
+                    </TabsContent>
+                </Tabs>
             )}
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
