@@ -223,7 +223,6 @@ export default function CampaignsPage() {
                             </Button>
                         </DialogFooter>
                     </DialogContent>
-                    </DialogContent>
                 </Dialog>
                 )}
             </div>

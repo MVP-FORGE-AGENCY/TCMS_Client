@@ -40,6 +40,27 @@ export default function EmployeeHistoryPage() {
     const [resultFilter, setResultFilter] = useState('all')
     const [typeFilter, setTypeFilter] = useState('all')
     const [campaignFilter, setCampaignFilter] = useState('all')
+    const [isGenerating, setIsGenerating] = useState(false)
+
+    const handleDownloadPersonnelFile = async () => {
+        if (!id) return;
+        setIsGenerating(true);
+        try {
+            const res = await api.post(`/reports/employees/${id}/training-file`, {
+                includeAbsences: true
+            });
+            if (res.data.url) {
+                window.open(res.data.url, '_blank');
+            }
+        } catch (error) {
+            console.error("Failed to generate report", error);
+            // Use toast here if available, or alert
+            alert("Failed to generate Personnel File");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,19 +101,27 @@ export default function EmployeeHistoryPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{employee?.fullName}</h1>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>{employee?.email}</span>
-                        <span>•</span>
-                        <Badge variant="outline">{employee?.departmentTag || 'No Dept'}</Badge>
-                        <span>•</span>
-                        <span>{employee?.role}</span>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">{employee?.fullName}</h1>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <span>{employee?.email}</span>
+                            <span>•</span>
+                            <Badge variant="outline">{employee?.departmentTag || 'No Dept'}</Badge>
+                            <span>•</span>
+                            <span>{employee?.role}</span>
+                        </div>
                     </div>
+                </div>
+                <div className="flex gap-2">
+                     <Button variant="outline" onClick={handleDownloadPersonnelFile} disabled={isGenerating}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {isGenerating ? 'Generating...' : 'Download Personnel File'}
+                     </Button>
                 </div>
             </div>
 
