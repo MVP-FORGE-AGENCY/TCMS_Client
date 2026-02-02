@@ -92,7 +92,67 @@
         "trainingCalendar": "Training Calendar",
         "checkCalendar": "Check Calendar",
         "training": "Training",
-        "checking": "Checks"
+        "checking": "Checks",
+        "superAdmin": {
+            "title": "Admin",
+            "dashboard": {
+                "navLabel": "Dashboard",
+                "title": "Super Admin Dashboard",
+                "loading": "Loading dashboard...",
+                "totalOrgs": "Total Organizations",
+                "activeTrial": "{{active}} active, {{trial}} trials",
+                "trialOrgs": "Trial Organizations",
+                "potentialConversions": "Potential conversions",
+                "totalUsers": "Total Users",
+                "acrossTenants": "Across all tenants"
+            },
+            "organizations": {
+                "navLabel": "Organizations",
+                "title": "Organizations",
+                "createButton": "Create Organization",
+                "searchPlaceholder": "Search organizations...",
+                "table": {
+                    "code": "Code",
+                    "name": "Name",
+                    "country": "Country",
+                    "status": "Status",
+                    "license": "License",
+                    "admins": "Admins",
+                    "users": "Users",
+                    "empty": "No organizations found."
+                },
+                "createModal": {
+                    "title": "Create New Organization",
+                    "description": "Set up a new tenant and provision the first admin user.",
+                    "nameLabel": "Organization Name",
+                    "namePlaceholder": "Acme Aviation",
+                    "codeLabel": "Code (2-6 Uppercase)",
+                    "codePlaceholder": "ACME",
+                    "countryLabel": "Country (ISO 2-char)",
+                    "countryPlaceholder": "US",
+                    "licenseLabel": "License Type",
+                    "selectLicense": "Select license",
+                    "adminSectionTitle": "Initial Admin Administrator",
+                    "fullNameLabel": "Full Name",
+                    "fullNamePlaceholder": "John Doe",
+                    "emailLabel": "Email",
+                    "emailPlaceholder": "admin@acme.com",
+                    "tempPasswordLabel": "Temporary Password",
+                    "generateButton": "Generate",
+                    "cancelButton": "Cancel",
+                    "submitButton": "Create Organization",
+                    "successMessage": "Organization created successfully",
+                    "errorMessage": "Failed to create organization",
+                    "validation": {
+                        "required": "Required",
+                        "invalidCode": "Invalid code format",
+                        "invalidEmail": "Invalid email format"
+                    }
+                }
+            },
+            "dashboard_legacy": "Dashboard",
+            "organizations_legacy": "Organizations"
+        }
     },
     "auth": {
         "welcomeBack": "Welcome back",
@@ -120,6 +180,18 @@
         "viewDetails": "View Details",
         "changeDetails": "Change Details",
         "noLogs": "No audit logs found.",
+        "entities": {
+            "User": "User",
+            "Organization": "Organization",
+            "Campaign": "Campaign",
+            "Session": "Session",
+            "Check": "Check",
+            "Standard": "Standard",
+            "Programme": "Programme",
+            "Procedure": "Procedure",
+            "Employee": "Employee",
+            "Report": "Report"
+        },
         "actions": {
             "CREATE": "Create",
             "UPDATE": "Update",
@@ -161,7 +233,12 @@
         "columns": "Columns",
         "organization": "Organization",
         "status": "Status",
+
+        "type": "Type",
         "actions": "Actions",
+        "pagination": {
+            "selectedRows": "{{selected}} of {{total}} row(s) selected."
+        },
         "edit": "Edit",
         "history": "History",
         "delete": "Delete",
@@ -171,7 +248,56 @@
         "grantAccess": "Grant this user access to the dashboard",
         "updateEmployee": "Update Employee",
         "createEmployee": "Create Employee",
+        "selectRole": "Select role",
+        "roles": {
+             "admin": "Admin",
+             "training_manager": "Training Manager",
+             "instructor": "Instructor",
+             "employee": "Employee",
+             "auditor": "Internal Auditor"
+        },
         "employeeDetails": "Employee Details",
+        "history": {
+            "downloadFile": "Download Personnel File",
+            "generating": "Generating...",
+            "activeCompetences": "Active Competences",
+            "expired": "Expired",
+            "totalTrainings": "Total Trainings",
+            "noDept": "No Dept",
+            "tabs": {
+                "competence": "Competence Status",
+                "training": "Training History",
+                "checks": "Proficiency Checks",
+                "certificates": "Certificates",
+                "documents": "Signed Protocols",
+                "absences": "Absences",
+                "remedial": "Remedial Plans"
+            },
+            "suspendedAlert": {
+                "title": "Competence Suspended",
+                "description": "This employee has {{count}} suspended competence(s). Remedial training is required before they can be reinstated."
+            },
+            "competenceOverview": "Competence Overview",
+            "filterStatus": "Filter by status",
+            "allStatuses": "All Statuses",
+            "noCompetences": {
+                "title": "No Competences Found",
+                "description": "This user has no recorded competences yet."
+            },
+            "fields": {
+                "status": "Status",
+                "validUntil": "Valid Until",
+                "acquired": "Acquired",
+                "source": "Source"
+            },
+            "status": {
+                "valid": "Valid",
+                "expiring_soon": "Expiring Soon",
+                "expired": "Expired",
+                "suspended": "Suspended",
+                "not_acquired": "Not Acquired"
+            }
+        },
         "competenceHistory": "Competence History",
         "trainingHistory": "Training History",
         "absenceHistory": "Absence History",
@@ -628,7 +754,18 @@
         "practicalPassScore": "Practical Pass Score (%)",
         "revision": "Revision",
         "materials": "Materials",
-        "sessions": "Sessions"
+        "sessions": "Sessions",
+        "placeholders": {
+            "code": "e.g., SMS-INIT",
+            "name": "e.g., Safety Management System Initial",
+            "description": "Enter standard description...",
+            "objectives": "Enter one objective per line...",
+            "department": "e.g., OPS, MAINT"
+        },
+        "objectivesHelp": "Separate each objective with a new line.",
+        "validation": {
+            "atLeastOneMethod": "At least one method must be selected"
+        }
     },
     "procedures": {
         "title": "Standard Operating Procedures",

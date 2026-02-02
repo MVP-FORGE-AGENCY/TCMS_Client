@@ -199,7 +199,7 @@ export function PersonnelTable({
         <div className="w-full space-y-4">
             <div className="flex items-center gap-4">
                 <Input
-                    placeholder="Filter names..."
+                    placeholder={t("personnel.filterPlaceholder")}
                     value={(table.getColumn("fullName")?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
                         table.getColumn("fullName")?.setFilterValue(event.target.value)
@@ -224,7 +224,15 @@ export function PersonnelTable({
                                         checked={column.getIsVisible()}
                                         onCheckedChange={(value) => column.toggleVisibility(!!value)}
                                     >
-                                        {column.id}
+                                        {column.id === "fullName" ? t("personnel.name") :
+                                         column.id === "role" ? t("personnel.role") :
+                                         column.id === "organisationId" ? t("personnel.organization") :
+                                         column.id === "areaOfActivity" ? t("personnel.department") :
+                                         column.id === "accountType" ? t("personnel.type") :
+                                         column.id === "employmentStart" ? t("personnel.startDate") :
+                                         column.id === "status" ? t("personnel.status") :
+                                         column.id === "actions" ? t("personnel.actions") :
+                                         column.id}
                                     </DropdownMenuCheckboxItem>
                                 )
                             })}
@@ -283,8 +291,10 @@ export function PersonnelTable({
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                    {t("personnel.pagination.selectedRows", {
+                        selected: table.getFilteredSelectedRowModel().rows.length,
+                        total: table.getFilteredRowModel().rows.length
+                    })}
                 </div>
                 <div className="space-x-2">
                     <Button
@@ -293,7 +303,7 @@ export function PersonnelTable({
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
-                        Previous
+                        {t("common.previous")}
                     </Button>
                     <Button
                         variant="outline"
@@ -301,7 +311,7 @@ export function PersonnelTable({
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
                     >
-                        Next
+                        {t("common.next")}
                     </Button>
                 </div>
             </div>

@@ -89,6 +89,11 @@ export default function CheckExecutionPage() {
                         <Badge variant={isPending ? "secondary" : (finalDecision === 'pass' ? 'default' : 'destructive')}>
                             {finalDecision.toUpperCase()}
                         </Badge>
+                        {/* Show Standard Type Badges */}
+                        <div className="flex gap-1 ml-2">
+                             {profile.hasTheory && <Badge variant="outline" className="text-xs">Theory</Badge>}
+                             {profile.hasPractical !== false && <Badge variant="outline" className="text-xs">Practical</Badge>}
+                        </div>
                     </h1>
                     <p className="text-muted-foreground">Trainee: {trainee.fullName} | Date: {new Date(check.dateStart).toLocaleDateString()}</p>
                 </div>
@@ -113,28 +118,34 @@ export default function CheckExecutionPage() {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-4">
-                                    {elementKeys.length === 0 ? (
-                                        <p className="text-muted-foreground italic">No specific elements defined in profile.</p>
+                                    {profile.hasPractical !== false ? (
+                                        elementKeys.length === 0 ? (
+                                            <p className="text-muted-foreground italic">No specific elements defined in profile.</p>
+                                        ) : (
+                                            elementKeys.map(key => (
+                                                <div key={key} className="flex items-center justify-between border-b pb-2">
+                                                    <div className="font-medium">{key}</div>
+                                                    <RadioGroup 
+                                                        className="flex gap-4" 
+                                                        value={evalResults[key] || ''}
+                                                        onValueChange={(v) => setEvalResults(prev => ({...prev, [key]: v}))}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="pass" id={`pass-${key}`} />
+                                                            <Label htmlFor={`pass-${key}`} className="text-green-600">Pass</Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="fail" id={`fail-${key}`} />
+                                                            <Label htmlFor={`fail-${key}`} className="text-red-600">Fail</Label>
+                                                        </div>
+                                                    </RadioGroup>
+                                                </div>
+                                            ))
+                                        )
                                     ) : (
-                                        elementKeys.map(key => (
-                                            <div key={key} className="flex items-center justify-between border-b pb-2">
-                                                <div className="font-medium">{key}</div>
-                                                <RadioGroup 
-                                                    className="flex gap-4" 
-                                                    value={evalResults[key] || ''}
-                                                    onValueChange={(v) => setEvalResults(prev => ({...prev, [key]: v}))}
-                                                >
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="pass" id={`pass-${key}`} />
-                                                        <Label htmlFor={`pass-${key}`} className="text-green-600">Pass</Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="fail" id={`fail-${key}`} />
-                                                        <Label htmlFor={`fail-${key}`} className="text-red-600">Fail</Label>
-                                                    </div>
-                                                </RadioGroup>
-                                            </div>
-                                        ))
+                                        <div className="p-4 bg-muted/20 rounded text-muted-foreground text-sm italic">
+                                            Practical assessment not required for this standard.
+                                        </div>
                                     )}
                                 </div>
                                 

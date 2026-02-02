@@ -191,52 +191,52 @@ export default function StandardsPage() {
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="code" className="text-right">Code</Label>
+                                    <Label htmlFor="code" className="text-right">{t("standards.code")}</Label>
                                     <Input
                                         id="code"
                                         className="col-span-3"
                                         value={newStandard.code}
                                         onChange={(e) => setNewStandard({ ...newStandard, code: e.target.value })}
-                                        placeholder="e.g., SMS-INIT"
+                                        placeholder={t("standards.placeholders.code")}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">Name</Label>
+                                    <Label htmlFor="name" className="text-right">{t("standards.name")}</Label>
                                     <Input
                                         id="name"
                                         className="col-span-3"
                                         value={newStandard.name}
                                         onChange={(e) => setNewStandard({ ...newStandard, name: e.target.value })}
-                                        placeholder="e.g., Safety Management System Initial"
+                                        placeholder={t("standards.placeholders.name")}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-start gap-4">
-                                    <Label htmlFor="description" className="text-right mt-2">Description</Label>
+                                    <Label htmlFor="description" className="text-right mt-2">{t("standards.description")}</Label>
                                     <div className="col-span-3">
                                         <textarea
                                             id="description"
                                             className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             value={newStandard.description}
                                             onChange={(e) => setNewStandard({ ...newStandard, description: e.target.value })}
-                                            placeholder="Enter standard description..."
+                                            placeholder={t("standards.placeholders.description")}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-start gap-4">
-                                    <Label htmlFor="objectives" className="text-right mt-2">Objectives</Label>
+                                    <Label htmlFor="objectives" className="text-right mt-2">{t("standards.objectives")}</Label>
                                     <div className="col-span-3 space-y-2">
                                         <textarea
                                             id="objectives"
                                             className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             value={newStandard.objectives}
                                             onChange={(e) => setNewStandard({ ...newStandard, objectives: e.target.value })}
-                                            placeholder="Enter one objective per line..."
+                                            placeholder={t("standards.placeholders.objectives")}
                                         />
-                                        <p className="text-xs text-muted-foreground">Separate each objective with a new line.</p>
+                                        <p className="text-xs text-muted-foreground">{t("standards.objectivesHelp")}</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="validity" className="text-right">Validity (months)</Label>
+                                    <Label htmlFor="validity" className="text-right">{t("standards.validity")} (months)</Label>
                                     <Input
                                         id="validity"
                                         type="number"
@@ -246,7 +246,7 @@ export default function StandardsPage() {
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-right">Has Theory</Label>
+                                    <Label className="text-right">{t("standards.hasTheory")}</Label>
                                     <div className="col-span-3 space-y-4">
                                         <div className="flex items-center gap-4">
                                             <Switch
@@ -255,7 +255,7 @@ export default function StandardsPage() {
                                             />
                                             {newStandard.hasTheory && (
                                                 <div className="flex items-center gap-2">
-                                                    <Label>Theory Pass %</Label>
+                                                    <Label>{t("standards.theoryPassScore")}</Label>
                                                     <Input
                                                         type="number"
                                                         className="w-20"
@@ -268,7 +268,7 @@ export default function StandardsPage() {
                                         
                                         {newStandard.hasTheory && (
                                             <div className="space-y-2 rounded-md border p-3">
-                                                <Label className="text-xs font-semibold text-muted-foreground uppercase">Allowed Assessment Methods</Label>
+                                                <Label className="text-xs font-semibold text-muted-foreground uppercase">{t("standards.allowedMethods")}</Label>
                                                 <div className="flex flex-wrap gap-4 pt-1">
                                                     {["written", "oral", "computer"].map((method) => (
                                                         <div key={method} className="flex items-center space-x-2">
@@ -299,14 +299,14 @@ export default function StandardsPage() {
                                                     ))}
                                                 </div>
                                                 {newStandard.allowedMethods.length === 0 && (
-                                                    <p className="text-xs text-destructive font-medium">At least one method must be selected</p>
+                                                    <p className="text-xs text-destructive font-medium">{t("standards.validation.atLeastOneMethod")}</p>
                                                 )}
                                             </div>
                                         )}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-right">Has Practical</Label>
+                                    <Label className="text-right">{t("standards.hasPractical")}</Label>
                                     <div className="col-span-3 flex items-center gap-4">
                                         <Switch
                                             checked={newStandard.hasPractical}
@@ -314,7 +314,7 @@ export default function StandardsPage() {
                                         />
                                         {newStandard.hasPractical && (
                                             <div className="flex items-center gap-2">
-                                                <Label>Pass %</Label>
+                                                <Label>{t("standards.practicalPassScore")}</Label>
                                                 <Input
                                                     type="number"
                                                     className="w-20"
@@ -326,13 +326,13 @@ export default function StandardsPage() {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="dept" className="text-right">Department</Label>
+                                    <Label htmlFor="dept" className="text-right">{t("standards.department")}</Label>
                                     <Input
                                         id="dept"
                                         className="col-span-3"
                                         value={newStandard.departmentTag}
                                         onChange={(e) => setNewStandard({ ...newStandard, departmentTag: e.target.value })}
-                                        placeholder="e.g., OPS, MAINT"
+                                        placeholder={t("standards.placeholders.department")}
                                     />
                                 </div>
                             </div>
@@ -346,7 +346,8 @@ export default function StandardsPage() {
                                         createMutation.isPending || 
                                         !newStandard.code || 
                                         !newStandard.name ||
-                                        (newStandard.hasTheory && newStandard.allowedMethods.length === 0)
+                                        (newStandard.hasTheory && newStandard.allowedMethods.length === 0) ||
+                                        (!newStandard.hasTheory && !newStandard.hasPractical)
                                     }
                                 >
                                     {createMutation.isPending ? t("common.loading") : t("standards.createStandard")}

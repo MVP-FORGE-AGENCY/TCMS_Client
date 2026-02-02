@@ -92,7 +92,67 @@
         "trainingCalendar": "Календар за обучения",
         "checkCalendar": "Календар за проверки",
         "training": "Обучение",
-        "checking": "Проверки"
+        "checking": "Проверки",
+        "superAdmin": {
+            "title": "Администратор",
+            "dashboard": {
+                "navLabel": "Табло",
+                "title": "Административно табло",
+                "loading": "Зареждане на таблото...",
+                "totalOrgs": "Общо организации",
+                "activeTrial": "{{active}} активни, {{trial}} пробни",
+                "trialOrgs": "Пробни организации",
+                "potentialConversions": "Потенциални реализации",
+                "totalUsers": "Общо потребители",
+                "acrossTenants": "Във всички организации"
+            },
+            "organizations": {
+                "navLabel": "Организации",
+                "title": "Организации",
+                "createButton": "Създай организация",
+                "searchPlaceholder": "Търсене на организации...",
+                "table": {
+                    "code": "Код",
+                    "name": "Име",
+                    "country": "Държава",
+                    "status": "Статус",
+                    "license": "Лиценз",
+                    "admins": "Администратори",
+                    "users": "Потребители",
+                    "empty": "Няма намерени организации."
+                },
+                "createModal": {
+                    "title": "Създаване на нова организация",
+                    "description": "Настройване на нов клиент и създаване на първия администратор.",
+                    "nameLabel": "Име на организацията",
+                    "namePlaceholder": "Авиоотряд 28",
+                    "codeLabel": "Код (2-6 Главни букви)",
+                    "codePlaceholder": "AVIO",
+                    "countryLabel": "Държава (ISO 2 знака)",
+                    "countryPlaceholder": "BG",
+                    "licenseLabel": "Тип лиценз",
+                    "selectLicense": "Изберете лиценз",
+                    "adminSectionTitle": "Първоначален администратор",
+                    "fullNameLabel": "Име и фамилия",
+                    "fullNamePlaceholder": "Иван Иванов",
+                    "emailLabel": "Имейл",
+                    "emailPlaceholder": "admin@example.com",
+                    "tempPasswordLabel": "Временна парола",
+                    "generateButton": "Генерирай",
+                    "cancelButton": "Отказ",
+                    "submitButton": "Създай организация",
+                    "successMessage": "Организацията е създадена успешно",
+                    "errorMessage": "Грешка при създаване на организация",
+                    "validation": {
+                        "required": "Задължително поле",
+                        "invalidCode": "Невалиден формат на кода",
+                        "invalidEmail": "Невалиден имейл формат"
+                    }
+                }
+            },
+            "dashboard_legacy": "Табло",
+            "organizations_legacy": "Организации"
+        }
     },
     "auth": {
         "welcomeBack": "Добре дошли отново",
@@ -120,6 +180,18 @@
         "viewDetails": "Виж детайли",
         "changeDetails": "Детайли за промяната",
         "noLogs": "Няма намерени одитни записи.",
+        "entities": {
+            "User": "Потребител",
+            "Organization": "Организация",
+            "Campaign": "Кампания",
+            "Session": "Сесия",
+            "Check": "Проверка",
+            "Standard": "Стандарт",
+            "Programme": "Програма",
+            "Procedure": "Процедура",
+            "Employee": "Служител",
+            "Report": "Доклад"
+        },
         "actions": {
             "CREATE": "Създаване",
             "UPDATE": "Обновяване",
@@ -224,7 +296,20 @@
         "hasPractical": "Има практика",
         "passScore": "Мин. резултат",
         "allowedMethods": "Позволени методи",
-        "department": "Отдел"
+        "department": "Отдел",
+        "theoryPassScore": "Праг преминаване теория (%)",
+        "practicalPassScore": "Праг преминаване практика (%)",
+        "placeholders": {
+            "code": "напр., SMS-INIT",
+            "name": "напр., СУБ Първоначално",
+            "description": "Въведете описание на стандарта...",
+            "objectives": "Въведете по една цел на ред...",
+            "department": "напр., OPS, MAINT"
+        },
+        "objectivesHelp": "Разделете всяка цел с нов ред.",
+        "validation": {
+            "atLeastOneMethod": "Трябва да бъде избран поне един метод"
+        }
     },
     "programmes": {
         "title": "Обучителни програми",
@@ -279,18 +364,28 @@
         "organisation": "Организация",
         "department": "Отдел",
         "startDate": "Начална дата",
+
         "status": "Статус",
+        "type": "Тип",
         "actions": "Действия",
+        "pagination": {
+            "selectedRows": "{{selected}} от {{total}} ред(а) избрани."
+        },
         "edit": "Редактирай",
         "history": "История",
         "delete": "Изтрий",
         "confirmDelete": "Сигурни ли сте, че искате да изтриете този служител?",
+        "createLoginAccount": "Създай акаунт за вход",
+        "grantAccess": "Дай достъп на този потребител до таблото",
+        "updateEmployee": "Обнови служител",
+        "createEmployee": "Създай служител",
+        "selectRole": "Изберете роля",
         "roles": {
              "admin": "Администратор",
              "training_manager": "Мениджър Обучение",
              "instructor": "Инструктор",
              "employee": "Служител",
-             "auditor": "Одитор"
+             "auditor": "Вътрешен Одитор"
         },
         "toast": {
              "created": "Служителят е създаден успешно",
@@ -309,6 +404,47 @@
             "noAuditorsDesc": "Поканете външен или вътрешен одитор, за да започнете.",
             "inviteButton": "Покани одитор",
             "addAuditor": "Добави одитор"
+        },
+        "history": {
+            "downloadFile": "Изтегли лично досие",
+            "generating": "Генериране...",
+            "activeCompetences": "Активни компетенции",
+            "expired": "Изтекли",
+            "totalTrainings": "Общо обучения",
+            "noDept": "Няма отдел",
+            "tabs": {
+                "competence": "Статус на компетентност",
+                "training": "История на обучение",
+                "checks": "Проверки за умения",
+                "certificates": "Сертификати",
+                "documents": "Подписани протоколи",
+                "absences": "Отсъствия",
+                "remedial": "Корективни планове"
+            },
+            "suspendedAlert": {
+                "title": "Компетентността е отнета",
+                "description": "Този служител има {{count}} отнета/и компетентност/и. Необходимо е допълнително обучение преди възстановяване."
+            },
+            "competenceOverview": "Преглед на компетентности",
+            "filterStatus": "Филтър по статус",
+            "allStatuses": "Всички статуси",
+            "noCompetences": {
+                "title": "Няма намерени компетентности",
+                "description": "Този потребител няма записани компетентности."
+            },
+             "fields": {
+                "status": "Статус",
+                "validUntil": "Валидна до",
+                "acquired": "Придобита на",
+                "source": "Източник"
+            },
+            "status": {
+                "valid": "Валидна",
+                "expiring_soon": "Изтича скоро",
+                "expired": "Изтекла",
+                "suspended": "Отнета",
+                "not_acquired": "Непридобита"
+            }
         }
     },
     "checks": {

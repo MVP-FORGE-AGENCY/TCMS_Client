@@ -162,7 +162,7 @@ export function Sidebar({ className }: SidebarProps) {
                     roles: ["admin", "training_manager", "super_admin", "auditor"],
                 },
                 {
-                    title: t("auditLogs", "Audit Logs"),
+                    title: t("nav.auditLogs"),
                     href: "/audit-logs",
                     icon: FileText, // Or Shield/Search
                     roles: ["admin", "super_admin", "auditor"],
@@ -199,12 +199,12 @@ export function Sidebar({ className }: SidebarProps) {
 
     const superAdminItems = [
         {
-            title: "Dashboard",
+            title: t("nav.superAdmin.dashboard.navLabel"),
             href: "/super-admin/dashboard",
             icon: LayoutDashboard,
         },
         {
-            title: "Organizations",
+            title: t("nav.superAdmin.organizations.navLabel"),
             href: "/super-admin/organizations",
             icon: Building,
         },
@@ -359,7 +359,7 @@ export function Sidebar({ className }: SidebarProps) {
                     {userRole === 'super_admin' && (
                         <div className="mt-8">
                             <h3 className="mb-2 px-4 text-xs font-semibold uppercase text-muted-foreground/70 tracking-wider">
-                                Admin
+                                {t("nav.superAdmin.title")}
                             </h3>
                             <div className="space-y-1">
                                 {superAdminItems.map((item) => {

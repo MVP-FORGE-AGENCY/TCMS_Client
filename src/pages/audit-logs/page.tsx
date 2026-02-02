@@ -43,11 +43,11 @@ function AuditLogRow({ log }: { log: any }) {
                 </TableCell>
                 <TableCell>
                     <Badge variant={getActionBadgeVariant(log.action) as any}>
-                        {log.action}
+                        {t(`auditLogs.actions.${log.action}`, log.action) as string}
                     </Badge>
                 </TableCell>
                 <TableCell className="text-sm font-mono">
-                    {log.entity}
+                    {t(`auditLogs.entities.${log.entity}`, log.entity) as string}
                     {log.entityId && <span className="block text-[10px] text-muted-foreground truncate max-w-[100px]">{log.entityId}</span>}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
@@ -198,7 +198,11 @@ export default function AuditLogsPage() {
 
                     <div className="flex items-center justify-end space-x-2 py-4">
                         <div className="flex-1 text-sm text-muted-foreground">
-                           {t("common.showingOf", "Page {{current}} of {{total}}", { current: pagination.page, total: pagination.totalPages })}
+                           {t("common.showingOf", { 
+                               from: (pagination.page - 1) * pagination.limit + 1, 
+                               to: Math.min(pagination.page * pagination.limit, pagination.total), 
+                               total: pagination.total 
+                           })}
                         </div>
                         <div className="space-x-2">
                             <Button

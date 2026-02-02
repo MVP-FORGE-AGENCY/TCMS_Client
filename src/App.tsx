@@ -103,7 +103,7 @@ function App() {
                         <Route path="/procedures" element={<ProceduresPage />} />
                         <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
                         <Route path="/competence" element={<CompetenceDashboard />} />
-                        <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
+                        <Route path="/personnel/:id/history" element={<EmployeeHistoryPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/settings/automation" element={<AutomationCenter />} />
                         <Route path="/audit-logs" element={<AuditLogsPage />} />

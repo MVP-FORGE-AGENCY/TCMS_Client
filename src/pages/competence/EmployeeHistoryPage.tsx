@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,8 +30,12 @@ import { AlertCircle } from "lucide-react"
 import { RemedialPlansList } from "@/components/remedial/RemedialPlansList"
 import { RemedialPlanWizard } from "@/components/remedial/RemedialPlanWizard"
 
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
+
 export default function EmployeeHistoryPage() {
     const { id } = useParams()
+    const { t } = useTranslation()
+    const { setLabel } = useBreadcrumb()
     const navigate = useNavigate()
     const [history, setHistory] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -61,6 +66,12 @@ export default function EmployeeHistoryPage() {
         }
     };
 
+    useEffect(() => {
+        if (history?.employee && id) {
+            setLabel(id, history.employee.fullName)
+        }
+    }, [history, id, setLabel])
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -81,6 +92,8 @@ export default function EmployeeHistoryPage() {
     if (!history) return <div className="p-8">Employee not found</div>
 
     const { employee, competences, trainings, checks, absences, documents } = history
+
+
 
     const suspendedCompetences = competences?.filter((c: any) => c.status === 'suspended') || []
     const hasSuspended = suspendedCompetences.length > 0
@@ -111,7 +124,7 @@ export default function EmployeeHistoryPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <span>{employee?.email}</span>
                             <span>•</span>
-                            <Badge variant="outline">{employee?.departmentTag || 'No Dept'}</Badge>
+                            <Badge variant="outline">{employee?.departmentTag || t("personnel.history.noDept")}</Badge>
                             <span>•</span>
                             <span>{employee?.role}</span>
                         </div>
@@ -120,7 +133,7 @@ export default function EmployeeHistoryPage() {
                 <div className="flex gap-2">
                      <Button variant="outline" onClick={handleDownloadPersonnelFile} disabled={isGenerating}>
                         <FileText className="h-4 w-4 mr-2" />
-                        {isGenerating ? 'Generating...' : 'Download Personnel File'}
+                        {isGenerating ? t("personnel.history.generating") : t("personnel.history.downloadFile")}
                      </Button>
                 </div>
             </div>
@@ -128,10 +141,9 @@ export default function EmployeeHistoryPage() {
             {hasSuspended && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Competence Suspended</AlertTitle>
+                    <AlertTitle>{t("personnel.history.suspendedAlert.title")}</AlertTitle>
                     <AlertDescription>
-                        This employee has {suspendedCompetences.length} suspended competence(s). 
-                        Remedial training is required before they can be reinstated.
+                        {t("personnel.history.suspendedAlert.description", { count: suspendedCompetences.length })}
                         {suspendedCompetences.map((c: any) => (
                              <div key={c.id} className="mt-1 text-sm font-semibold">
                                 - {c.standardCode}: {c.suspensionReason}
@@ -144,7 +156,7 @@ export default function EmployeeHistoryPage() {
             {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm">Active Competences</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">{t("personnel.history.activeCompetences")}</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-700">
                              {competences?.filter((c: any) => c.status === 'valid' || c.status === 'expiring_soon').length || 0}
@@ -152,7 +164,7 @@ export default function EmployeeHistoryPage() {
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm">Expired</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">{t("personnel.history.expired")}</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-700">
                              {competences?.filter((c: any) => c.status === 'expired').length || 0}
@@ -160,7 +172,7 @@ export default function EmployeeHistoryPage() {
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm">Total Trainings</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm">{t("personnel.history.totalTrainings")}</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
                              {trainings?.length || 0}
@@ -171,13 +183,13 @@ export default function EmployeeHistoryPage() {
 
             <Tabs defaultValue="competence" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="competence">Competence Status</TabsTrigger>
-                    <TabsTrigger value="training">Training History</TabsTrigger>
-                    <TabsTrigger value="checks">Proficiency Checks</TabsTrigger>
-                    <TabsTrigger value="certificates">Certificates</TabsTrigger>
-                    <TabsTrigger value="documents">Signed Protocols</TabsTrigger>
-                    {absences && absences.length > 0 && <TabsTrigger value="absences">Absences</TabsTrigger>}
-                    <TabsTrigger value="remedial">Remedial Plans</TabsTrigger>
+                    <TabsTrigger value="competence">{t("personnel.history.tabs.competence")}</TabsTrigger>
+                    <TabsTrigger value="training">{t("personnel.history.tabs.training")}</TabsTrigger>
+                    <TabsTrigger value="checks">{t("personnel.history.tabs.checks")}</TabsTrigger>
+                    <TabsTrigger value="certificates">{t("personnel.history.tabs.certificates")}</TabsTrigger>
+                    <TabsTrigger value="documents">{t("personnel.history.tabs.documents")}</TabsTrigger>
+                    {absences && absences.length > 0 && <TabsTrigger value="absences">{t("personnel.history.tabs.absences")}</TabsTrigger>}
+                    <TabsTrigger value="remedial">{t("personnel.history.tabs.remedial")}</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="remedial" className="mt-4">

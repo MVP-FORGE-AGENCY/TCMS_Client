@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { competence } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ interface TraineeCompetenceTabProps {
 }
 
 export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
+    const { t } = useTranslation();
     const [competences, setCompetences] = useState<Competence[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -53,15 +55,15 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'valid':
-                return <Badge className="bg-green-500 hover:bg-green-600">Valid</Badge>;
+                return <Badge className="bg-green-500 hover:bg-green-600">{t("personnel.history.status.valid")}</Badge>;
             case 'expiring_soon':
-                return <Badge className="bg-yellow-500 hover:bg-yellow-600">Expiring Soon</Badge>;
+                return <Badge className="bg-yellow-500 hover:bg-yellow-600">{t("personnel.history.status.expiring_soon")}</Badge>;
             case 'expired':
-                return <Badge variant="destructive">Expired</Badge>;
+                return <Badge variant="destructive">{t("personnel.history.status.expired")}</Badge>;
             case 'suspended':
-                return <Badge variant="destructive" className="bg-red-700">Suspended</Badge>;
+                return <Badge variant="destructive" className="bg-red-700">{t("personnel.history.status.suspended")}</Badge>;
             default:
-                return <Badge variant="secondary">Not Acquired</Badge>;
+                return <Badge variant="secondary">{t("personnel.history.status.not_acquired")}</Badge>;
         }
     };
 
@@ -82,18 +84,18 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Competence Overview</h3>
+                <h3 className="text-lg font-medium">{t("personnel.history.competenceOverview")}</h3>
                 <div className="w-[200px]">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Filter by status" />
+                            <SelectValue placeholder={t("personnel.history.filterStatus")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="valid">Valid</SelectItem>
-                            <SelectItem value="expiring_soon">Expiring Soon</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                            <SelectItem value="expired">Expired</SelectItem>
+                            <SelectItem value="all">{t("personnel.history.allStatuses")}</SelectItem>
+                            <SelectItem value="valid">{t("personnel.history.status.valid")}</SelectItem>
+                            <SelectItem value="expiring_soon">{t("personnel.history.status.expiring_soon")}</SelectItem>
+                            <SelectItem value="suspended">{t("personnel.history.status.suspended")}</SelectItem>
+                            <SelectItem value="expired">{t("personnel.history.status.expired")}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -106,8 +108,8 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
             ) : competences.length === 0 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>No Competences Found</CardTitle>
-                        <CardDescription>This user has no recorded competences yet.</CardDescription>
+                        <CardTitle>{t("personnel.history.noCompetences.title")}</CardTitle>
+                        <CardDescription>{t("personnel.history.noCompetences.description")}</CardDescription>
                     </CardHeader>
                 </Card>
             ) : (
@@ -128,23 +130,23 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
                             <CardContent>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Status:</span>
+                                        <span className="text-muted-foreground">{t("personnel.history.fields.status")}:</span>
                                         {getStatusBadge(comp.status)}
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Valid Until:</span>
+                                        <span className="text-muted-foreground">{t("personnel.history.fields.validUntil")}:</span>
                                         <span className="font-medium">
                                             {comp.validUntil ? format(new Date(comp.validUntil), "dd MMM yyyy") : '-'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Acquired:</span>
+                                        <span className="text-muted-foreground">{t("personnel.history.fields.acquired")}:</span>
                                         <span>
                                             {comp.acquiredDate ? format(new Date(comp.acquiredDate), "dd MMM yyyy") : '-'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Source:</span>
+                                        <span className="text-muted-foreground">{t("personnel.history.fields.source")}:</span>
                                         <span className="capitalize">{comp.source?.replace('_', ' ') || 'N/A'}</span>
                                     </div>
                                 </div>

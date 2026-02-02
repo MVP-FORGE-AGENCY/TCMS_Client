@@ -85,7 +85,7 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
     // Auto-calculate result based on elements
     const elementsResults = form.watch("elementsResults")
     useEffect(() => {
-        if (!profile?.requiredElements) return
+        if (!profile?.requiredElements || profile.hasPractical === false) return
 
         const hasFail = Object.entries(elementsResults).some(([name, result]) => {
             const isMandatory = profile.requiredElements?.[name]
@@ -98,8 +98,8 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
     }, [elementsResults, profile, form])
 
     function handleSubmit(values: FormValues) {
-        // Validate all mandatory elements are assessed
-        if (profile?.requiredElements) {
+        // Validate all mandatory elements are assessed (only if practical is required)
+        if (profile?.requiredElements && profile.hasPractical !== false) {
             const missingMandatory = Object.entries(profile.requiredElements).some(([name, isMandatory]) => {
                 return isMandatory && !values.elementsResults[name]
             })
@@ -174,8 +174,8 @@ export function CompleteCheckForm({ check, profile, open, onOpenChange, onSubmit
                             />
                         </div>
 
-                        {/* Required Elements Checklist */}
-                        {profile?.requiredElements && (
+                        {/* Required Elements Checklist - Only if Practical */}
+                        {profile?.requiredElements && profile.hasPractical !== false && (
                             <div className="space-y-2">
                                 <Label>Required Elements</Label>
                                 <div className="border rounded-md p-4 space-y-4">

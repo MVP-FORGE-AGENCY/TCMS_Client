@@ -161,6 +161,8 @@ export interface ProficiencyProfile {
     intervalMonths: number;
     requiredAssessors: number;
     requiredElements?: Record<string, any>;
+    hasTheory?: boolean;
+    hasPractical?: boolean;
 }
 
 export interface ProficiencyProfileCreate {

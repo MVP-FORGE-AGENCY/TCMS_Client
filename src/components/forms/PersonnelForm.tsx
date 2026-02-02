@@ -19,6 +19,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Eye, EyeOff } from "lucide-react"
 import type { Employee } from "@/types"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -60,6 +61,7 @@ interface PersonnelFormProps {
 
 export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelFormProps) {
     const [createLoginAccount, setCreateLoginAccount] = useState(true)
+    const [showPassword, setShowPassword] = useState(false)
 
     const { t } = useTranslation()
 
@@ -148,14 +150,15 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select role" />
+                                            <SelectValue placeholder={t("personnel.selectRole")} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="training_manager">Manager</SelectItem>
-                                        <SelectItem value="instructor">Instructor</SelectItem>
-                                        <SelectItem value="employee">Trainee</SelectItem>
+                                        <SelectItem value="admin">{t("personnel.roles.admin")}</SelectItem>
+                                        <SelectItem value="training_manager">{t("personnel.roles.training_manager")}</SelectItem>
+                                        <SelectItem value="instructor">{t("personnel.roles.instructor")}</SelectItem>
+                                        <SelectItem value="employee">{t("personnel.roles.employee")}</SelectItem>
+                                        <SelectItem value="auditor">{t("personnel.roles.auditor")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -195,7 +198,26 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                             <FormItem>
                                 <FormLabel>{t("common.password")}</FormLabel>
                                 <FormControl>
-                                    <Input type="password" placeholder="********" {...field} />
+                                    <div className="relative">
+                                        <Input 
+                                            type={showPassword ? "text" : "password"} 
+                                            placeholder="********" 
+                                            {...field} 
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                            ) : (
+                                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                        </Button>
+                                    </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

@@ -134,7 +134,7 @@ export default function PersonnelPage() {
 
     // Navigate to full page history (Dossier)
     const viewHistory = (employee: Employee) => {
-        navigate(`/employees/${employee.id}/history`)
+        navigate(`/personnel/${employee.id}/history`)
     }
 
     return (
