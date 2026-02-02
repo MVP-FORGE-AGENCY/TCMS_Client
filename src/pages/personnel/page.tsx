@@ -150,7 +150,7 @@ export default function PersonnelPage() {
                   				<div className="flex gap-2 w-full sm:w-auto">
 					{canInviteAuditor && (
 						<Button variant="outline" onClick={() => setIsAuditorModalOpen(true)} className="w-full sm:w-auto">
-							<ShieldCheck className="mr-2 h-4 w-4" /> Add Auditor
+							<ShieldCheck className="mr-2 h-4 w-4" /> {t("personnel.auditors.addAuditor")}
 						</Button>
 					)}
 					<Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
@@ -173,8 +173,8 @@ export default function PersonnelPage() {
             ) : (
                 <Tabs defaultValue="employees" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
-                        <TabsTrigger value="employees">Employees</TabsTrigger>
-                        <TabsTrigger value="auditors">Auditors</TabsTrigger>
+                        <TabsTrigger value="employees">{t("personnel.tabs.employees")}</TabsTrigger>
+                        <TabsTrigger value="auditors">{t("personnel.tabs.auditors")}</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="employees">
@@ -191,9 +191,9 @@ export default function PersonnelPage() {
                          {employees.filter(e => e.role === 'auditor').length === 0 ? (
                             <EmptyState
                                 icon={ShieldCheck}
-                                title="No Auditors Found"
-                                description="Invite an external or internal auditor to get started."
-                                actionLabel={canInviteAuditor ? "Invite Auditor" : undefined}
+                                title={t("personnel.auditors.noAuditorsTitle")}
+                                description={t("personnel.auditors.noAuditorsDesc")}
+                                actionLabel={canInviteAuditor ? t("personnel.auditors.inviteButton") : undefined}
                                 onAction={canInviteAuditor ? () => setIsAuditorModalOpen(true) : undefined}
                             />
                         ) : (

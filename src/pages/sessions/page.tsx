@@ -381,22 +381,27 @@ export default function SessionsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("sessions.title", "Sessions")}</h1>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("sessions.title")}</h1>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            {t("nav.training")}
+                        </span>
+                    </div>
                     <p className="text-muted-foreground text-sm">
-                        {t("sessions.subtitle", "Manage training sessions")}
+                        {t("sessions.subtitle")}
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Select value={pageSize} onValueChange={handlePageSizeChange}>
                         <SelectTrigger className="w-[130px]">
-                            <SelectValue placeholder="Rows per page" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="20">20 per page</SelectItem>
-                            <SelectItem value="50">50 per page</SelectItem>
-                            <SelectItem value="100">100 per page</SelectItem>
-                            <SelectItem value="all">Show All (Infinite)</SelectItem>
-                        </SelectContent>
+                                    <SelectValue placeholder={t("sessions.rowsPerPage")} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                    <SelectItem value="100">{t("sessions.showAll")}</SelectItem>
+                                </SelectContent>
                     </Select>
 
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'calendar')}>
@@ -581,9 +586,8 @@ export default function SessionsPage() {
                             {isInfiniteScroll ? (
                                 <div className="py-4 text-center">
                                     {loadingMore && (
-                                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                            <span>Loading more...</span>
+                                        <div className="py-4 text-center text-sm text-muted-foreground">
+                                            {t("sessions.loadingMore")}
                                         </div>
                                     )}
                                     <div ref={lastElementRef} className="h-4" />
@@ -702,22 +706,22 @@ export default function SessionsPage() {
                         
                         {/* Legend */}
                         <div className="flex gap-4 mt-4 pt-4 border-t text-xs">
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 rounded bg-blue-500" />
-                                <span>{t("sessions.planned", "Planned")}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 rounded bg-amber-500" />
-                                <span>{t("sessions.inProgress", "In Progress")}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 rounded bg-green-500" />
-                                <span>{t("sessions.completed", "Completed")}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 rounded bg-gray-400" />
-                                <span>{t("sessions.cancelled", "Cancelled")}</span>
-                            </div>
+                            <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-slate-500"></span>
+                            <span className="text-xs text-muted-foreground">{t("sessions.legend.planned")}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-blue-500"></span>
+                            <span className="text-xs text-muted-foreground">{t("sessions.legend.inProgress")}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-green-500"></span>
+                            <span className="text-xs text-muted-foreground">{t("sessions.legend.completed")}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                            <span className="text-xs text-muted-foreground">{t("sessions.legend.cancelled")}</span>
+                        </div>
                         </div>
                     </CardContent>
                 </Card>

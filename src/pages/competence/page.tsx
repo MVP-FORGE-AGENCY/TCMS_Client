@@ -265,8 +265,8 @@ export default function CompetenceDashboard() {
                     {expiryFilterEnabled && (
                         <div className="flex-1 animate-in fade-in slide-in-from-left-2 duration-300">
                             <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">{t("competence.expiresWithin") || "Expires within"}</span>
-                                <span className="text-sm font-bold text-primary">{searchParams.get("expiresWithin") || 90} {t("common.days") || "days"}</span>
+                                <span className="text-sm font-medium">{t("competence.expiresWithin")}</span>
+                                <span className="text-sm font-bold text-primary">{searchParams.get("expiresWithin") || 90} {t("common.days")}</span>
                             </div>
                             <Slider
                                 value={[parseInt(searchParams.get("expiresWithin") || "90")]}
@@ -279,14 +279,13 @@ export default function CompetenceDashboard() {
                                 }}
                                 max={730} // Increased to 2 years as requested (ish)
                                 step={30}
-                                className="w-full"
                             />
                         </div>
                     )}
                     
                     {!expiryFilterEnabled && (
                          <div className="text-sm text-muted-foreground italic flex-1">
-                            Showing all competences regardless of expiry date.
+                            {t("competence.showingAll")}
                          </div>
                     )}
                 </CardContent>

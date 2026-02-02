@@ -52,14 +52,19 @@
         "support": "Support",
         "home": "Home",
         "day": "day",
-        "days": "days"
+        "days": "days",
+        "showingOf": "Showing {{from}} to {{to}} of {{total}}",
+        "previous": "Previous",
+        "next": "Next",
+        "table": "Table",
+        "calendar": "Calendar"
     },
     "nav": {
         "dashboard": "Dashboard",
         "personnel": "Personnel",
         "programmes": "Programmes",
-        "sessions": "Sessions",
-        "checks": "Checks",
+        "sessions": "Schedule",
+        "checks": "Schedule",
         "competence": "Competence",
         "reports": "Reports",
         "settings": "Settings",
@@ -85,7 +90,9 @@
         "checkProfiles": "Check Profiles",
         "regulatoryLibrary": "Regulatory Library",
         "trainingCalendar": "Training Calendar",
-        "checkCalendar": "Check Calendar"
+        "checkCalendar": "Check Calendar",
+        "training": "Training",
+        "checking": "Checks"
     },
     "auth": {
         "welcomeBack": "Welcome back",
@@ -97,6 +104,30 @@
         "invalidCredentials": "Invalid credentials",
         "logout": "Logout",
         "sessionExpired": "Session expired. Please sign in again."
+    },
+    "auditLogs": {
+        "title": "Audit Logs",
+        "subtitle": "Monitor system activity and changes.",
+        "header": "Activity Log",
+        "filterAction": "Filter Action",
+        "allActions": "All Actions",
+        "date": "Date & Time",
+        "user": "User",
+        "action": "Action",
+        "entity": "Entity",
+        "details": "Details",
+        "ipAddress": "IP Address",
+        "viewDetails": "View Details",
+        "changeDetails": "Change Details",
+        "noLogs": "No audit logs found.",
+        "actions": {
+            "CREATE": "Create",
+            "UPDATE": "Update",
+            "DELETE": "Delete",
+            "READ": "Read",
+            "GENERATE_REPORT": "Generate Report",
+            "LOGIN": "Login"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -165,6 +196,16 @@
             "createError": "Failed to create employee",
             "updateError": "Failed to update employee",
             "deleteError": "Failed to delete employee"
+        },
+        "tabs": {
+            "employees": "Employees",
+            "auditors": "Auditors"
+        },
+        "auditors": {
+            "noAuditorsTitle": "No Auditors Found",
+            "noAuditorsDesc": "Invite an external or internal auditor to get started.",
+            "inviteButton": "Invite Auditor",
+            "addAuditor": "Add Auditor"
         }
     },
     "programmes": {
@@ -228,6 +269,8 @@
         "fromDate": "From Date",
         "toDate": "To Date",
         "clearFilters": "Clear Filters",
+        "searchPlaceholder": "Search by campaign, module, instructor, or location...",
+        "curriculum": "Campaign",
         "date": "Date",
         "startDate": "Start Date",
         "endDate": "End Date",
@@ -235,6 +278,8 @@
         "location": "Location",
         "instructor": "Instructor",
         "type": "Type",
+        "campaign": "Campaign",
+        "module": "Module",
         "capacity": "Capacity",
         "sessionType": "Session Type",
         "participants": "Participants",
@@ -266,6 +311,15 @@
             "absent": "Absent",
             "excused": "Excused"
         },
+        "legend": {
+            "planned": "Planned",
+            "inProgress": "In Progress",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+        },
+        "rowsPerPage": "Rows per page",
+        "showAll": "Show All (Infinite)",
+        "loadingMore": "Loading more...",
         "results": {
             "attendance": "Attendance",
             "present": "Present",
@@ -326,6 +380,8 @@
         "progress": "Progress",
         "actions": "Actions",
         "view": "View",
+        "tableView": "Table View",
+        "calendarView": "Calendar View",
         "pending": "Pending",
         "assessing": "Assessing",
         "completed": "Completed",
@@ -376,6 +432,10 @@
         "expiringSubtitle": "Items expiring within the next {{days}} days.",
         "exportPdf": "Export PDF",
         "generatedOn": "Generated on {{date}}",
+        "showAll": "Display ALL competences",
+        "showingAll": "Showing all records",
+        "exportCsv": "Export CSV",
+        "dateCompleted": "Date Completed",
         "withinDays": "Within {{days}} Days",
         "daysRemaining": "Days Remaining",
         "noExpiringItems": "No expiring items found within this range.",
@@ -403,6 +463,28 @@
             "compliance": "Compliance",
             "notifications": "Notifications",
             "library": "Regulatory Library"
+        },
+        "automation": {
+            "title": "Automation Center",
+            "subtitle": "Configure automated tasks, alerts, and compliance workflows.",
+            "refresh": "Refresh",
+            "save": "Save Changes",
+            "saving": "Saving...",
+            "runTest": "Test Run",
+            "scheduledJobs": "Scheduled Jobs",
+            "runHistory": "Run History",
+            "noLogs": "No logs found.",
+            "status": "Status",
+            "jobName": "Job Name",
+            "started": "Started",
+            "duration": "Duration",
+            "metrics": "Metrics",
+            "initiatedBy": "Initiated By",
+            "success": "Success",
+            "failed": "Failed",
+            "partial": "Partial",
+            "manual": "Manual",
+            "system": "System"
         }
     },
     "command": {
@@ -613,7 +695,11 @@
         "history": "History",
         "notAcquired": "Not Acquired",
         "loading": "Loading...",
-        "noRecords": "No records found"
+        "noRecords": "No records found",
+        "searchPlaceholder": "Search by name or email...",
+        "filterExpiresWithin": "Filter expires within",
+        "expiresWithin": "Expires within",
+        "showingAll": "Showing all competences regardless of expiry date."
     },
     "curriculums": {
         "title": "Curriculums",

@@ -120,8 +120,8 @@ export const reports = {
         const response = await api.post(`/reports/employees/${employeeId}/training-file`, options)
         return response.data
     },
-    getExpiring: async (withinDays?: number) => {
-        const response = await api.get("/reports/expiring", { params: { withinDays } })
+    getExpiring: async (withinDays?: number, all?: boolean) => {
+        const response = await api.get("/reports/expiring", { params: { withinDays, all } })
         return response.data
     },
     generateAttendance: async (sessionId: string) => {

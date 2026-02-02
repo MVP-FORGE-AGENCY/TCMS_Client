@@ -52,14 +52,19 @@
         "support": "Поддръжка",
         "home": "Начало",
         "day": "ден",
-        "days": "дни"
+        "days": "дни",
+        "showingOf": "Показване на {{from}} до {{to}} от {{total}}",
+        "previous": "Предишна",
+        "next": "Следваща",
+        "table": "Таблица",
+        "calendar": "Календар"
     },
     "nav": {
         "dashboard": "Табло",
         "personnel": "Персонал",
         "programmes": "Програми",
-        "sessions": "Сесии",
-        "checks": "Проверки",
+        "sessions": "График",
+        "checks": "График",
         "competence": "Компетентност",
         "reports": "Доклади",
         "settings": "Настройки",
@@ -85,7 +90,9 @@
         "checkProfiles": "Профили за проверки",
         "regulatoryLibrary": "Регулаторна библиотека",
         "trainingCalendar": "Календар за обучения",
-        "checkCalendar": "Календар за проверки"
+        "checkCalendar": "Календар за проверки",
+        "training": "Обучение",
+        "checking": "Проверки"
     },
     "auth": {
         "welcomeBack": "Добре дошли отново",
@@ -97,6 +104,30 @@
         "invalidCredentials": "Невалидни данни",
         "logout": "Изход",
         "sessionExpired": "Сесията изтече. Моля, влезте отново."
+    },
+    "auditLogs": {
+        "title": "Одитни записи",
+        "subtitle": "Наблюдение на системната активност и промени.",
+        "header": "Дневник на дейността",
+        "filterAction": "Филтър действие",
+        "allActions": "Всички действия",
+        "date": "Дата и час",
+        "user": "Потребител",
+        "action": "Действие",
+        "entity": "Обект",
+        "details": "Детайли",
+        "ipAddress": "IP адрес",
+        "viewDetails": "Виж детайли",
+        "changeDetails": "Детайли за промяната",
+        "noLogs": "Няма намерени одитни записи.",
+        "actions": {
+            "CREATE": "Създаване",
+            "UPDATE": "Обновяване",
+            "DELETE": "Изтриване",
+            "READ": "Четене",
+            "GENERATE_REPORT": "Генериране на отчет",
+            "LOGIN": "Вход"
+        }
     },
     "dashboard": {
         "title": "Табло",
@@ -150,7 +181,11 @@
         "history": "История",
         "notAcquired": "Непридобит",
         "loading": "Зареждане...",
-        "noRecords": "Няма намерени записи"
+        "noRecords": "Няма намерени записи",
+        "searchPlaceholder": "Търсене по име или имейл...",
+        "filterExpiresWithin": "Филтриране по изтичане",
+        "expiresWithin": "Изтича в рамките на",
+        "showingAll": "Показване на всички компетентности, независимо от датата на изтичане."
     },
     "standards": {
         "title": "Стандарти за обучение",
@@ -264,6 +299,16 @@
              "createError": "Грешка при създаване на служител",
              "updateError": "Грешка при обновяване на служител",
              "deleteError": "Грешка при изтриване на служител"
+        },
+        "tabs": {
+            "employees": "Служители",
+            "auditors": "Одитори"
+        },
+        "auditors": {
+            "noAuditorsTitle": "Няма намерени одитори",
+            "noAuditorsDesc": "Поканете външен или вътрешен одитор, за да започнете.",
+            "inviteButton": "Покани одитор",
+            "addAuditor": "Добави одитор"
         }
     },
     "checks": {
@@ -288,6 +333,8 @@
          "progress": "Прогрес",
          "actions": "Действия",
          "view": "Преглед",
+         "tableView": "Табличен изглед",
+         "calendarView": "Календар",
          "pending": "В изчакване",
          "assessing": "Оценяване",
          "completed": "Завършен",
@@ -322,14 +369,18 @@
         "fromDate": "От дата",
         "toDate": "До дата",
         "clearFilters": "Изчисти филтрите",
+        "searchPlaceholder": "Търсене по кампания, модул, инструктор или локация...",
+        "curriculum": "Кампания",
         "date": "Дата",
         "instructor": "Инструктор",
         "location": "Локация",
         "type": "Тип",
+        "campaign": "Кампания",
+        "module": "Модул",
         "capacity": "Капацитет",
         "actions": "Действия",
         "view": "Преглед",
-        "results": "Резултати",
+        "resultsLabel": "Резултати",
         "cancel": "Отмени",
         "confirmCancel": "Сигурни ли сте, че искате да отмените тази сесия?",
         "types": {
@@ -350,6 +401,15 @@
              "absent": "Отсъствал",
              "excused": "Извинен"
         },
+        "legend": {
+            "planned": "Планирана",
+            "inProgress": "В прогрес",
+            "completed": "Завършена",
+            "cancelled": "Отменена"
+        },
+        "rowsPerPage": "Редове на страница",
+        "showAll": "Покажи всички (Безкрайно)",
+        "loadingMore": "Зареждане на още...",
         "results": {
             "attendance": "Присъствие",
             "present": "Присъствал",
@@ -530,6 +590,28 @@
             "compliance": "Съответствие",
             "notifications": "Известия",
             "library": "Регулаторна библиотека"
+        },
+        "automation": {
+            "title": "Център за автоматизация",
+            "subtitle": "Конфигуриране на автоматизирани задачи, известия и работни потоци.",
+            "refresh": "Обнови",
+            "save": "Запази промените",
+            "saving": "Запазване...",
+            "runTest": "Тестов пуск",
+            "scheduledJobs": "Планирани задачи",
+            "runHistory": "История на изпълнение",
+            "noLogs": "Няма намерени записи.",
+            "status": "Статус",
+            "jobName": "Име на задача",
+            "started": "Стартирано",
+            "duration": "Продължителност",
+            "metrics": "Метрики",
+            "initiatedBy": "Инициирано от",
+            "success": "Успех",
+            "failed": "Неуспех",
+            "partial": "Частично",
+            "manual": "Ръчно",
+            "system": "Система"
         }
     },
     "command": {
@@ -545,6 +627,10 @@
         "expiringSubtitle": "Елементи, изтичащи в рамките на следващите {{days}} дни.",
         "exportPdf": "Експорт PDF",
         "generatedOn": "Генерирано на {{date}}",
+        "showAll": "Покажи ВСИЧКИ компетентности",
+        "showingAll": "Показване на всички записи",
+        "exportCsv": "Експорт CSV",
+        "dateCompleted": "Дата на завършване",
         "withinDays": "В рамките на {{days}} дни",
         "daysRemaining": "Оставащи дни",
         "noExpiringItems": "Няма намерени изтичащи елементи в този диапазон.",

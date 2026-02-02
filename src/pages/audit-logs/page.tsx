@@ -11,6 +11,7 @@ import { Loader2, RefreshCw, ChevronDown, ChevronRight } from "lucide-react"
 
 // Helper component for expandable rows
 function AuditLogRow({ log }: { log: any }) {
+    const { t } = useTranslation()
     const [isExpanded, setIsExpanded] = useState(false)
     const hasDetails = log.details && Object.keys(log.details).length > 0
     
@@ -53,7 +54,7 @@ function AuditLogRow({ log }: { log: any }) {
                     {hasDetails ? (
                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-transparent text-muted-foreground">
                             {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                            <span className="ml-1 text-xs">View Details</span>
+                            <span className="ml-1 text-xs">{t("auditLogs.viewDetails")}</span>
                         </Button>
                     ) : '-'}
                 </TableCell>
@@ -66,7 +67,7 @@ function AuditLogRow({ log }: { log: any }) {
                     <TableCell colSpan={6} className="p-0">
                         <div className="p-4 pl-4 md:pl-12 border-b">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                                Change Details
+                                {t("auditLogs.changeDetails")}
                             </h4>
                             <div className="rounded-md border bg-background/50 p-2 overflow-x-auto">
                                 <pre className="text-xs font-mono whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">
@@ -126,8 +127,8 @@ export default function AuditLogsPage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("auditLogs", "Audit Logs")}</h1>
-                    <p className="text-muted-foreground text-sm">Monitor system activity and changes.</p>
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("auditLogs.title")}</h1>
+                    <p className="text-muted-foreground text-sm">{t("auditLogs.subtitle")}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => fetchLogs(pagination.page)}>
@@ -139,21 +140,21 @@ export default function AuditLogsPage() {
             <Card>
                 <CardHeader>
                     <div className="flex flex-col md:flex-row gap-4 justify-between">
-                        <CardTitle className="text-lg">Activity Log</CardTitle>
+                        <CardTitle className="text-lg">{t("auditLogs.header")}</CardTitle>
                         <div className="flex gap-2 items-center">
                             <div className="w-[150px]">
                                 <Select value={actionFilter} onValueChange={setActionFilter}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Filter Action" />
+                                        <SelectValue placeholder={t("auditLogs.filterAction")} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">All Actions</SelectItem>
-                                        <SelectItem value="CREATE">Create</SelectItem>
-                                        <SelectItem value="UPDATE">Update</SelectItem>
-                                        <SelectItem value="DELETE">Delete</SelectItem>
-                                        <SelectItem value="READ">Read</SelectItem>
-                                        <SelectItem value="GENERATE_REPORT">Generate Report</SelectItem>
-                                        <SelectItem value="LOGIN">Login</SelectItem>
+                                        <SelectItem value="all">{t("auditLogs.allActions")}</SelectItem>
+                                        <SelectItem value="CREATE">{t("auditLogs.actions.CREATE")}</SelectItem>
+                                        <SelectItem value="UPDATE">{t("auditLogs.actions.UPDATE")}</SelectItem>
+                                        <SelectItem value="DELETE">{t("auditLogs.actions.DELETE")}</SelectItem>
+                                        <SelectItem value="READ">{t("auditLogs.actions.READ")}</SelectItem>
+                                        <SelectItem value="GENERATE_REPORT">{t("auditLogs.actions.GENERATE_REPORT")}</SelectItem>
+                                        <SelectItem value="LOGIN">{t("auditLogs.actions.LOGIN")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -165,12 +166,12 @@ export default function AuditLogsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date & Time</TableHead>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Action</TableHead>
-                                    <TableHead>Entity</TableHead>
-                                    <TableHead className="hidden md:table-cell">Details</TableHead>
-                                    <TableHead className="hidden md:table-cell">IP Address</TableHead>
+                                    <TableHead>{t("auditLogs.date")}</TableHead>
+                                    <TableHead>{t("auditLogs.user")}</TableHead>
+                                    <TableHead>{t("auditLogs.action")}</TableHead>
+                                    <TableHead>{t("auditLogs.entity")}</TableHead>
+                                    <TableHead className="hidden md:table-cell">{t("auditLogs.details")}</TableHead>
+                                    <TableHead className="hidden md:table-cell">{t("auditLogs.ipAddress")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -183,7 +184,7 @@ export default function AuditLogsPage() {
                                 ) : logs.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                            No audit logs found.
+                                            {t("auditLogs.noLogs")}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -197,7 +198,7 @@ export default function AuditLogsPage() {
 
                     <div className="flex items-center justify-end space-x-2 py-4">
                         <div className="flex-1 text-sm text-muted-foreground">
-                           Page {pagination.page} of {pagination.totalPages}
+                           {t("common.showingOf", "Page {{current}} of {{total}}", { current: pagination.page, total: pagination.totalPages })}
                         </div>
                         <div className="space-x-2">
                             <Button
@@ -206,7 +207,7 @@ export default function AuditLogsPage() {
                                 onClick={() => handlePageChange(pagination.page - 1)}
                                 disabled={pagination.page <= 1 || isLoading}
                             >
-                                Previous
+                                {t("common.previous")}
                             </Button>
                             <Button
                                 variant="outline"
@@ -214,7 +215,7 @@ export default function AuditLogsPage() {
                                 onClick={() => handlePageChange(pagination.page + 1)}
                                 disabled={pagination.page >= pagination.totalPages || isLoading}
                             >
-                                Next
+                                {t("common.next")}
                             </Button>
                         </div>
                     </div>

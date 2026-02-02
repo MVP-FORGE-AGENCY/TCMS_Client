@@ -116,14 +116,14 @@ export function Sidebar({ className }: SidebarProps) {
             defaultOpen: true,
             items: [
                 {
-                    title: t("nav.schedule"),
+                    title: t("nav.sessions"), // Both are named Schedule now
                     href: "/sessions",
                     icon: Calendar,
                     roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
                     variant: "training",
                 },
                 {
-                    title: t("nav.checks"),
+                    title: t("nav.checks"), // Both are named Schedule now
                     href: "/checks",
                     icon: ClipboardCheck,
                     roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
@@ -244,8 +244,15 @@ export function Sidebar({ className }: SidebarProps) {
     }
 
     const renderNavItem = (item: NavItem, index: number, inGroup = false) => {
-        const isActive = location.pathname === item.href || 
-            (item.href !== "/dashboard" && location.pathname.startsWith(item.href))
+        // Special case for Settings vs Automation Center to avoid double highlighting
+        // If we are exactly at /settings, only highlight Settings
+        // If we are at /settings/automation, do NOT highlight Settings
+        const isActive = item.href === "/dashboard" 
+            ? location.pathname === "/dashboard"
+            : item.href === "/settings"
+                ? location.pathname === "/settings"
+                : location.pathname.startsWith(item.href)
+
         const variantStyles = getVariantStyles(item.variant, isActive)
 
         return (
@@ -278,12 +285,12 @@ export function Sidebar({ className }: SidebarProps) {
                 {/* Visual tag for training vs checking */}
                 {item.variant === "training" && (
                     <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                        Training
+                        {t("nav.training")}
                     </span>
                 )}
                 {item.variant === "checking" && (
                     <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                        Checks
+                        {t("nav.checking")}
                     </span>
                 )}
                 
@@ -390,11 +397,11 @@ export function Sidebar({ className }: SidebarProps) {
                 <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        <span>Training</span>
+                        <span>{t("nav.training")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-violet-500" />
-                        <span>Checking</span>
+                        <span>{t("nav.checking")}</span>
                     </div>
                 </div>
             </div>
