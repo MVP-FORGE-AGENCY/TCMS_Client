@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
 import { format } from "date-fns"
-import { Loader2, Search, Filter, RefreshCw, FileDown, ChevronDown, ChevronRight } from "lucide-react"
+import { Loader2, RefreshCw, ChevronDown, ChevronRight } from "lucide-react"
 
 // Helper component for expandable rows
 function AuditLogRow({ log }: { log: any }) {
@@ -90,7 +89,7 @@ export default function AuditLogsPage() {
     
     // Filters
     const [actionFilter, setActionFilter] = useState<string>("all")
-    const [entityFilter, setEntityFilter] = useState<string>("")
+    const [entityFilter] = useState<string>("")
 
     const fetchLogs = async (page = 1) => {
         setIsLoading(true)

@@ -241,7 +241,7 @@ function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOp
                                     })} 
                                     placeholder="admin@acme.com" 
                                 />
-                                {errors.adminUser?.email && <span className="text-red-500 text-xs">{errors.adminUser.email.message as string}</span>}
+                                {errors.adminUser && (errors.adminUser as any).email && <span className="text-red-500 text-xs">{(errors.adminUser as any).email.message as string}</span>}
                             </div>
                             <div className="space-y-2 col-span-2">
                                 <Label>Temporary Password</Label>

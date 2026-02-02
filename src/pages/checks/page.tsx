@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from 'lucide-react';
 
 import EligibleTraineesTable from '@/components/checks/EligibleTraineesTable';
@@ -18,7 +17,6 @@ const ChecksPage = () => {
     const { user } = useAuth();
     const isAuditor = user?.role === 'auditor' || user?.role === 'readonly';
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState('eligible');
     
     // New modal state for group check support
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -79,7 +77,7 @@ const ChecksPage = () => {
                 </div>
             </div>
 
-            <Tabs defaultValue="eligible" className="w-full" onValueChange={setActiveTab}>
+            <Tabs defaultValue="eligible" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[600px]">
                     <TabsTrigger value="eligible">{t("checks.eligibleTrainees")}</TabsTrigger>
                     <TabsTrigger value="allocated">{t("checks.scheduledChecks")}</TabsTrigger>

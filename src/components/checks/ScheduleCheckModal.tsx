@@ -43,6 +43,7 @@ interface ScheduleCheckModalProps {
     preselectedCandidates?: string[]
     preselectedStandardId?: string
     eligibleStandards?: Array<{ id: string; code: string; name: string }>
+    onSuccess?: () => void
 }
 
 interface Candidate {
@@ -86,7 +87,8 @@ export function ScheduleCheckModal({
     onClose, 
     preselectedCandidates = [],
     preselectedStandardId,
-    eligibleStandards = []
+    eligibleStandards = [],
+    onSuccess
 }: ScheduleCheckModalProps) {
     const { t } = useTranslation()
     const queryClient = useQueryClient()
@@ -196,8 +198,13 @@ export function ScheduleCheckModal({
             toast.success(t('checks.scheduled', 'Proficiency check scheduled'))
             queryClient.invalidateQueries({ queryKey: ['proficiency-checks'] })
             queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
+            queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
             queryClient.invalidateQueries({ queryKey: ['eligible-by-standard'] })
             
+            if (onSuccess) {
+                onSuccess()
+            }
+
             if (data.conflicts && data.conflicts.length > 0) {
                 toast.warning(t('checks.conflictsDetected', 'Some conflicts were detected'))
             }

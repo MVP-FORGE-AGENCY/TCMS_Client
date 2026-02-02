@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,8 +23,8 @@ const auditorSchema = z.object({
   fullName: z.string().min(2, 'Name is required'),
   reason: z.string().min(5, 'Reason is required'),
   expiresAt: z.date().optional(),
-  createWithPassword: z.boolean().default(false),
-  isExternal: z.boolean().default(true),
+  createWithPassword: z.boolean(),
+  isExternal: z.boolean(),
 });
 
 type AuditorFormValues = z.infer<typeof auditorSchema>;

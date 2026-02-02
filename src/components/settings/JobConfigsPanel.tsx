@@ -24,11 +24,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
     Mail, Calendar, FileText, Users, Play, AlertCircle,
     CheckCircle, XCircle, Clock, Plus, Settings2, Trash2, History, AlertTriangle, ChevronDown, ChevronRight
 } from "lucide-react"

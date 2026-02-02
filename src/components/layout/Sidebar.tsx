@@ -310,7 +310,7 @@ export function Sidebar({ className }: SidebarProps) {
                             <Plane className="h-5 w-5 text-white" />
                         </div>
                         <h2 className="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
-                            TCMS
+                            CertifyCloud
                         </h2>
                     </div>
 

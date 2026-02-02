@@ -191,7 +191,7 @@ export function ScheduleCheckForm({ profiles, employees, onSubmit, onCancel }: S
                                                 <CommandEmpty>No assessor found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {employees
-                                                        .filter(e => e.role === "Pilot" || e.role === "admin") // Assuming admins can also assess or filters are broader
+                                                        .filter(e => (["instructor", "assessor", "admin", "super_admin"] as string[]).includes(e.role))
                                                         .map((emp) => (
                                                         <CommandItem
                                                             value={emp.fullName}

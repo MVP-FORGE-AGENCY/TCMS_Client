@@ -89,7 +89,7 @@
     },
     "auth": {
         "welcomeBack": "Welcome back",
-        "enterCredentials": "Enter your credentials to access the TCMS",
+        "enterCredentials": "Enter your credentials to access CertifyCloud",
         "signIn": "Sign in",
         "signingIn": "Signing in...",
         "welcomeBackToast": "Welcome back!",
@@ -259,6 +259,13 @@
             "completed": "Completed",
             "cancelled": "Cancelled"
         },
+        "attendanceStatus": {
+            "planned": "Planned",
+            "present": "Present",
+            "late": "Late",
+            "absent": "Absent",
+            "excused": "Excused"
+        },
         "results": {
             "attendance": "Attendance",
             "present": "Present",
@@ -281,7 +288,16 @@
             "cancelError": "Failed to cancel session",
             "resultsError": "Failed to record results",
             "loadError": "Failed to load sessions"
-        }
+        },
+        "tabs": {
+            "details": "Session Details",
+            "grading": "Module Grading"
+        },
+        "assessmentCriteria": "Assessment Criteria",
+        "retakeTitle": "Schedule Retake",
+        "retakeDesc": "Schedule a retake session for {{name}}",
+        "retakeDate": "Retake Date *",
+        "retakeInfo": "This will create a new session linked to the original attempt. The trainee will be automatically enrolled."
     },
     "checks": {
         "title": "Proficiency Checks",
@@ -647,6 +663,11 @@
             "simulator": "Simulator",
             "selfStudy": "Self Study"
         },
+        "assessmentStrategy": "Assessment Strategy",
+        "integratedGrading": "Integrated Grading",
+        "integratedGradingDesc": "Grading occurs during the last training session. Best for shorter modules.",
+        "dedicatedAssessment": "Dedicated Assessment",
+        "dedicatedAssessmentDesc": "Adds an extra session specifically for assessment. Best for long modules.",
         "loadError": "Failed to load curriculum",
         "created": "Curriculum created",
         "updated": "Curriculum updated",
@@ -690,6 +711,8 @@
         "autoScheduler": "Auto-Scheduler",
         "autoSchedulerDesc": "Automatically generate training sessions for all enrolled trainees.",
         "instructor": "Default Instructor",
+        "instructorByModule": "Instructor by Module",
+        "instructorByModuleDesc": "Optionally assign different instructors per module. Leave blank to use default.",
         "selectInstructor": "Select instructor",
         "location": "Location",
         "sessionDuration": "Session Duration (hours)",
@@ -735,5 +758,17 @@
     "actions": {
         "overdue": "Overdue",
         "due": "Due"
+    },
+    "brand": {
+        "title": "CertifyCloud Brand Identity Showcase",
+        "subtitle": "Comprehensive demonstration of brand-compliant UI components",
+        "colors": "Brand Colors",
+        "typography": "Typography",
+        "components": "Components",
+        "buttons": "Buttons",
+        "badges": "Badges",
+        "cards": "Cards",
+        "footer": "CertifyCloud Brand Identity System v1.0 • Last Updated: January 15, 2026",
+        "reference": "Reference"
     }
 }

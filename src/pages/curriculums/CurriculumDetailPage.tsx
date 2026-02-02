@@ -53,11 +53,9 @@ export default function CurriculumDetailPage() {
     // Schedule Check Modal State
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>()
-    const [scheduleInitialTraineeName, setScheduleInitialTraineeName] = useState<string | undefined>()
 
-    const openScheduleCheck = (traineeId: string, traineeName: string) => {
+    const openScheduleCheck = (traineeId: string) => {
         setScheduleInitialTraineeId(traineeId)
-        setScheduleInitialTraineeName(traineeName)
         setIsScheduleModalOpen(true)
     }
 
@@ -568,7 +566,7 @@ export default function CurriculumDetailPage() {
                                                     {trainee.status === 'ready_for_check' && (
                                                         <Button 
                                                             size="sm" 
-                                                            onClick={() => openScheduleCheck(trainee.userId, trainee.fullName)}
+                                                            onClick={() => openScheduleCheck(trainee.userId)}
                                                         >
                                                             Schedule Check
                                                         </Button>
@@ -596,14 +594,14 @@ export default function CurriculumDetailPage() {
             </Tabs>
 
             <ScheduleCheckModal 
-                open={isScheduleModalOpen} 
-                onOpenChange={setIsScheduleModalOpen}
+                isOpen={isScheduleModalOpen} 
+                onClose={() => setIsScheduleModalOpen(false)}
                 onSuccess={() => {
                     toast.success("Proficiency check scheduled successfully")
                     queryClient.invalidateQueries({ queryKey: ["curriculum-trainees", id] })
+                    setIsScheduleModalOpen(false)
                 }}
-                initialTraineeId={scheduleInitialTraineeId}
-                initialTraineeName={scheduleInitialTraineeName}
+                preselectedCandidates={scheduleInitialTraineeId ? [scheduleInitialTraineeId] : []}
             />
         </div>
     )

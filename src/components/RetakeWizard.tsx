@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, Loader2, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface RetakeCandidate {
@@ -56,7 +55,6 @@ export const RetakeWizard: React.FC<RetakeWizardProps> = ({ curriculumId }) => {
         }
 
         try {
-            const candidate = candidates?.find(c => c.user.id === selectedCandidateId);
             const userStr = localStorage.getItem('user');
             const currentUser = userStr ? JSON.parse(userStr) : null;
             

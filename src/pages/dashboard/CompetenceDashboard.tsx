@@ -84,12 +84,12 @@ export function CompetenceDashboard() {
                         id: item.userId,
                         fullName: item.fullName,
                         organisationId: "",
-                        role: "Employee",
+                        role: "employee",
                         areaOfActivity: item.departmentTag || "General",
                         employmentStart: "",
                         email: item.email,
                         competences: {}
-                    } as EmployeeCompetence)
+                    } as unknown as EmployeeCompetence)
                 }
 
                 const user = usersMap.get(item.userId)!

@@ -663,7 +663,7 @@ export default function CurriculumBuilder() {
                         </div>
 
                         <div className="space-y-3">
-                            <Label>Assessment Strategy</Label>
+                            <Label>{t('curriculums.assessmentStrategy', 'Assessment Strategy')}</Label>
                             <RadioGroup
                                 value={moduleForm.requiresFinalAssessment ? "dedicated" : "integrated"}
                                 onValueChange={(v) => setModuleForm({ ...moduleForm, requiresFinalAssessment: v === "dedicated" })}
@@ -677,9 +677,9 @@ export default function CurriculumBuilder() {
                                     >
                                         <BookOpen className="mb-3 h-6 w-6" />
                                         <div className="text-center">
-                                            <div className="font-semibold">Integrated Grading</div>
+                                            <div className="font-semibold">{t('curriculums.integratedGrading', 'Integrated Grading')}</div>
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                Grading occurs during the last training session. Best for shorter modules.
+                                                {t('curriculums.integratedGradingDesc', 'Grading occurs during the last training session. Best for shorter modules.')}
                                             </div>
                                         </div>
                                     </Label>
@@ -692,9 +692,9 @@ export default function CurriculumBuilder() {
                                     >
                                         <ClipboardCheck className="mb-3 h-6 w-6" />
                                         <div className="text-center">
-                                            <div className="font-semibold">Dedicated Assessment</div>
+                                            <div className="font-semibold">{t('curriculums.dedicatedAssessment', 'Dedicated Assessment')}</div>
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                Adds an extra session specifically for assessment. Best for long modules.
+                                                {t('curriculums.dedicatedAssessmentDesc', 'Adds an extra session specifically for assessment. Best for long modules.')}
                                             </div>
                                         </div>
                                     </Label>

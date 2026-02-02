@@ -27,7 +27,7 @@ interface CertificatesListProps {
     availableChecks?: any[]
 }
 
-export function CertificatesList({ userId, readOnly = false, availableCampaigns = [], availableChecks = [] }: CertificatesListProps) {
+export function CertificatesList({ userId, availableCampaigns = [], availableChecks = [] }: CertificatesListProps) {
     const [certs, setCerts] = useState<Certificate[]>([])
     const [loading, setLoading] = useState(true)
     const [downloading, setDownloading] = useState<string | null>(null)

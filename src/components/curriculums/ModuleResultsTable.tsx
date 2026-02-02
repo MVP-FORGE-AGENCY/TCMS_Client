@@ -11,28 +11,6 @@ import { Search, User, BarChart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 
-interface ModuleResult {
-    id: string;
-    user_id: string;
-    result: string;
-    curriculum_module_id: number;
-    users: {
-        id: string;
-        full_name: string;
-        email: string;
-    };
-    curriculum_modules: {
-        id: string;
-        name: string;
-        type: string;
-    };
-    theory_score?: number;
-    practical_score?: number;
-    attempt_number: number;
-    graded_at: string;
-    graders?: any;
-    comments?: string;
-}
 
 interface ModuleResultsTableProps {
     curriculumId: string;
@@ -186,7 +164,6 @@ export const ModuleResultsTable: React.FC<ModuleResultsTableProps> = ({ curricul
                                 .filter((r: any) => r.curriculum_module_id === mod.id)
                                 .sort((a: any, b: any) => b.attempt_number - a.attempt_number) || [];
                             
-                            const latestResult = moduleAttempts[0];
 
                             return (
                                 <div key={mod.id} className="space-y-2">

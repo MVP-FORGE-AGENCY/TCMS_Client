@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
-import { AlertCircle, CheckCircle, Smartphone } from "lucide-react"
+import { AlertCircle, CheckCircle } from "lucide-react"
 
 interface ComplianceDetailsProps {
     open: boolean

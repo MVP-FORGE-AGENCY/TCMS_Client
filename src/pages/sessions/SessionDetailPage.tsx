@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -89,6 +90,7 @@ const ModuleGradingSection = ({ sessionId }: { sessionId: string }) => {
 };
 
 export default function SessionDetailPage() {
+    const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -435,9 +437,9 @@ export default function SessionDetailPage() {
             {/* Content */}
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4">
-                    <TabsTrigger value="details">Session Details</TabsTrigger>
+                    <TabsTrigger value="details">{t('sessions.tabs.details', 'Session Details')}</TabsTrigger>
                     {(isInProgress || isCompleted) && (session as any).isFinalModuleSession && (
-                        <TabsTrigger value="grading">Module Grading</TabsTrigger>
+                        <TabsTrigger value="grading">{t('sessions.tabs.grading', 'Module Grading')}</TabsTrigger>
                     )}
                 </TabsList>
 
@@ -447,7 +449,7 @@ export default function SessionDetailPage() {
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    Assessment Criteria
+                                    {t('sessions.assessmentCriteria', 'Assessment Criteria')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -503,11 +505,11 @@ export default function SessionDetailPage() {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="planned">Planned</SelectItem>
-                                                            <SelectItem value="present">Present</SelectItem>
-                                                            <SelectItem value="late">Late</SelectItem>
-                                                            <SelectItem value="absent">Absent</SelectItem>
-                                                            <SelectItem value="excused">Excused</SelectItem>
+                                                            <SelectItem value="planned">{t('sessions.attendanceStatus.planned', 'Planned')}</SelectItem>
+                                                            <SelectItem value="present">{t('sessions.attendanceStatus.present', 'Present')}</SelectItem>
+                                                            <SelectItem value="late">{t('sessions.attendanceStatus.late', 'Late')}</SelectItem>
+                                                            <SelectItem value="absent">{t('sessions.attendanceStatus.absent', 'Absent')}</SelectItem>
+                                                            <SelectItem value="excused">{t('sessions.attendanceStatus.excused', 'Excused')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 ) : (
@@ -624,9 +626,9 @@ export default function SessionDetailPage() {
             <Dialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Schedule Retake</DialogTitle>
+                        <DialogTitle>{t('sessions.retakeTitle', 'Schedule Retake')}</DialogTitle>
                         <DialogDescription>
-                            Schedule a retake session for {selectedTrainee?.fullName}
+                            {t('sessions.retakeDesc', 'Schedule a retake session for {{name}}', { name: selectedTrainee?.fullName })}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -639,7 +641,7 @@ export default function SessionDetailPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Retake Date *</Label>
+                            <Label>{t('sessions.retakeDate', 'Retake Date *')}</Label>
                             <Input 
                                 type="datetime-local"
                                 value={retakeForm.dateStart}
@@ -675,8 +677,7 @@ export default function SessionDetailPage() {
                         <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
                             <CardContent className="pt-4">
                                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                                    This will create a new session linked to the original attempt. 
-                                    The trainee will be automatically enrolled.
+                                    {t('sessions.retakeInfo', 'This will create a new session linked to the original attempt. The trainee will be automatically enrolled.')}
                                 </p>
                             </CardContent>
                         </Card>
