@@ -587,3 +587,11 @@ export const jobConfigs = {
     }
 }
 
+// Notifications API
+export const notifications = {
+    list: async () => {
+        const response = await api.get("/notifications")
+        return response.data
+    }
+}
+

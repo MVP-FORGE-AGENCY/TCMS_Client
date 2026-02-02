@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bell } from "lucide-react"
 import {
     DropdownMenu,
@@ -11,24 +11,40 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
-import { addDays, format } from "date-fns"
-
-// Mock notifications
-const MOCK_NOTIFICATIONS = [
-    { id: 1, title: "Expiring Competence", message: "John Doe - OPC-A320 expires in 5 days", date: new Date(), type: "warning" },
-    { id: 2, title: "Expiring Competence", message: "Charlie Davis - FIRST-AID expires in 2 days", date: new Date(), type: "critical" },
-    { id: 3, title: "New Check Scheduled", message: "LPC for Jane Smith scheduled on 2024-05-20", date: addDays(new Date(), -1), type: "info" },
-]
+import { format } from "date-fns"
+import { notifications as notificationsApi } from "@/lib/api"
 
 export function NotificationBell() {
     const navigate = useNavigate()
-    const [notifications, _setNotifications] = useState(MOCK_NOTIFICATIONS)
+    const [notifications, setNotifications] = useState<any[]>([])
+    // const [loading, setLoading] = useState(false) // Could use this for spinner if needed
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                // setLoading(true)
+                const data = await notificationsApi.list()
+                setNotifications(data)
+            } catch (error) {
+                console.error("Failed to fetch notifications", error)
+            } finally {
+                // setLoading(false)
+            }
+        }
+        
+        fetchNotifications()
+        
+        // Poll every 5 minutes
+        const interval = setInterval(fetchNotifications, 5 * 60 * 1000)
+        return () => clearInterval(interval)
+    }, [])
+    
     const unreadCount = notifications.length
 
-    const handleItemClick = (_id: number) => {
-        // In a real app, mark as read
-        // setNotifications(notifications.filter(n => n.id !== id))
-        navigate("/reports")
+    const handleItemClick = (notification: any) => {
+        if (notification.link) {
+            navigate(notification.link)
+        }
     }
 
     return (
@@ -58,14 +74,14 @@ export function NotificationBell() {
                         <DropdownMenuItem
                             key={notification.id}
                             className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                            onClick={() => handleItemClick(notification.id)}
+                            onClick={() => handleItemClick(notification)}
                         >
                             <div className="flex items-center justify-between w-full">
                                 <span className={`font-semibold text-xs ${notification.type === 'critical' ? 'text-red-600' : notification.type === 'warning' ? 'text-amber-600' : ''}`}>
                                     {notification.title}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
-                                    {format(notification.date, "MMM d")}
+                                    {format(new Date(notification.date), "MMM d")}
                                 </span>
                             </div>
                             <p className="text-sm text-foreground/90 leading-tight">
@@ -82,3 +98,4 @@ export function NotificationBell() {
         </DropdownMenu>
     )
 }
+

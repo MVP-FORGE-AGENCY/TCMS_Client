@@ -18,6 +18,8 @@ interface RoleGuardResult {
     canCreate: boolean;
     canEdit: boolean;
     canDelete: boolean;
+    canGrade: boolean;
+    canSign: boolean;
     canManageUsers: boolean;
     canManageStandards: boolean;
     canViewAuditTrail: boolean;
@@ -51,18 +53,28 @@ export function useRoleGuard(): RoleGuardResult {
 
     // Action permissions
     // Auditors and readonly users cannot perform write operations
-    const canCreate = !isReadOnly && hasRole('admin', 'training_manager', 'instructor');
-    const canEdit = !isReadOnly && hasRole('admin', 'training_manager', 'instructor', 'assessor');
-    const canDelete = !isReadOnly && hasRole('admin', 'training_manager');
+    const canCreate = !isReadOnly && hasRole('admin', 'training_manager'); // Instructors cannot create
     
-    // User management is admin/training_manager only
+    // Edit means 'Edit Session Details/Campaigns'. Instructors cannot do this.
+    const canEdit = !isReadOnly && hasRole('admin', 'training_manager'); 
+    
+    // Instructors specific rights
+    const canGrade = !isReadOnly && hasRole('admin', 'training_manager', 'instructor');
+    const canSign = !isReadOnly && hasRole('admin', 'training_manager', 'instructor', 'assessor');
+
+    // Delete is Admin only (Training Manager cannot delete users)
+    const canDelete = !isReadOnly && hasRole('admin');
+    
+    // User management is admin/training_manager only (Manager can Create/Edit, but not Delete)
+    // We split this: Manager can 'view/edit' users but not dangerous actions? 
+    // The spec says: Manager "cannot delete users". 
     const canManageUsers = !isReadOnly && hasRole('admin', 'training_manager');
     
-    // Standards management is admin/training_manager only
-    const canManageStandards = !isReadOnly && hasRole('admin', 'training_manager');
+    // Standards management is admin only (Manager cannot change pass marks)
+    const canManageStandards = !isReadOnly && hasRole('admin');
     
-    // Audit trail is visible to auditors, admins, and super_admins
-    const canViewAuditTrail = hasRole('auditor', 'admin', 'super_admin');
+    // Audit trail is visible to auditors, admins, super_admins AND training_managers (Read Only)
+    const canViewAuditTrail = hasRole('auditor', 'admin', 'super_admin', 'training_manager');
     
     // Everyone can export (auditors need this for compliance)
     const canExportData = true;
@@ -78,6 +90,8 @@ export function useRoleGuard(): RoleGuardResult {
         canCreate,
         canEdit,
         canDelete,
+        canGrade,
+        canSign,
         canManageUsers,
         canManageStandards,
         canViewAuditTrail,

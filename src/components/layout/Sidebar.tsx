@@ -173,25 +173,25 @@ export function Sidebar({ className }: SidebarProps) {
             id: "configuration",
             title: t("nav.groups.configuration"),
             icon: Wrench,
-            roles: ["admin", "super_admin"],
+            roles: ["admin", "super_admin", "training_manager"], // Manager can view settings
             items: [
                 {
                     title: t("nav.regulatoryLibrary"),
                     href: "/standards",
                     icon: Library,
-                    roles: ["admin", "super_admin"],
+                    roles: ["admin", "super_admin", "training_manager"], // Manager needs to seeing standards to schedule against them
                 },
                 {
                     title: t("nav.automation", "Automation Center"),
                     href: "/settings/automation",
                     icon: Bot,
-                    roles: ["admin", "super_admin"],
+                    roles: ["admin", "super_admin"], // Automation likely admin only
                 },
                 {
                     title: t("nav.settings"),
                     href: "/settings",
                     icon: Settings,
-                    roles: ["admin", "super_admin"],
+                    roles: ["admin", "super_admin", "training_manager"], // Manager views read-only settings
                 },
             ],
         },

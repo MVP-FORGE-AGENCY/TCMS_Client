@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Table,
     TableBody,
@@ -11,26 +11,40 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Printer } from "lucide-react"
-import { addDays, differenceInDays } from "date-fns"
+import { differenceInDays } from "date-fns"
 import { useTranslation } from "react-i18next"
 
-// Mock data for expiring items
-const MOCK_EXPIRING_ITEMS = [
-    { id: 1, employee: "John Doe", competence: "OPC-A320", expiryDate: addDays(new Date(), 5), status: "valid" },
-    { id: 2, employee: "Jane Smith", competence: "LPC-A320", expiryDate: addDays(new Date(), 15), status: "valid" },
-    { id: 3, employee: "Bob Johnson", competence: "FIRE-SAF", expiryDate: addDays(new Date(), 45), status: "valid" },
-    { id: 4, employee: "Alice Brown", competence: "CRM-REF", expiryDate: addDays(new Date(), 80), status: "valid" },
-    { id: 5, employee: "Charlie Davis", competence: "FIRST-AID", expiryDate: addDays(new Date(), 2), status: "valid" },
-]
+import { reports } from "@/lib/api"
 
 export default function ExpiringReport() {
     const { t, i18n } = useTranslation()
     const [daysThreshold, setDaysThreshold] = useState([90])
+    const [items, setItems] = useState<any[]>([])
+    // const [loading, setLoading] = useState(false) // Unused for now
 
-    const filteredItems = MOCK_EXPIRING_ITEMS.filter(item => {
-        const daysRemaining = differenceInDays(item.expiryDate, new Date())
-        return daysRemaining >= 0 && daysRemaining <= daysThreshold[0]
-    }).sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime())
+    useEffect(() => {
+        const fetchData = async () => {
+            // setLoading(true)
+            try {
+                const data = await reports.getExpiring(daysThreshold[0])
+                setItems(data || [])
+            } catch (err) {
+                 console.error(err)
+            } finally {
+                 // setLoading(false)
+            }
+        }
+        fetchData()
+    }, [daysThreshold])
+
+    const filteredItems = items.map(item => ({
+         id: item.id,
+         employee: item.users?.full_name || 'Unknown',
+         competence: item.training_standards?.code || 'Unknown',
+         expiryDate: new Date(item.valid_until),
+         status: item.status
+    })).sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime())
+
 
     const handlePrint = () => {
         window.print()
