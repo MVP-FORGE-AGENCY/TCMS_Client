@@ -8,9 +8,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
     ArrowLeft, Save, Plus, Trash2, 
-    BookOpen, ClipboardCheck, Clock, Users, Settings2
+    BookOpen, ClipboardCheck, Clock, Users, Settings2,
+    Check, ChevronsUpDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,10 +22,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { api, standards } from '@/lib/api'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { StandardCreationDialog } from '@/components/standards/StandardCreationDialog'
 import type { 
     CurriculumCreate, CurriculumModule, CurriculumModuleCreate, 
-    CurriculumType, ModuleType, DeliveryMethod 
+    CurriculumType, DeliveryMethod 
 } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -42,9 +50,15 @@ export default function CurriculumBuilder() {
     const [type, setType] = useState<CurriculumType>('recurrent')
     const [validityMonths, setValidityMonths] = useState<number | undefined>(12)
     const [standardTags, setStandardTags] = useState<string[]>([])
-    const [standardTagInput, setStandardTagInput] = useState('')
     const [description, setDescription] = useState('')
     const [modules, setModules] = useState<CurriculumModuleCreate[]>([])
+
+    // Standard combobox state
+    const [openCombobox, setOpenCombobox] = useState(false)
+    const [availableStandards, setAvailableStandards] = useState<any[]>([])
+    const [creationDialogOpen, setCreationDialogOpen] = useState(false)
+    const [creationDialogCode, setCreationDialogCode] = useState('')
+    const [searchValue, setSearchValue] = useState('')
 
     // Module dialog
     const [moduleDialogOpen, setModuleDialogOpen] = useState(false)
@@ -53,15 +67,49 @@ export default function CurriculumBuilder() {
         type: 'instruction',
         name: '',
         durationHours: 2,
-        deliveryMethod: 'classroom'
+        deliveryMethod: 'classroom',
+        requiresTheory: false,
+        requiresPractical: false,
+        allowsNotScored: true,
+        requiresFinalAssessment: false
     })
 
-    // Load existing curriculum
+    // Grading type helpers
+    const getGradingType = (mod: CurriculumModuleCreate): string => {
+        if (mod.requiresTheory && mod.requiresPractical) return 'both'
+        if (mod.requiresTheory) return 'theory'
+        if (mod.requiresPractical) return 'practical'
+        return 'none'
+    }
+
+    const handleGradingTypeChange = (type: string) => {
+        setModuleForm({
+            ...moduleForm,
+            requiresTheory: type === 'theory' || type === 'both',
+            requiresPractical: type === 'practical' || type === 'both',
+            allowsNotScored: type === 'none',
+            // Set default pass scores or clear them based on type
+            theoryPassScore: (type === 'theory' || type === 'both') ? (moduleForm.theoryPassScore || 70) : undefined,
+            practicalPassScore: (type === 'practical' || type === 'both') ? (moduleForm.practicalPassScore || 80) : undefined
+        })
+    }
+
+    // Load existing curriculum and standards
     useEffect(() => {
+        loadStandards()
         if (isEditing) {
             loadCurriculum()
         }
     }, [id])
+
+    const loadStandards = async () => {
+        try {
+            const data = await standards.list({ isActive: true })
+            setAvailableStandards(data || [])
+        } catch (error) {
+            console.error('Failed to load standards:', error)
+        }
+    }
 
     const loadCurriculum = async () => {
         try {
@@ -84,7 +132,14 @@ export default function CurriculumBuilder() {
                 deliveryMethod: m.deliveryMethod,
                 gradingElements: m.gradingElements,
                 passCriteria: m.passCriteria,
-                requiredAssessors: m.requiredAssessors
+                requiredAssessors: m.requiredAssessors,
+                // Map explicit grading config with fallback to passCriteria
+                requiresTheory: (m as any).requiresTheory ?? !!m.passCriteria?.theoryPassScore,
+                requiresPractical: (m as any).requiresPractical ?? !!m.passCriteria?.practicalPassScore,
+                allowsNotScored: (m as any).allowsNotScored,
+                theoryPassScore: (m as any).theoryPassScore ?? m.passCriteria?.theoryPassScore,
+                practicalPassScore: (m as any).practicalPassScore ?? m.passCriteria?.practicalPassScore,
+                requiresFinalAssessment: (m as any).requiresFinalAssessment
             })) || [])
         } catch (error) {
             console.error('Failed to load curriculum:', error)
@@ -143,11 +198,19 @@ export default function CurriculumBuilder() {
         }
     }
 
-    const addStandardTag = () => {
-        if (standardTagInput.trim() && !standardTags.includes(standardTagInput.trim())) {
-            setStandardTags([...standardTags, standardTagInput.trim().toUpperCase()])
-            setStandardTagInput('')
+    const addStandardTag = (tag: string) => {
+        if (tag && !standardTags.includes(tag)) {
+            setStandardTags([...standardTags, tag])
         }
+        setOpenCombobox(false)
+        setSearchValue('')
+    }
+
+    const handleCreateStandard = (std: any) => {
+        // Add new standard to the available list so it appears in suggestions
+        setAvailableStandards(prev => [...prev, std])
+        // Also add it to the selected tags
+        addStandardTag(std.code)
     }
 
     const removeStandardTag = (tag: string) => {
@@ -164,7 +227,11 @@ export default function CurriculumBuilder() {
                 type: 'instruction',
                 name: '',
                 durationHours: 2,
-                deliveryMethod: 'classroom'
+                deliveryMethod: 'classroom',
+                requiresTheory: false,
+                requiresPractical: false,
+                allowsNotScored: true,
+                requiresFinalAssessment: false
             })
         }
         setModuleDialogOpen(true)
@@ -321,16 +388,82 @@ export default function CurriculumBuilder() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex gap-2">
-                                <Input 
-                                    value={standardTagInput}
-                                    onChange={(e) => setStandardTagInput(e.target.value)}
-                                    placeholder="e.g., EASA-ORO-FC-230"
-                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addStandardTag())}
-                                />
-                                <Button variant="outline" onClick={addStandardTag}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
+                            <div className="flex flex-col gap-2">
+                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openCombobox}
+                                            className="w-full justify-between"
+                                        >
+                                            {t('curriculums.selectStandard', 'Select standard...')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0" align="start">
+                                        <div className="p-2 border-b">
+                                            <Input
+                                                placeholder={t('curriculums.searchStandards', 'Search or type new...')}
+                                                value={searchValue}
+                                                onChange={(e) => setSearchValue(e.target.value)}
+                                                className="h-8"
+                                            />
+                                        </div>
+                                        <div className="max-h-[200px] overflow-y-auto">
+                                            {/* Create New Option - Always at top when typing */}
+                                            {searchValue && (
+                                                <div
+                                                    className="flex items-center gap-2 px-3 py-2 cursor-pointer border-l-2 border-l-transparent hover:border-l-primary transition-colors"
+                                                    onClick={() => {
+                                                        setCreationDialogCode(searchValue)
+                                                        setCreationDialogOpen(true)
+                                                        setOpenCombobox(false)
+                                                        setSearchValue('')
+                                                    }}
+                                                >
+                                                    <Plus className="h-4 w-4 text-primary" />
+                                                    <span className="font-medium text-primary">Create "{searchValue}"</span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Existing Standards */}
+                                            {availableStandards
+                                                .filter(std => 
+                                                    !searchValue || 
+                                                    std.code.toLowerCase().includes(searchValue.toLowerCase()) || 
+                                                    std.name.toLowerCase().includes(searchValue.toLowerCase())
+                                                )
+                                                .map((std) => (
+                                                    <div
+                                                        key={std.id}
+                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer border-l-2 border-l-transparent hover:border-l-primary transition-colors"
+                                                        onClick={() => {
+                                                            addStandardTag(std.code)
+                                                            setSearchValue('')
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "h-4 w-4",
+                                                                standardTags.includes(std.code) ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm">{std.code}</span>
+                                                            <span className="text-xs text-muted-foreground">{std.name}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            
+                                            {availableStandards.length === 0 && !searchValue && (
+                                                <div className="py-4 text-center text-sm text-muted-foreground">
+                                                    Type to search or create a new standard.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {standardTags.map((tag) => (
@@ -442,15 +575,17 @@ export default function CurriculumBuilder() {
 
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    {module.type === 'instruction' ? (
-                                                        <BookOpen className="h-4 w-4 text-blue-500" />
-                                                    ) : (
+                                                    {module.requiresFinalAssessment ? (
                                                         <ClipboardCheck className="h-4 w-4 text-violet-500" />
+                                                    ) : (
+                                                        <BookOpen className="h-4 w-4 text-blue-500" />
                                                     )}
                                                     <span className="font-medium">{module.name}</span>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {module.type === 'instruction' ? 'Training' : 'Check'}
-                                                    </Badge>
+                                                    {module.requiresFinalAssessment && (
+                                                        <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">
+                                                            Assessment
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
                                                     <span className="flex items-center gap-1">
@@ -507,31 +642,7 @@ export default function CurriculumBuilder() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>{t('curriculums.moduleType', 'Module Type')}</Label>
-                            <Select 
-                                value={moduleForm.type} 
-                                onValueChange={(v) => setModuleForm({ ...moduleForm, type: v as ModuleType })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="instruction">
-                                        <div className="flex items-center gap-2">
-                                            <BookOpen className="h-4 w-4 text-blue-500" />
-                                            {t('curriculums.instruction', 'Training')}
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="assessment">
-                                        <div className="flex items-center gap-2">
-                                            <ClipboardCheck className="h-4 w-4 text-violet-500" />
-                                            {t('curriculums.assessment', 'Check/Assessment')}
-                                        </div>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+
 
                         <div className="space-y-2">
                             <Label>{t('curriculums.moduleName', 'Module Name')}</Label>
@@ -551,45 +662,147 @@ export default function CurriculumBuilder() {
                             />
                         </div>
 
-                        {moduleForm.type === 'instruction' && (
-                            <div className="space-y-2">
-                                <Label>{t('curriculums.deliveryMethod', 'Delivery Method')}</Label>
-                                <Select 
-                                    value={moduleForm.deliveryMethod || 'classroom'} 
-                                    onValueChange={(v) => setModuleForm({ ...moduleForm, deliveryMethod: v as DeliveryMethod })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="classroom">{t('curriculums.delivery.classroom', 'Classroom')}</SelectItem>
-                                        <SelectItem value="elearning">{t('curriculums.delivery.elearning', 'E-Learning')}</SelectItem>
-                                        <SelectItem value="practical">{t('curriculums.delivery.practical', 'Practical')}</SelectItem>
-                                        <SelectItem value="simulator">{t('curriculums.delivery.simulator', 'Simulator')}</SelectItem>
-                                        <SelectItem value="self_study">{t('curriculums.delivery.selfStudy', 'Self Study')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <div className="space-y-3">
+                            <Label>{t('curriculums.assessmentStrategy', 'Assessment Strategy')}</Label>
+                            <RadioGroup
+                                value={moduleForm.requiresFinalAssessment ? "dedicated" : "integrated"}
+                                onValueChange={(v) => setModuleForm({ ...moduleForm, requiresFinalAssessment: v === "dedicated" })}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                            >
+                                <div>
+                                    <RadioGroupItem value="integrated" id="integrated" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="integrated"
+                                        className="cursor-pointer flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:border-primary/50 hover:bg-accent/50 hover:shadow-sm peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5 transition-all duration-200"
+                                    >
+                                        <BookOpen className="mb-3 h-6 w-6" />
+                                        <div className="text-center">
+                                            <div className="font-semibold">{t('curriculums.integratedGrading', 'Integrated Grading')}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                {t('curriculums.integratedGradingDesc', 'Grading occurs during the last training session. Best for shorter modules.')}
+                                            </div>
+                                        </div>
+                                    </Label>
+                                </div>
+                                <div>
+                                    <RadioGroupItem value="dedicated" id="dedicated" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="dedicated"
+                                        className="cursor-pointer flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:border-primary/50 hover:bg-accent/50 hover:shadow-sm peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5 transition-all duration-200"
+                                    >
+                                        <ClipboardCheck className="mb-3 h-6 w-6" />
+                                        <div className="text-center">
+                                            <div className="font-semibold">{t('curriculums.dedicatedAssessment', 'Dedicated Assessment')}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                {t('curriculums.dedicatedAssessmentDesc', 'Adds an extra session specifically for assessment. Best for long modules.')}
+                                            </div>
+                                        </div>
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
 
-                        {moduleForm.type === 'assessment' && (
+                        <div className="space-y-2">
+                             <Label>{t('curriculums.deliveryMethod', 'Delivery Method')}</Label>
+                             <Select 
+                                 value={moduleForm.deliveryMethod || 'classroom'} 
+                                 onValueChange={(v) => setModuleForm({ ...moduleForm, deliveryMethod: v as DeliveryMethod })}
+                             >
+                                 <SelectTrigger>
+                                     <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     <SelectItem value="classroom">{t('curriculums.delivery.classroom', 'Classroom')}</SelectItem>
+                                     <SelectItem value="elearning">{t('curriculums.delivery.elearning', 'E-Learning')}</SelectItem>
+                                     <SelectItem value="practical">{t('curriculums.delivery.practical', 'Practical')}</SelectItem>
+                                     <SelectItem value="simulator">{t('curriculums.delivery.simulator', 'Simulator')}</SelectItem>
+                                     <SelectItem value="self_study">{t('curriculums.delivery.selfStudy', 'Self Study')}</SelectItem>
+                                 </SelectContent>
+                             </Select>
+                         </div>
+
+
+
+                        <div className="space-y-4 pt-2 border-t">
+                            <Label className="text-base">{t('curriculums.gradingCriteria', 'Grading Criteria')}</Label>
+                            
+                            {/* Grading Type Selector */}
                             <div className="space-y-2">
-                                <Label>{t('curriculums.requiredAssessors', 'Required Assessors')}</Label>
+                                <Label>{t('curriculums.gradingType', 'Grading Type')}</Label>
                                 <Select 
-                                    value={moduleForm.requiredAssessors?.toString() || '1'} 
-                                    onValueChange={(v) => setModuleForm({ ...moduleForm, requiredAssessors: parseInt(v) })}
+                                    value={getGradingType(moduleForm)} 
+                                    onValueChange={handleGradingTypeChange}
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="1">1 Assessor</SelectItem>
-                                        <SelectItem value="2">2 Assessors</SelectItem>
-                                        <SelectItem value="3">3 Assessors</SelectItem>
+                                        <SelectItem value="none">
+                                            <div className="flex items-center gap-2">
+                                                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                                {t('curriculums.grading.none', 'No Scoring (Instruction Only)')}
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="theory">
+                                            <div className="flex items-center gap-2">
+                                                <BookOpen className="h-4 w-4 text-blue-500" />
+                                                {t('curriculums.grading.theory', 'Theory Only')}
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="practical">
+                                            <div className="flex items-center gap-2">
+                                                <ClipboardCheck className="h-4 w-4 text-violet-500" />
+                                                {t('curriculums.grading.practical', 'Practical Only')}
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="both">
+                                            <div className="flex items-center gap-2">
+                                                <ClipboardCheck className="h-4 w-4 text-green-500" />
+                                                {t('curriculums.grading.both', 'Both Theory & Practical')}
+                                            </div>
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                        )}
+                            
+                            {/* Conditional Pass Score Inputs */}
+                            {(moduleForm.requiresTheory || moduleForm.requiresPractical) && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    {moduleForm.requiresTheory && (
+                                        <div className="space-y-2">
+                                            <Label>{t('curriculums.theoryPassScore', 'Theory Pass Score (%)')}</Label>
+                                            <Input 
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={moduleForm.theoryPassScore || ''}
+                                                onChange={(e) => setModuleForm({ 
+                                                    ...moduleForm, 
+                                                    theoryPassScore: parseFloat(e.target.value) || undefined
+                                                })}
+                                                placeholder="e.g., 70"
+                                            />
+                                        </div>
+                                    )}
+                                    {moduleForm.requiresPractical && (
+                                        <div className="space-y-2">
+                                            <Label>{t('curriculums.practicalPassScore', 'Practical Pass Score (%)')}</Label>
+                                            <Input 
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={moduleForm.practicalPassScore || ''}
+                                                onChange={(e) => setModuleForm({ 
+                                                    ...moduleForm, 
+                                                    practicalPassScore: parseFloat(e.target.value) || undefined
+                                                })}
+                                                placeholder="e.g., 80"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="space-y-2">
                             <Label>{t('curriculums.moduleDescription', 'Description (Optional)')}</Label>
@@ -610,6 +823,13 @@ export default function CurriculumBuilder() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {/* Standard Creation Dialog */}
+            <StandardCreationDialog 
+                isOpen={creationDialogOpen}
+                onClose={() => setCreationDialogOpen(false)}
+                onSuccess={handleCreateStandard}
+                initialCode={creationDialogCode}
+            />
         </div>
     )
 }

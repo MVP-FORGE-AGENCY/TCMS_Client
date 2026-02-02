@@ -34,11 +34,15 @@ import { Badge } from "@/components/ui/badge"
 import type { Employee } from "@/types"
 import { Edit, Eye, Trash2, ChevronDown } from "lucide-react"
 
+import { Switch } from "@/components/ui/switch"
+
 interface PersonnelTableProps {
     data: Employee[]
     onEdit?: (employee: Employee) => void
     onViewHistory: (employee: Employee) => void
     onDelete?: (id: string) => void
+    onStatusChange?: (id: string, isActive: boolean) => void
+    showTypeColumn?: boolean
 }
 
 export function PersonnelTable({
@@ -46,6 +50,8 @@ export function PersonnelTable({
     onEdit,
     onViewHistory,
     onDelete,
+    onStatusChange,
+    showTypeColumn = false,
 }: PersonnelTableProps) {
     const { t } = useTranslation()
     const [sorting, setSorting] = useState<SortingState>([])
@@ -79,6 +85,19 @@ export function PersonnelTable({
             cell: ({ row }) => <div className="hidden lg:block">{row.getValue("areaOfActivity")}</div>,
         },
         {
+            accessorKey: "accountType",
+            header: t("personnel.type", "Type"),
+            cell: ({ row }) => {
+                const type = row.getValue("accountType") as string;
+                if (!type) return null;
+                return (
+                    <Badge variant={type === 'external' ? 'destructive' : 'secondary'}>
+                        {type === 'external' ? 'External' : 'Internal'}
+                    </Badge>
+                );
+            },
+        },
+        {
             accessorKey: "employmentStart",
             header: () => <span className="hidden lg:inline">{t("personnel.startDate")}</span>,
             cell: ({ row }) => <div className="hidden lg:block">{row.getValue("employmentStart")}</div>,
@@ -87,9 +106,23 @@ export function PersonnelTable({
             id: "status",
             header: t("personnel.status"),
             cell: ({ row }) => {
-                // Mock logic for status based on employmentEnd
-                const endDate = row.original.employmentEnd
-                const isActive = !endDate || new Date(endDate) > new Date()
+                const employee = row.original
+                const isActive = employee.isActive !== false // Default to true if undefined
+
+                if (onStatusChange) {
+                    return (
+                        <div className="flex items-center space-x-2">
+                             <Switch
+                                checked={isActive}
+                                onCheckedChange={(checked) => onStatusChange(employee.id, checked)}
+                            />
+                            <Badge variant={isActive ? "default" : "secondary"}>
+                                {isActive ? t("common.active") : t("common.inactive")}
+                            </Badge>
+                        </div>
+                    )
+                }
+
                 return (
                     <Badge variant={isActive ? "default" : "secondary"}>
                         {isActive ? t("common.active") : t("common.inactive")}
@@ -140,9 +173,14 @@ export function PersonnelTable({
         },
     ]
 
+    const tableColumns = columns.filter(col => {
+        if (!showTypeColumn && (col as any).accessorKey === "accountType") return false;
+        return true;
+    });
+
     const table = useReactTable({
         data,
-        columns,
+        columns: tableColumns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),

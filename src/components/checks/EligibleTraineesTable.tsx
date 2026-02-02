@@ -1,159 +1,188 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Search, CalendarPlus, Users } from 'lucide-react';
+import { checks } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
-interface EligibleTraineesTableProps {
-    onScheduleClick: (profileId: string, traineeId: string, traineeName: string) => void;
-    refreshTrigger: number;
+interface EligibleTrainee {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    jobTitle: string;
+    department: string;
+    eligibleStandards: Array<{
+        id: string;
+        code: string;
+        name: string;
+    }>;
 }
 
-const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onScheduleClick, refreshTrigger }) => {
-    const [profiles, setProfiles] = useState<any[]>([]);
-    const [selectedProfileId, setSelectedProfileId] = useState<string>('');
-    const [trainees, setTrainees] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+interface EligibleTraineesTableProps {
+    onScheduleClick: (traineeId: string, traineeIds?: string[], standardId?: string) => void;
+    refreshTrigger?: number;
+}
 
-    // Fetch Profiles
-    useEffect(() => {
-        const fetchProfiles = async () => {
-            try {
-                const res = await api.get('/proficiency-profiles');
-                setProfiles(res.data.data);
-                if (res.data.data.length > 0 && !selectedProfileId) {
-                    setSelectedProfileId(res.data.data[0].id);
-                }
-            } catch (error) {
-                console.error("Failed to fetch profiles", error);
-                toast.error("Failed to load proficiency profiles");
-            }
-        };
-        fetchProfiles();
-    }, [refreshTrigger]);
+const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onScheduleClick }) => {
+    const { t } = useTranslation();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedTrainees, setSelectedTrainees] = useState<string[]>([]);
 
-    // Fetch Trainees when profile changes
-    useEffect(() => {
-        if (!selectedProfileId) return;
-
-        const fetchTrainees = async () => {
-            setLoading(true);
-            try {
-                const res = await api.get('/checks/eligible', {
-                    params: { profileId: selectedProfileId }
-                });
-                setTrainees(res.data.trainees);
-            } catch (error) {
-                console.error("Failed to fetch trainees", error);
-                toast.error("Failed to load eligible trainees");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTrainees();
-    }, [selectedProfileId, refreshTrigger]);
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'overdue':
-                return <Badge variant="destructive">Overdue</Badge>;
-            case 'due_soon':
-                return <Badge className="bg-amber-500 hover:bg-amber-600">Due Soon</Badge>;
-            case 'never_checked':
-                return <Badge variant="secondary">Never Checked</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
+    // Fetch eligible trainees using new API
+    const { data: eligibleData, isLoading } = useQuery({
+        queryKey: ['eligible-trainees'],
+        queryFn: async () => {
+            const res = await checks.getEligibleTrainees();
+            return res.data as EligibleTrainee[];
         }
+    });
+
+    const filteredTrainees = eligibleData?.filter(trainee =>
+        trainee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trainee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trainee.department?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const handleSelectTrainee = (traineeId: string) => {
+        setSelectedTrainees(prev => 
+            prev.includes(traineeId) 
+                ? prev.filter(id => id !== traineeId)
+                : [...prev, traineeId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedTrainees.length === filteredTrainees.length) {
+            setSelectedTrainees([]);
+        } else {
+            setSelectedTrainees(filteredTrainees.map(t => t.id));
+        }
+    };
+
+    const handleScheduleMultiple = () => {
+        if (selectedTrainees.length > 0) {
+            onScheduleClick('', selectedTrainees);
+            setSelectedTrainees([]);
+        }
+    };
+
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-4">
-                <div className="w-[300px]">
-                    <label className="text-sm font-medium mb-1 block">Profile</label>
-                    <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select profile..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {profiles.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                    {p.code} - {p.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            {/* Search and Actions */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="relative max-w-sm flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder={t('common.search', 'Search trainees...')}
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
+                {selectedTrainees.length > 0 && (
+                    <Button onClick={handleScheduleMultiple}>
+                        <CalendarPlus className="mr-2 h-4 w-4" />
+                        {t('checks.scheduleSelected', 'Schedule Selected')} ({selectedTrainees.length})
+                    </Button>
+                )}
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-                <Table className="min-w-[700px]">
+            {/* Table */}
+            <div className="rounded-md border">
+                <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Full Name</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Last Check</TableHead>
-                            <TableHead>Next Due</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Conflict</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead className="w-[50px]">
+                                <Checkbox 
+                                    checked={selectedTrainees.length === filteredTrainees.length && filteredTrainees.length > 0}
+                                    onCheckedChange={handleSelectAll}
+                                />
+                            </TableHead>
+                            <TableHead>{t('common.name', 'Name')}</TableHead>
+                            <TableHead>{t('common.role', 'Role')}</TableHead>
+                            <TableHead>{t('common.department', 'Department')}</TableHead>
+                            <TableHead>{t('checks.eligibleStandards', 'Eligible Standards')}</TableHead>
+                            <TableHead className="text-right">{t('common.actions', 'Actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {loading ? (
+                        {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                    Loading trainees...
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                    {t('common.loading', 'Loading...')}
                                 </TableCell>
                             </TableRow>
-                        ) : trainees.length === 0 ? (
+                        ) : filteredTrainees.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                    No eligible trainees found for this profile.
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                    {t('checks.noEligibleTrainees', 'No trainees require proficiency checks at this time')}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            trainees.map((t) => (
-                                <TableRow key={t.userId}>
-                                    <TableCell className="font-medium">{t.fullName}</TableCell>
-                                    <TableCell>{t.department || '-'}</TableCell>
+                            filteredTrainees.map((trainee) => (
+                                <TableRow key={trainee.id}>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {t.lastCheckDate ? new Date(t.lastCheckDate).toLocaleDateString() : '-'}
-                                            {t.lastCheckResult === 'pass' && (
-                                                <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
-                                                    Passed
+                                        <Checkbox 
+                                            checked={selectedTrainees.includes(trainee.id)}
+                                            onCheckedChange={() => handleSelectTrainee(trainee.id)}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarFallback className="text-xs">
+                                                    {getInitials(trainee.fullName)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="font-medium">{trainee.fullName}</div>
+                                                <div className="text-xs text-muted-foreground">{trainee.email}</div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{trainee.jobTitle || trainee.role}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {trainee.department || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {trainee.eligibleStandards.slice(0, 3).map(std => (
+                                                <Badge 
+                                                    key={std.id} 
+                                                    variant="secondary" 
+                                                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                                                    onClick={() => onScheduleClick(trainee.id, undefined, std.id)}
+                                                >
+                                                    {std.code}
+                                                </Badge>
+                                            ))}
+                                            {trainee.eligibleStandards.length > 3 && (
+                                                <Badge variant="outline">
+                                                    +{trainee.eligibleStandards.length - 3}
                                                 </Badge>
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span>{t.nextDueDate ? new Date(t.nextDueDate).toLocaleDateString() : '-'}</span>
-                                            {t.nextDueDate && (
-                                                <span className={`text-xs ${t.daysToDue < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                                                    {t.daysToDue} days
-                                                </span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {getStatusBadge(t.status)}
-                                    </TableCell>
-                                    <TableCell>
-                                        {t.hasConflict && (
-                                            <div className="flex items-center text-amber-600 text-sm" title="Warning: You were an instructor for this trainee recently. check.schedule API will block or warn.">
-                                                <AlertTriangle className="h-4 w-4 mr-1" />
-                                                Possible Conflict
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button variant="outline" size="sm" onClick={() => onScheduleClick(selectedProfileId, t.userId, t.fullName)}>
-                                            Schedule
+                                    <TableCell className="text-right">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => onScheduleClick(trainee.id)}
+                                        >
+                                            <CalendarPlus className="h-4 w-4 mr-1" />
+                                            {t('common.schedule', 'Schedule')}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -162,6 +191,14 @@ const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onSchedul
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Summary */}
+            {eligibleData && eligibleData.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    {t('checks.totalEligible', '{{count}} trainees eligible for proficiency checks', { count: eligibleData.length })}
+                </div>
+            )}
         </div>
     );
 };

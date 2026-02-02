@@ -20,6 +20,7 @@ import {
     GraduationCap,
     Library,
     Target,
+    Bot,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
@@ -80,7 +81,7 @@ export function Sidebar({ className }: SidebarProps) {
             title: t("nav.dashboard"),
             href: "/dashboard",
             icon: LayoutDashboard,
-            roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin"],
+            roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
         },
     ]
 
@@ -90,20 +91,20 @@ export function Sidebar({ className }: SidebarProps) {
             id: "planning",
             title: t("nav.groups.planning"),
             icon: CalendarDays,
-            roles: ["admin", "training_manager", "super_admin"],
+            roles: ["admin", "training_manager", "super_admin", "auditor"],
             defaultOpen: true,
             items: [
                 {
                     title: t("nav.campaigns"),
                     href: "/campaigns",
                     icon: CalendarDays,
-                    roles: ["admin", "training_manager", "super_admin"],
+                    roles: ["admin", "training_manager", "super_admin", "auditor"],
                 },
                 {
                     title: t("nav.curriculums"),
                     href: "/curriculums",
                     icon: GraduationCap,
-                    roles: ["admin", "training_manager", "super_admin"],
+                    roles: ["admin", "training_manager", "super_admin", "auditor"],
                 },
             ],
         },
@@ -111,34 +112,34 @@ export function Sidebar({ className }: SidebarProps) {
             id: "execution",
             title: t("nav.groups.execution"),
             icon: PlayCircle,
-            roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin"],
+            roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
             defaultOpen: true,
             items: [
                 {
                     title: t("nav.schedule"),
                     href: "/sessions",
                     icon: Calendar,
-                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin"],
+                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
                     variant: "training",
                 },
                 {
                     title: t("nav.checks"),
                     href: "/checks",
                     icon: ClipboardCheck,
-                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin"],
+                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
                     variant: "checking",
                 },
                 {
                     title: t("nav.competence"),
                     href: "/competence",
                     icon: Target,
-                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin"],
+                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
                 },
                 {
                     title: t("nav.procedures"),
                     href: "/procedures",
                     icon: ClipboardList,
-                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "readonly", "super_admin"],
+                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "readonly", "super_admin", "auditor"],
                 },
             ],
         },
@@ -146,19 +147,25 @@ export function Sidebar({ className }: SidebarProps) {
             id: "records",
             title: t("nav.groups.records"),
             icon: FolderOpen,
-            roles: ["admin", "training_manager", "super_admin"],
+            roles: ["admin", "training_manager", "super_admin", "auditor"],
             items: [
                 {
                     title: t("nav.personnel"),
                     href: "/personnel",
                     icon: Users,
-                    roles: ["admin", "training_manager", "super_admin", "instructor", "assessor"],
+                    roles: ["admin", "training_manager", "super_admin", "instructor", "assessor", "auditor"],
                 },
                 {
                     title: t("nav.reports"),
                     href: "/reports",
                     icon: FileText,
-                    roles: ["admin", "training_manager", "super_admin"],
+                    roles: ["admin", "training_manager", "super_admin", "auditor"],
+                },
+                {
+                    title: t("auditLogs", "Audit Logs"),
+                    href: "/audit-logs",
+                    icon: FileText, // Or Shield/Search
+                    roles: ["admin", "super_admin", "auditor"],
                 },
             ],
         },
@@ -172,7 +179,13 @@ export function Sidebar({ className }: SidebarProps) {
                     title: t("nav.regulatoryLibrary"),
                     href: "/standards",
                     icon: Library,
-                    roles: ["admin", "training_manager", "super_admin"],
+                    roles: ["admin", "super_admin"],
+                },
+                {
+                    title: t("nav.automation", "Automation Center"),
+                    href: "/settings/automation",
+                    icon: Bot,
+                    roles: ["admin", "super_admin"],
                 },
                 {
                     title: t("nav.settings"),
@@ -285,7 +298,7 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <div className={cn(
-            "pb-12 min-h-screen border-r border-border bg-background flex flex-col transition-colors duration-300",
+            "h-screen sticky top-0 border-r border-border bg-background flex flex-col transition-colors duration-300",
             "dark:bg-slate-950 dark:border-slate-800",
             className
         )}>
@@ -297,7 +310,7 @@ export function Sidebar({ className }: SidebarProps) {
                             <Plane className="h-5 w-5 text-white" />
                         </div>
                         <h2 className="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
-                            TCMS
+                            CertifyCloud
                         </h2>
                     </div>
 

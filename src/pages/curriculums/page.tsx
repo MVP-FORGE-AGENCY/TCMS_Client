@@ -17,9 +17,13 @@ import { api } from '@/lib/api'
 import type { Curriculum, CurriculumType } from '@/types'
 import { cn } from '@/lib/utils'
 import { CurriculumHistoryModal } from '@/components/curriculums/CurriculumHistoryModal'
+import { useAuth } from '@/context/AuthContext'
+
 
 export default function CurriculumsPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
     const navigate = useNavigate()
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
     const [loading, setLoading] = useState(true)
@@ -81,10 +85,15 @@ export default function CurriculumsPage() {
                         {t('curriculums.subtitle', 'Define training and assessment modules for your organization.')}
                     </p>
                 </div>
+            </div>
+            {/* Header Actions */}
+            <div className="flex justify-end">
+                {!isAuditor && (
                 <Button onClick={() => navigate('/curriculums/new')}>
                     <Plus className="mr-2 h-4 w-4" />
                     {t('curriculums.createCurriculum', 'Create Curriculum')}
                 </Button>
+                )}
             </div>
 
             {/* Filters */}

@@ -22,6 +22,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Upload, Download, Check, Archive, FileText, Pencil, BookOpen, ClipboardCheck, Clock, Users } from "lucide-react"
+import { ModuleResultsTable } from "@/components/curriculums/ModuleResultsTable"
+import { RetakeWizard } from "@/components/RetakeWizard"
+import ScheduleCheckModal from "@/components/checks/ScheduleCheckModal"
 
 interface Material {
     id: string
@@ -30,6 +33,8 @@ interface Material {
     version: number
     status: string
     storagePath?: string
+    moduleId?: string
+    moduleName?: string
     uploadedByName?: string
     approvedByName?: string
     approvedAt?: string
@@ -42,8 +47,17 @@ export default function CurriculumDetailPage() {
     const queryClient = useQueryClient()
     const { user } = useAuth()
     const [isUploadOpen, setIsUploadOpen] = useState(false)
-    const [uploadData, setUploadData] = useState({ title: "", type: "pdf" })
+    const [uploadData, setUploadData] = useState({ title: "", type: "pdf", moduleId: "" })
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+    // Schedule Check Modal State
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+    const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>()
+
+    const openScheduleCheck = (traineeId: string) => {
+        setScheduleInitialTraineeId(traineeId)
+        setIsScheduleModalOpen(true)
+    }
 
     const canManage = user?.role && ["admin", "training_manager"].includes(user.role)
     const canUpload = user?.role && ["admin", "training_manager", "instructor"].includes(user.role)
@@ -60,12 +74,19 @@ export default function CurriculumDetailPage() {
         enabled: !!id,
     })
 
+    const { data: traineesData } = useQuery({
+        queryKey: ["curriculum-trainees", id],
+        queryFn: () => curriculums.getTrainees(id!),
+        enabled: !!id,
+    })
+
     const uploadMutation = useMutation({
         mutationFn: async () => {
             // First create material record and get its ID
             const response = await curriculums.uploadMaterial(id!, {
                 title: uploadData.title,
                 type: uploadData.type,
+                moduleId: uploadData.moduleId || undefined,
                 fileSize: selectedFile?.size,
                 mimeType: selectedFile?.type,
             })
@@ -98,7 +119,7 @@ export default function CurriculumDetailPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["curriculum-materials", id] })
             setIsUploadOpen(false)
-            setUploadData({ title: "", type: "pdf" })
+            setUploadData({ title: "", type: "pdf", moduleId: "" })
             setSelectedFile(null)
             toast.success("Material uploaded successfully")
         },
@@ -184,10 +205,13 @@ export default function CurriculumDetailPage() {
                         History
                     </Button> */}
                     {canManage && (
-                        <Button onClick={() => navigate(`/curriculums/${id}/edit`)} size="sm">
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                        </Button>
+                        <>
+                            <RetakeWizard curriculumId={id!} />
+                            <Button onClick={() => navigate(`/curriculums/${id}/edit`)} size="sm">
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -197,6 +221,7 @@ export default function CurriculumDetailPage() {
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="modules">Modules</TabsTrigger>
                     <TabsTrigger value="materials">Materials</TabsTrigger>
+                    <TabsTrigger value="trainees">Trainees</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
@@ -364,6 +389,25 @@ export default function CurriculumDetailPage() {
                                             </Select>
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right">Module</Label>
+                                            <Select
+                                                value={uploadData.moduleId}
+                                                onValueChange={(v) => setUploadData({ ...uploadData, moduleId: v === 'none' ? '' : v })}
+                                            >
+                                                <SelectTrigger className="col-span-3">
+                                                    <SelectValue placeholder="(All Modules / General)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">(All Modules / General)</SelectItem>
+                                                    {modules.map((m: any) => (
+                                                        <SelectItem key={m.id} value={m.id}>
+                                                            {m.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
                                             <Label className="text-right">File</Label>
                                             <Input
                                                 type="file"
@@ -390,6 +434,7 @@ export default function CurriculumDetailPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Title</TableHead>
+                                    <TableHead>Module</TableHead>
                                     <TableHead>Type</TableHead>
                                     <TableHead className="text-center">Version</TableHead>
                                     <TableHead className="text-center">Status</TableHead>
@@ -400,7 +445,7 @@ export default function CurriculumDetailPage() {
                             <TableBody>
                                 {!materialsData || materialsData.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                             No materials uploaded yet
                                         </TableCell>
                                     </TableRow>
@@ -412,6 +457,13 @@ export default function CurriculumDetailPage() {
                                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                                     {m.title}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {m.moduleName ? (
+                                                    <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">General</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="uppercase text-xs">{m.type}</TableCell>
                                             <TableCell className="text-center">v{m.version}</TableCell>
@@ -462,7 +514,95 @@ export default function CurriculumDetailPage() {
                         </Table>
                     </div>
                 </TabsContent>
+
+                <TabsContent value="trainees" className="space-y-6">
+                    {/* Ready for Proficiency Check Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium tracking-tight">Ready for Proficiency Check</h3>
+                        </div>
+                        
+                        {traineesData?.data?.trainees?.length > 0 ? (
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Trainee</TableHead>
+                                            <TableHead>Campaign</TableHead>
+                                            <TableHead>Eligible Standards</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {traineesData.data.trainees.map((trainee: any) => (
+                                            <TableRow key={trainee.id}>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{trainee.fullName}</span>
+                                                        <span className="text-xs text-muted-foreground">{trainee.email}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{trainee.campaignName}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {trainee.eligibleStandards.map((std: any) => (
+                                                            <Badge key={std.id} variant="outline" className="text-xs">
+                                                                {std.code}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={
+                                                        trainee.status === 'ready_for_check' ? 'bg-green-500' :
+                                                        trainee.status === 'check_scheduled' ? 'bg-blue-500' : 'bg-gray-500'
+                                                    }>
+                                                        {trainee.status === 'ready_for_check' ? 'Ready' :
+                                                         trainee.status === 'check_scheduled' ? 'Scheduled' : 'Completed'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {trainee.status === 'ready_for_check' && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            onClick={() => openScheduleCheck(trainee.userId)}
+                                                        >
+                                                            Schedule Check
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="rounded-md border p-8 text-center text-muted-foreground">
+                                No trainees currently ready for proficiency checks.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 pt-6 bt-2 border-t">
+                        <div className="flex items-center justify-between">
+                             <h3 className="text-lg font-medium tracking-tight">Module Results Overview</h3>
+                        </div>
+                        <ModuleResultsTable curriculumId={id!} modules={modules} />
+                    </div>
+                </TabsContent>
             </Tabs>
+
+            <ScheduleCheckModal 
+                isOpen={isScheduleModalOpen} 
+                onClose={() => setIsScheduleModalOpen(false)}
+                onSuccess={() => {
+                    toast.success("Proficiency check scheduled successfully")
+                    queryClient.invalidateQueries({ queryKey: ["curriculum-trainees", id] })
+                    setIsScheduleModalOpen(false)
+                }}
+                preselectedCandidates={scheduleInitialTraineeId ? [scheduleInitialTraineeId] : []}
+            />
         </div>
     )
 }

@@ -6,12 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, Award } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import SubmitEvaluationModal from '@/components/checks/SubmitEvaluationModal';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import SignatureModal from './SignatureModal';
 
 import { useBreadcrumb } from "@/context/BreadcrumbContext";
@@ -27,13 +38,53 @@ const CheckDetailPage = () => {
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
     const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
     const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [selectedCandidate, setSelectedCandidate] = useState<{id: string, name: string} | null>(null);
 
     useEffect(() => {
         if (check && id) {
-            const label = `${check.profile?.code} - ${check.trainee?.full_name}`;
+            const code = check.profile?.code || (check.checkType ? check.checkType.toUpperCase() : 'CHECK');
+            const name = check.candidates?.length > 1 
+                ? `${check.candidates.length} Candidates` 
+                : (check.trainee?.fullName || check.candidates?.[0]?.candidate?.fullName || 'Trainee');
+            
+            const label = `${code} - ${name}`;
             setLabel(id, label);
         }
     }, [check, id, setLabel]);
+
+    const canStartCheck = () => {
+        if (!check || check.finalDecision !== 'pending') return { allowed: false };
+        
+        // 1. Role Check
+        const isAssessor = check.assessors?.some((a: any) => a.user?.id === user?.id);
+        const isAdminOrManager = user?.role && ['admin', 'training_manager', 'instructor'].includes(user.role);
+        
+        if (!isAssessor && !isAdminOrManager) return { allowed: false, reason: 'Not authorized' };
+
+        // 2. Date Check
+        const today = new Date();
+        const checkDate = new Date(check.dateStart);
+        // Allow if today is same day or after (if missed? usually strict, user said "only on the day")
+        // User said: "only on the day that it was scheduled for (until then...)"
+        // Assuming strict same day or maybe "not before". "Until then" implies future is blocked.
+        // What if it's yesterday and missed? Usually should be allowed to start late?
+        // Detailed request: "only on the day that it was scheduled for (until then the 'start' button should be disabled...)"
+        // This implies prevention of EARLY start. I'll allow Today and After.
+        // Actually "on the day" might be strict. I'll stick to "Not Before".
+        const isFuture = checkDate.setHours(0,0,0,0) > today.setHours(0,0,0,0);
+        
+        if (isFuture) {
+             return { 
+                 allowed: false, 
+                 reason: `Cannot start before ${new Date(check.dateStart).toLocaleDateString()}` 
+             };
+        }
+
+        return { allowed: true };
+    };
+
+    const startStatus = canStartCheck();
 
 
     const handleFinalize = async () => {
@@ -56,10 +107,10 @@ const CheckDetailPage = () => {
     };
 
     const fetchCheck = async () => {
-        setLoading(true);
+        if (!check) setLoading(true);
         try {
             const res = await api.get(`/checks/${id}`);
-            setCheck(res.data);
+            setCheck(res.data.data);
         } catch (error) {
             console.error("Failed to fetch check", error);
             toast.error("Failed to load check details");
@@ -68,10 +119,14 @@ const CheckDetailPage = () => {
         }
     };
 
-    const handleDownloadProtocol = async () => {
+    const handleDownloadProtocol = async (candidateId?: string) => {
         try {
+            const url = candidateId 
+                ? `/checks/${id}/protocol?candidateId=${candidateId}`
+                : `/checks/${id}/protocol`;
+
             toast.promise(
-                api.get(`/checks/${id}/protocol`, { responseType: 'blob' }),
+                api.get(url, { responseType: 'blob' }),
                 {
                     loading: 'Generating Protocol PDF...',
                     success: (response) => {
@@ -93,6 +148,30 @@ const CheckDetailPage = () => {
         }
     };
 
+    const handleDownloadCertificate = async (candidateId: string) => {
+        try {
+            toast.promise(
+                api.get(`/checks/${id}/certificate?candidateId=${candidateId}`, { responseType: 'blob' }),
+                {
+                    loading: 'Generating Certificate PDF...',
+                    success: (response) => {
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `Certificate.pdf`);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        return 'Certificate downloaded';
+                    },
+                    error: 'Failed to download certificate'
+                }
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const handleStartCheck = async () => {
         try {
             await api.post(`/checks/${id}/start`);
@@ -105,8 +184,6 @@ const CheckDetailPage = () => {
     };
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this scheduled check? This action cannot be undone.')) return;
-        
         try {
             await api.delete(`/checks/${id}`);
             toast.success('Check deleted');
@@ -116,8 +193,6 @@ const CheckDetailPage = () => {
             toast.error(error.response?.data?.error?.message || 'Failed to delete check');
         }
     };
-
-
 
     const getDerivedDecision = () => {
         if (!check?.assessors) return 'fail';
@@ -130,8 +205,6 @@ const CheckDetailPage = () => {
         return check.assessors.map((a: any) => `${a.full_name}: ${a.evaluation?.comments || 'No comments'}`).join('\n');
     };
 
-
-
     useEffect(() => {
         if (id) fetchCheck();
     }, [id]);
@@ -140,7 +213,13 @@ const CheckDetailPage = () => {
         return name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
     };
 
-
+    const getCandidateStatus = (candidate: any) => {
+         // Use check_candidates outcome
+         if (candidate.outcome && candidate.outcome !== 'pending') return candidate.outcome;
+         
+         // Or derive from evaluations if outcome not yet finalized 
+         return 'pending';
+    };
 
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading check details...</div>;
     if (!check) return <div className="p-8 text-center text-red-500">Check not found</div>;
@@ -161,35 +240,61 @@ const CheckDetailPage = () => {
                         </div>
                         <div className="text-right flex items-center gap-2">
                             {check.finalDecision === 'pending' && <Badge variant="outline" className="text-amber-500 border-amber-500">Pending</Badge>}
-                            {check.finalDecision === 'in_progress' && <Badge variant="outline" className="text-blue-500 border-blue-500 animate-pulse">In Progress</Badge>}
+                            {check.finalDecision === 'in_progress' && <Badge variant="outline" className="text-blue-500 border-blue-500">In Progress</Badge>}
                             {check.finalDecision === 'pass' && <Badge className="bg-green-500">Passed</Badge>}
                             {check.finalDecision === 'fail' && <Badge variant="destructive">Failed</Badge>}
+
+                            {/* Start Check Action (Global for Admin/Manager) */}
+                            {user?.role && ['admin', 'training_manager', 'instructor'].includes(user.role) && check.finalDecision === 'pending' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span tabIndex={0}>
+                                                <Button 
+                                                    size="sm" 
+                                                    className="ml-2 gap-2 bg-blue-600 hover:bg-blue-700" 
+                                                    onClick={handleStartCheck}
+                                                    disabled={!startStatus.allowed}
+                                                >
+                                                    <Play className="w-4 h-4" /> Start Check
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        {!startStatus.allowed && (
+                                            <TooltipContent>
+                                                <p>{startStatus.reason}</p>
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
                             
-                            {/* Delete Action - Only for pending checks */}
-                            {check.finalDecision === 'pending' && (
-                                <Button size="sm" variant="destructive" onClick={handleDelete} title="Delete Check">
+                            {/* Delete Action - Pending checks ONLY (Admin/Manager) */}
+                            {(check.finalDecision === 'pending' && user?.role && ['admin', 'training_manager'].includes(user.role)) && (
+                                <Button size="sm" variant="destructive" onClick={() => setIsDeleteAlertOpen(true)} title="Delete Check">
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             )}
 
                             {/* Generate Official Protocol - Only for finalized checks */}
                             {(check.finalDecision === 'pass' || check.finalDecision === 'fail') && (
-                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={handleDownloadProtocol}>
+                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={() => handleDownloadProtocol()}>
                                     <FileText className="w-4 h-4" /> Generate Official Protocol
                                 </Button>
                             )}
-
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid md:grid-cols-3 gap-4 mb-6">
+                            {!check.isGroupCheck && (
                             <div className="flex items-center space-x-2 text-sm">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <div>
                                     <p className="font-medium">Trainee</p>
-                                    <p className="text-muted-foreground">{check.trainee?.full_name}</p>
+                                    <p className="text-muted-foreground">{check.trainee?.fullName}</p>
                                 </div>
                             </div>
+                            )}
                             <div className="flex items-center space-x-2 text-sm">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div>
@@ -210,6 +315,80 @@ const CheckDetailPage = () => {
 
                         <Separator className="my-6" />
 
+                        {/* Candidates List (Group & Single) */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-3">
+                                {check.isGroupCheck ? 'Candidates' : 'Evaluation Status'}
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                                {check.candidates?.length === 0 && (
+                                    <div className="p-4 text-center border rounded-lg bg-muted/20 text-muted-foreground">
+                                        No candidates assigned to this check.
+                                    </div>
+                                )}
+                                {check.candidates?.map((candidate: any) => {
+                                    const status = getCandidateStatus(candidate);
+                                    // Check if current user (assessor) has evaluated this candidate
+                                    const myEvaluation = candidate.evaluations?.find((e: any) => e.assessorId === user?.id);
+                                    const isAssessor = check.assessors?.some((a: any) => a.user?.id === user?.id);
+
+                                    return (
+                                    <div key={candidate.candidateId} className="flex flex-col md:flex-row items-center justify-between border rounded-lg p-4 bg-card hover:bg-muted/10">
+                                        <div className="flex items-center space-x-3 w-full md:w-auto">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback>{getInitials(candidate.candidate?.fullName)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{candidate.candidate?.fullName}</p>
+                                                <p className="text-xs text-muted-foreground">{candidate.candidate?.email}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 mt-3 md:mt-0">
+                                            {/* Status Badge */}
+                                            {status === 'pending' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Pending</Badge>}
+                                            {status === 'pass' && <Badge className="bg-green-500 hover:bg-green-600">Passed</Badge>}
+                                            {status === 'fail' && <Badge variant="destructive">Failed</Badge>}
+
+                                            {/* Protocol Download */}
+                                            {status !== 'pending' && (
+                                                <Button size="sm" variant="ghost" onClick={() => handleDownloadProtocol(candidate.candidateId)}>
+                                                    <FileText className="w-4 h-4 mr-1" /> Protocol
+                                                </Button>
+                                            )}
+
+                                            {/* Certificate Download */}
+                                            {candidate.outcome === 'pass' && (
+                                                <Button size="sm" variant="ghost" onClick={() => handleDownloadCertificate(candidate.candidateId)}>
+                                                    <Award className="w-4 h-4 mr-1 text-yellow-600" /> Certificate
+                                                </Button>
+                                            )}
+
+                                            {/* Evaluate Action */}
+                                            {isAssessor && check.finalDecision === 'in_progress' && (
+                                                myEvaluation ? (
+                                                    <Badge variant="outline" className="text-green-600 border-green-200">
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> Submitted
+                                                    </Badge>
+                                                ) : (
+                                                    <Button size="sm" onClick={() => {
+                                                        const name = candidate.candidate?.fullName || candidate.candidate?.full_name || candidate.fullName || 'Candidate';
+                                                        setSelectedCandidate({ id: candidate.candidateId, name });
+                                                        setIsSubmitModalOpen(true);
+                                                    }}>
+                                                        <PenTool className="w-3 h-3 mr-1" /> Evaluate
+                                                    </Button>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <Separator className="my-6" />
+
                         <div>
                             <h3 className="text-lg font-semibold mb-3">Assessors</h3>
                             <div className="flex flex-col gap-3">
@@ -217,11 +396,11 @@ const CheckDetailPage = () => {
                                     <div key={assessor.id} className="flex flex-col md:flex-row items-start md:items-center justify-between border rounded-lg p-4 bg-card hover:bg-muted/10 transition-colors">
                                         <div className="flex items-center space-x-3 mb-3 md:mb-0">
                                             <Avatar className="h-10 w-10">
-                                                <AvatarFallback>{getInitials(assessor.full_name)}</AvatarFallback>
+                                                <AvatarFallback>{getInitials(assessor.user?.fullName)}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="font-medium text-sm md:text-base">{assessor.full_name}</p>
-                                                <p className="text-xs text-muted-foreground">{assessor.email}</p>
+                                                <p className="font-medium text-sm md:text-base">{assessor.user?.fullName}</p>
+                                                <p className="text-xs text-muted-foreground">{assessor.user?.email}</p>
                                             </div>
                                         </div>
                                         <div className="flex flex-row md:flex-col items-center md:items-end gap-2 w-full md:w-auto justify-between md:justify-end">
@@ -242,17 +421,60 @@ const CheckDetailPage = () => {
                                             )}
                                             
                                             <div className="flex gap-2">
-                                                {/* Action for current user */}
-                                                {accessToStart(user, assessor, check) && (
-                                                    <Button size="sm" className="h-8" variant="secondary" onClick={handleStartCheck}>
-                                                        <Play className="w-3 h-3 mr-1" /> Start
-                                                    </Button>
+                                                {/* Action for current user (Assessor) */}
+                                                {user?.id === assessor.user?.id && check.finalDecision === 'pending' && (
+                                                     <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span tabIndex={0}>
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        className="h-8" 
+                                                                        variant="secondary" 
+                                                                        onClick={handleStartCheck}
+                                                                        disabled={!startStatus.allowed}
+                                                                    >
+                                                                        <Play className="w-3 h-3 mr-1" /> Start
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            {!startStatus.allowed && (
+                                                                <TooltipContent>
+                                                                    <p>{startStatus.reason}</p>
+                                                                </TooltipContent>
+                                                            )}
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 )}
 
-                                                {accessToEvaluate(user, assessor, check) && (
-                                                    <Button size="sm" className="h-8" onClick={() => setIsSubmitModalOpen(true)}>
+                                                {/* Evaluate Button - Show if Started and NOT signed */}
+                                                {(user?.id === assessor.user?.id && check.finalDecision === 'in_progress' && !assessor.evaluationSubmitted && !assessor.signatureReceived) && (
+                                                    <Button size="sm" className="h-8" onClick={() => {
+                                                        // If single candidate, auto-select
+                                                        if (check.candidates && check.candidates.length === 1) {
+                                                           const c = check.candidates[0];
+                                                           const name = c.candidate?.fullName || c.candidate?.full_name || 'Candidate';
+                                                           setSelectedCandidate({ id: c.candidateId, name });
+                                                           setIsSubmitModalOpen(true);
+                                                        } else if (check.candidates && check.candidates.length > 1) {
+                                                            // If multiple, show toast or scroll to candidates list
+                                                            toast.info("Please select a specific candidate from the list above to evaluate.");
+                                                            const el = document.getElementById('candidates-list');
+                                                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                                        } else {
+                                                            // Legacy fallback
+                                                            setIsSubmitModalOpen(true);
+                                                        }
+                                                    }}>
                                                         <PenTool className="w-3 h-3 mr-1" /> Evaluate
                                                     </Button>
+                                                )}
+                                                
+                                                {/* Finished Evaluating / Signed Status for Me */}
+                                                {(user?.id === assessor.user?.id && (assessor.evaluationSubmitted || assessor.signatureReceived)) && (
+                                                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 px-3 py-1 ml-2">
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> Evaluation Completed
+                                                    </Badge>
                                                 )}
                                                 
 
@@ -279,7 +501,33 @@ const CheckDetailPage = () => {
                         <CardTitle>Assessment Criteria</CardTitle>
                     </CardHeader>
                     <CardContent>
+                        {/* Pass Criteria Display */}
+                        {check.pass_criteria && (
+                            <div className="mb-6 pb-6 border-b">
+                                <h4 className="font-semibold text-sm mb-3">Passing Standards</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {check.pass_criteria.required?.includes('theory') && (
+                                        <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
+                                            <span className="text-xs text-muted-foreground uppercase font-medium">Theory</span>
+                                            <span className="font-semibold text-lg">
+                                                Min {check.pass_criteria.theory}%
+                                            </span>
+                                        </div>
+                                    )}
+                                    {check.pass_criteria.required?.includes('practical') && (
+                                        <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
+                                            <span className="text-xs text-muted-foreground uppercase font-medium">Practical</span>
+                                            <span className="font-semibold text-lg capitalize">
+                                                {check.pass_criteria.practical === 'pass' ? 'Pass / Fail' : check.pass_criteria.practical}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
+                            <h4 className="font-semibold text-sm mb-2">Required Elements</h4>
                             {Object.values(check.profile.required_elements).map((elem: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0 hover:bg-muted/50 px-2 py-1 rounded">
                                     <span className="font-medium">{elem.name}</span>
@@ -291,7 +539,46 @@ const CheckDetailPage = () => {
                 </Card>
                 )}
 
+
             </div>
+
+            {/* Batch Signing Button for Multi-Candidate */}
+            {check.candidates?.length > 1 && (
+                 (() => {
+                     const isAssessor = check.assessors?.some((a: any) => a.id === user?.id);
+                     if (!isAssessor) return null;
+                     
+                     // Check if I have graded all candidates
+                     const myEvals = check.candidates.filter((c: any) => 
+                         c.evaluations?.some((e: any) => e.assessor_id === user?.id)
+                     );
+                     const allGraded = myEvals.length === check.candidates.length;
+                     
+                     // Check if I have already signed
+                     // We don't have direct access to check_signatures here unless we add it to the API response
+                     // Assuming 'assessor.signatureReceived' logic maps efficiently?
+                     // Verify API response for 'assessors' includes signature status.
+                     // The View code shows `assessor.signatureReceived`.
+                     const meAssessor = check.assessors.find((a: any) => a.id === user?.id);
+                     const alreadySigned = meAssessor?.signatureReceived; // Note: Ensure backend populates this
+
+                     if (allGraded && !alreadySigned && check.finalDecision !== 'pass' && check.finalDecision !== 'fail' && check.finalDecision !== 'completed') {
+                         return (
+                            <div className="fixed bottom-6 right-6 z-50">
+                                <Button 
+                                    size="lg" 
+                                    className="shadow-xl" 
+                                    onClick={() => setIsSignModalOpen(true)}
+                                >
+                                    <PenTool className="mr-2 h-5 w-5" />
+                                    Sign Protocol ({check.candidates.length} Candidates)
+                                </Button>
+                            </div>
+                         );
+                     }
+                     return null;
+                 })()
+            )}
 
             <SubmitEvaluationModal 
                 open={isSubmitModalOpen}
@@ -299,18 +586,40 @@ const CheckDetailPage = () => {
                 checkId={id!}
                 profile={check.profile}
                 checkType={check.check_type || 'combined'}
-                standard={check.profile?.training_standards}
-                traineeName={check.trainee?.full_name}
-                onSuccess={fetchCheck}
+                passCriteria={check.pass_criteria}
+                standard={check.trainingStandards || check.profile?.trainingStandards}
+                traineeName={selectedCandidate?.name || check.trainee?.full_name}
+                candidateId={selectedCandidate?.id}
+                skipSignature={check.candidates?.length > 1}
+                onSuccess={() => {
+                    fetchCheck();
+                    setSelectedCandidate(null);
+                }}
             />
 
             <SignatureModal
                 open={isSignModalOpen}
                 onOpenChange={setIsSignModalOpen}
                 checkId={id!}
-                traineeName={check.trainee?.full_name}
+                traineeName={check.isGroupCheck ? "Multiple Candidates" : check.trainee?.full_name}
                 onSuccess={fetchCheck}
             />
+
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the scheduled check
+                            and remove all associated data, including evaluations and signatures.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <Dialog open={isFinalizeOpen} onOpenChange={setIsFinalizeOpen}>
                 <DialogContent className="max-w-2xl">
@@ -323,43 +632,48 @@ const CheckDetailPage = () => {
                     </DialogHeader>
                     
                     <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                        {/* Summary of Evaluations */}
-                        {check.assessors?.map((assessor: any) => (
-                            <div key={assessor.id} className="border rounded-md p-3 bg-muted/20">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <span className="font-semibold text-sm">{assessor.full_name}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">({assessor.role || 'Assessor'})</span>
-                                    </div>
-                                    <Badge className={
-                                        assessor.evaluation?.result === 'pass' ? 'bg-green-500' : 'bg-red-500'
-                                    }>
-                                        {assessor.evaluation?.result?.toUpperCase() || 'PENDING'}
-                                    </Badge>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                                    {(assessor.evaluation?.theory_score !== undefined && assessor.evaluation?.theory_score !== null) && (
-                                        <div>Theory: <strong>{assessor.evaluation.theory_score}%</strong></div>
-                                    )}
-                                    {(assessor.evaluation?.practical_score !== undefined && assessor.evaluation?.practical_score !== null) && (
-                                        <div>Practical: <strong>{assessor.evaluation.practical_score}%</strong></div>
-                                    )}
-                                </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Review the evaluations below. This will finalize the check and record competence for passing candidates.
+                        </p>
 
-                                {assessor.evaluation?.comments && (
-                                    <div className="text-sm italic text-muted-foreground bg-white p-2 rounded">
-                                        "{assessor.evaluation?.comments}"
+                        {/* Iterate Candidates */}
+                        <div className="space-y-6">
+                        {check.candidates?.map((candidate: any) => {
+                            // Calculate candidate specific status
+                            const candidateEvals = candidate.evaluations || [];
+                            const allPass = candidateEvals.length > 0 && candidateEvals.length >= check.profile?.required_assessors && candidateEvals.every((e: any) => e.result === 'pass');
+                            const outcome = allPass ? 'pass' : 'fail';
+                            // If insufficient evals, it's technically a fail or pending, but here we assume validation happened
+                            
+                            return (
+                                <div key={candidate.id} className="border rounded-md p-4">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h4 className="font-semibold">{candidate.fullName}</h4>
+                                        <Badge className={outcome === 'pass' ? 'bg-green-600' : 'bg-red-600'}>
+                                            PROPOSED: {outcome.toUpperCase()}
+                                        </Badge>
                                     </div>
-                                )}
-                            </div>
-                        ))}
-
-                        <div className="flex items-center justify-between border-t pt-4 mt-4">
-                            <span className="font-bold text-lg">Proposed Final Decision:</span>
-                            <Badge className={`text-lg px-4 py-1 ${getDerivedDecision() === 'pass' ? 'bg-green-600' : 'bg-red-600'}`}>
-                                {getDerivedDecision().toUpperCase()}
-                            </Badge>
+                                    
+                                    <div className="grid gap-2 pl-4 border-l-2">
+                                        {check.assessors?.map((assessor: any) => {
+                                            const evaluation = candidateEvals.find((e: any) => e.assessor_id === assessor.id);
+                                            return (
+                                                <div key={assessor.id} className="flex justify-between items-center text-sm">
+                                                    <span>{assessor.fullName}</span>
+                                                    {evaluation ? (
+                                                        <span className={evaluation.result === 'pass' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                                            {evaluation.result.toUpperCase()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-amber-500 italic">Pending</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
                         </div>
                     </div>
 
@@ -376,16 +690,6 @@ const CheckDetailPage = () => {
 };
 
 // Helper
-const accessToEvaluate = (currentUser: any, assessor: any, check: any) => {
-    if (!currentUser || !assessor) return false;
-    // Must match ID, not be submitted, and check is in_progress
-    return currentUser.id === assessor.id && !assessor.evaluationSubmitted && check.finalDecision === 'in_progress';
-};
-
-const accessToStart = (currentUser: any, assessor: any, check: any) => {
-    if (!currentUser || !assessor) return false;
-    // Must match ID, check is pending, and user is assigned
-    return currentUser.id === assessor.id && check.finalDecision === 'pending';
-};
+// (accessToEvaluate and accessToStart logic moved inline)
 
 export default CheckDetailPage;

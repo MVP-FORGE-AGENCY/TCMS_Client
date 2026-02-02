@@ -21,9 +21,12 @@ import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type { Campaign, CampaignCreate, Curriculum } from '@/types'
 import { format } from 'date-fns'
+import { useAuth } from '@/context/AuthContext'
 
 export default function CampaignsPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
     const navigate = useNavigate()
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
@@ -114,6 +117,7 @@ export default function CampaignsPage() {
                         {t('campaigns.subtitle', 'Manage training campaigns and bulk scheduling.')}
                     </p>
                 </div>
+                {!isAuditor && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>
@@ -220,6 +224,7 @@ export default function CampaignsPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                )}
             </div>
 
             {/* Filters */}

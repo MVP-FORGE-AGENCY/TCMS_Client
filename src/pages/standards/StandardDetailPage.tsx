@@ -21,10 +21,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Upload, Download, Check, Archive, FileText, History, Pencil } from "lucide-react"
+import { ArrowLeft, Upload, Download, Check, Archive, FileText, History, Pencil, ClipboardCheck } from "lucide-react"
 import { EditStandardDialog } from "@/components/standards/EditStandardDialog"
 import { RevisionHistoryModal } from "@/components/standards/RevisionHistoryModal"
 import { RevisionBadge } from "@/components/standards/RevisionBadge"
+import CheckConfigurationEditor from "@/components/standards/CheckConfigurationEditor"
 
 interface Material {
     id: string
@@ -210,6 +211,7 @@ export default function StandardDetailPage() {
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="materials">Materials</TabsTrigger>
                     <TabsTrigger value="sessions">Sessions</TabsTrigger>
+                    {canManage && <TabsTrigger value="checks">Check Configuration</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
@@ -498,6 +500,20 @@ export default function StandardDetailPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {canManage && (
+                    <TabsContent value="checks" className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                            <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                            <h2 className="text-lg font-semibold">Proficiency Check Configuration</h2>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Define the items that will be assessed during proficiency checks for this standard.
+                            These items will be available when scheduling checks.
+                        </p>
+                        <CheckConfigurationEditor standardId={id!} />
+                    </TabsContent>
+                )}
             </Tabs>
 
             {standard && (

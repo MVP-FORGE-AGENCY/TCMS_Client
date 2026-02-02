@@ -1,7 +1,7 @@
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "./NotificationBell"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Sidebar } from "./Sidebar"
 import { Breadcrumbs } from "./Breadcrumbs"
 import {
@@ -48,6 +48,8 @@ export function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[240px]">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
                     <Sidebar className="border-none" />
                 </SheetContent>
             </Sheet>
@@ -73,13 +75,13 @@ export function Header() {
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="rounded-full">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={user?.avatarUrl} alt={user?.full_name || "User"} />
-                                <AvatarFallback>{getInitials(user?.full_name)}</AvatarFallback>
+                                <AvatarImage src={(user as any)?.avatarUrl} alt={user?.fullName || "User"} />
+                                <AvatarFallback>{getInitials(user?.fullName)}</AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{user?.full_name || t("common.myAccount")}</DropdownMenuLabel>
+                        <DropdownMenuLabel>{user?.fullName || t("common.myAccount")}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => navigate("/settings")}>{t("nav.settings")}</DropdownMenuItem>
                         <DropdownMenuItem>{t("common.support")}</DropdownMenuItem>

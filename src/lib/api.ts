@@ -48,6 +48,10 @@ export const employees = {
         const response = await api.get("/employees", { params })
         return response.data
     },
+    inviteAuditor: async (data: { email: string; fullName: string; expiresAt?: Date; reason: string; createWithPassword?: boolean; password?: string; isExternal?: boolean }) => {
+        const response = await api.post("/employees/invite-auditor", data)
+        return response.data
+    },
 }
 
 // Absences CRUD
@@ -224,15 +228,30 @@ export const checks = {
         const response = await api.get(`/checks/${id}`)
         return response.data
     },
+    // Updated to support both single trainee (legacy) and group checks (new)
+    // Also supports new standard-based flow with checkType
     create: async (data: {
-        profileId: string
-        traineeId: string
-        assessorId: string
-        assessorIds?: string[]
+        profileId?: string           // Legacy profile-based flow
+        standardId?: string          // New: standard-based flow
+        checkType?: 'full_renewal' | 'partial'  // New: check type
+        selectedItemIds?: string[]   // New: specific items for partial checks
+        traineeId?: string          // Legacy single trainee
+        candidateIds?: string[]     // New: array of candidate IDs for group checks
+        assessorId?: string         // Legacy single assessor
+        assessorIds?: string[]      // New: array of assessor IDs
+        passCriteria?: {            // New: pass requirements
+            required: string[]
+            theory?: number
+            practical?: string
+        }
         dateStart: string
         location?: string
     }) => {
         const response = await api.post("/checks", data)
+        return response.data
+    },
+    getEligibleStandards: async (candidateIds: string[]) => {
+        const response = await api.get("/checks/eligible-standards", { params: { candidateIds: candidateIds.join(',') } })
         return response.data
     },
     complete: async (id: string, data: {
@@ -255,7 +274,7 @@ export const checks = {
         result: string
         comments?: string
     }) => {
-        const response = await api.post(`/checks/${id}/assessor-evaluations`, data)
+        const response = await api.post(`/checks/${id}/evaluation`, data)
         return response.data
     },
     sign: async (id: string, signatureData: string) => {
@@ -268,6 +287,15 @@ export const checks = {
         comments?: string
     }) => {
         const response = await api.patch(`/checks/${id}/finalise`, data)
+        return response.data
+    },
+    // New: Eligibility endpoints
+    getEligibleTrainees: async () => {
+        const response = await api.get("/checks/eligible-trainees")
+        return response.data
+    },
+    getEligibleByStandard: async () => {
+        const response = await api.get("/checks/eligible-by-standard")
         return response.data
     },
 }
@@ -405,10 +433,157 @@ export const curriculums = {
     uploadMaterial: async (id: string, data: {
         title: string
         type: string
+        moduleId?: string
         fileSize?: number
         mimeType?: string
     }) => {
         const response = await api.post(`/curriculums/${id}/materials`, data)
         return response.data
     },
+    getTrainees: async (id: string) => {
+        const response = await api.get(`/curriculums/${id}/trainees`)
+        return response.data
+    },
+    checkCompletion: async (id: string, userId: string) => {
+        const response = await api.get(`/curriculums/${id}/completion-status/${userId}`)
+        return response.data
+    },
+    complete: async (id: string, userId: string) => {
+        const response = await api.post(`/curriculums/${id}/complete/${userId}`)
+        return response.data
+    },
 }
+
+// Competence API
+export const competence = {
+    getDashboard: async (params?: { userId?: string; standardId?: string; status?: string; department?: string; role?: string; page?: number; limit?: number }) => {
+        const response = await api.get("/competence", { params })
+        return response.data
+    },
+    getSummary: async (params?: { department?: string; standardId?: string }) => {
+        const response = await api.get("/competence/summary", { params })
+        return response.data
+    },
+    getExpiring: async (withinDays: number = 90) => {
+        const response = await api.get("/competence/expiring", { params: { withinDays } })
+        return response.data
+    },
+    refresh: async () => {
+        const response = await api.post("/competence/refresh")
+        return response.data
+    },
+    getEvents: async (id: string) => {
+        const response = await api.get(`/competence/${id}/events`)
+        return response.data
+    },
+    reinstate: async (id: string, notes: string) => {
+        const response = await api.post(`/competence/${id}/reinstate`, { notes })
+        return response.data
+    },
+    getEmployeeHistory: async (userId: string) => {
+        const response = await api.get(`/employees/${userId}/history`)
+        return response.data
+    }
+}
+
+// Certificates API
+export const certificates = {
+    getMyCertificates: async () => {
+        const response = await api.get("/certificates")
+        return response.data
+    },
+    getUserCertificates: async (userId: string) => {
+        const response = await api.get("/certificates", { params: { userId } })
+        return response.data
+    },
+    getDownloadUrl: async (id: string) => {
+        const response = await api.get(`/certificates/${id}/download`)
+        return response.data
+    }
+}
+
+// Module Results & Grading
+export const moduleResults = {
+    getCurriculumResults: async (curriculumId: string, params?: { userId?: string }) => {
+        const response = await api.get(`/curriculums/${curriculumId}/module-results`, { params })
+        return response.data
+    },
+    getModuleResults: async (moduleId: string) => {
+        const response = await api.get(`/modules/${moduleId}/results`)
+        return response.data
+    },
+    getResultAttempts: async (resultId: string) => {
+        const response = await api.get(`/module-results/${resultId}/attempts`)
+        return response.data
+    },
+    gradeModule: async (moduleId: string, data: {
+        userId: string
+        theoryScore?: number
+        practicalScore?: number
+        comments?: string
+        strengths?: string
+        areasForImprovement?: string
+        sessionId?: string
+        forceResult?: string
+    }) => {
+        const response = await api.post(`/modules/${moduleId}/grade`, data)
+        return response.data
+    },
+    createAttempt: async (resultId: string, data: { notes: string }) => {
+        const response = await api.post(`/module-results/${resultId}/new-attempt`, data)
+        return response.data
+    },
+    // Session specific grading view
+    getSessionGrading: async (sessionId: string) => {
+        const response = await api.get(`/sessions/${sessionId}/module-grading`)
+        return response.data
+    }
+}
+
+// Job Configs API (New Scheduler System)
+export const jobConfigs = {
+    list: async () => {
+        const response = await api.get("/admin/job-configs")
+        return response.data
+    },
+    get: async (id: string) => {
+        const response = await api.get(`/admin/job-configs/${id}`)
+        return response.data
+    },
+    create: async (data: {
+        job_type: string
+        cron_expression: string
+        timezone?: string
+        config_payload?: Record<string, any>
+        is_enabled?: boolean
+    }) => {
+        const response = await api.post("/admin/job-configs", data)
+        return response.data
+    },
+    update: async (id: string, data: Partial<{
+        cron_expression: string
+        timezone: string
+        config_payload: Record<string, any>
+        is_enabled: boolean
+    }>) => {
+        const response = await api.put(`/admin/job-configs/${id}`, data)
+        return response.data
+    },
+    delete: async (id: string) => {
+        const response = await api.delete(`/admin/job-configs/${id}`)
+        return response.data
+    },
+    runNow: async (id: string) => {
+        const response = await api.post(`/admin/job-configs/${id}/run-now`)
+        return response.data
+    },
+    getHistory: async (id: string, limit?: number) => {
+        const response = await api.get(`/admin/job-configs/${id}/history`, { params: { limit } })
+        return response.data
+    },
+    getJobTypes: async () => {
+        const response = await api.get("/admin/job-configs/types")
+        return response.data
+    }
+}
+

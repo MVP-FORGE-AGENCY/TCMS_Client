@@ -75,8 +75,8 @@ export default function StandardsPage() {
     const [isToggleStatusOpen, setIsToggleStatusOpen] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
-    const canManage = user?.role && ["admin", "training_manager"].includes(user.role)
-    const canDelete = user?.role === "admin"
+    const canManage = user?.role && ["admin", "super_admin"].includes(user.role)
+    const canDelete = user?.role === "admin" || user?.role === "super_admin"
 
     const { data: standardsData, isLoading } = useQuery({
         queryKey: ["standards"],
