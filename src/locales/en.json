@@ -483,6 +483,18 @@
         "retakeTitle": "Schedule Retake",
         "retakeDesc": "Schedule a retake session for {{name}}",
         "retakeDate": "Retake Date *",
+        "sessionLabel": "{{module}} - Session {{number}}",
+        "manageParticipants": "Manage Participants",
+        "startSession": "Start Session",
+        "endSession": "End Session",
+        "endAndRecord": "End & Record Results",
+        "generateCertificates": "Generate Certificates",
+        "sendCertificates": "Send All by Email",
+        "participantsCount": "Participants ({{count}})",
+        "theoryPassScore": "Theory Pass Score",
+        "practicalPassScore": "Practical Pass Score",
+        "attendanceSheetButton": "Attendance Sheet",
+        "unassigned": "Unassigned",
         "retakeInfo": "This will create a new session linked to the original attempt. The trainee will be automatically enrolled."
     },
     "checks": {
@@ -1038,6 +1050,7 @@
         "remainingHours": "remaining",
         "exceedsRemaining": "Exceeds remaining hours for this module",
         "generating": "Generating...",
+        "sessionsScheduled": "{{count}} session(s) scheduled",
         "scheduleGenerated": "{{count}} sessions created",
         "schedule": "Schedule",
         "settings": "Settings",
@@ -1086,7 +1099,8 @@
         "comments": "Comments",
         "commentRequired": "Comment required for this grade...",
         "commentOptional": "Optional comment...",
-        "commentRequiredError": "A comment is required for grades 1, 2, or 5"
+        "commentRequiredError": "A comment is required for grades 1, 2, or 5",
+        "addComments": "Add comments..."
     },
     "actions": {
         "overdue": "Overdue",

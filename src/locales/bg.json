@@ -589,6 +589,18 @@
         "retakeTitle": "Планиране на поправка",
         "retakeDesc": "Планиране на поправка за {{name}}",
         "retakeDate": "Дата на поправка *",
+        "sessionLabel": "{{module}} - Сесия {{number}}",
+        "manageParticipants": "Управление на участници",
+        "startSession": "Старт на сесия",
+        "endSession": "Край на сесия",
+        "endAndRecord": "Край и запис на резултати",
+        "generateCertificates": "Генериране на сертификати",
+        "sendCertificates": "Изпрати всички по имейл",
+        "participantsCount": "Участници ({{count}})",
+        "theoryPassScore": "Праг преминаване теория",
+        "practicalPassScore": "Праг преминаване практика",
+        "attendanceSheetButton": "Присъствен списък",
+        "unassigned": "Неназначен",
         "retakeInfo": "Това ще създаде нова сесия, свързана с първоначалния опит. Обучаемият ще бъде записан автоматично."
     },
     "absences": {
@@ -978,6 +990,7 @@
         "remainingHours": "оставащи",
         "exceedsRemaining": "Надвишава оставащите часове за този модул",
         "generating": "Генериране...",
+        "sessionsScheduled": "{{count}} сесии са планирани",
         "scheduleGenerated": "{{count}} сесии създадени",
         "schedule": "График",
         "settings": "Настройки",
@@ -1018,7 +1031,8 @@
         "comments": "Коментари",
         "commentRequired": "Коментарът е задължителен за тази оценка...",
         "commentOptional": "Опционален коментар...",
-        "commentRequiredError": "Коментарът е задължителен за оценки 1, 2 или 5"
+        "commentRequiredError": "Коментарът е задължителен за оценки 1, 2 или 5",
+        "addComments": "Добави коментар..."
     },
     "actions": {
         "overdue": "Просрочено",

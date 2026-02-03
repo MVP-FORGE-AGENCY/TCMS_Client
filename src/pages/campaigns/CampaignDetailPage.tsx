@@ -128,6 +128,8 @@ export default function CampaignDetailPage() {
         email: string
         sessionsAttended: number
         sessionsAbsent: number
+        scheduledHours: number
+        totalModuleHours: number
         totalSessions: number
         theoryScore?: number | null
         practicalScore?: number | null
@@ -396,23 +398,17 @@ export default function CampaignDetailPage() {
                 const response = await api.get(`/campaigns/${id}/modules/${manualScheduleForm.moduleId}/trainees`)
                 const trainees = response.data.data?.trainees || []
                 
-                // Get selected module info for hour calculation
-                const selectedMod = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
-                const totalModuleHours = selectedMod?.totalHours || 0
-                
-                // Calculate hours per trainee based on sessions attended
+                // Use backend-provided scheduled hours per trainee
                 const mappedTrainees: ScheduleModuleTrainee[] = trainees.map((t: ModuleTrainee) => {
-                    // Estimate hours: sessionsAttended / totalSessions * totalModuleHours
-                    const hoursAttended = t.totalSessions > 0 
-                        ? Math.round((t.sessionsAttended / t.totalSessions) * totalModuleHours * 10) / 10
-                        : 0
+                    const hoursAttended = t.scheduledHours || 0
+                    const hoursTotal = t.totalModuleHours || 0
                     return {
                         userId: t.userId,
                         fullName: t.fullName,
                         email: t.email,
                         hoursAttended,
-                        hoursTotal: totalModuleHours,
-                        isComplete: hoursAttended >= totalModuleHours && totalModuleHours > 0
+                        hoursTotal,
+                        isComplete: hoursAttended >= hoursTotal && hoursTotal > 0
                     }
                 })
                 setScheduleModuleTrainees(mappedTrainees)
@@ -491,7 +487,10 @@ export default function CampaignDetailPage() {
         }
         try {
             setManualScheduling(true)
-            const response = await api.post(`/campaigns/${id}/schedule-module`, manualScheduleForm)
+            const response = await api.post(`/campaigns/${id}/schedule-module`, {
+                ...manualScheduleForm,
+                participantIds: manualScheduleForm.selectedTraineeIds
+            })
             toast.success(t('campaigns.sessionsScheduled', '{count} session(s) scheduled', {
                 count: response.data.summary.sessionsCreated
             }))
@@ -1284,6 +1283,7 @@ export default function CampaignDetailPage() {
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.module', 'Module')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.location', 'Location')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.instructor', 'Instructor')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.trainees', 'Trainees')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
                                             <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
                                         </tr>
@@ -1322,6 +1322,11 @@ export default function CampaignDetailPage() {
                                                 </td>
                                                 <td className="px-4 py-3">{session.location || '-'}</td>
                                                 <td className="px-4 py-3">{session.instructor?.fullName || '-'}</td>
+                                                <td className="px-4 py-3">
+                                                    {session.participantDisplay || (
+                                                        <span className="text-muted-foreground text-sm">{t('sessions.noTrainees', 'No trainees')}</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <Badge className={cn(
                                                         session.status === 'planned' && 'bg-blue-100 text-blue-800',
@@ -1707,7 +1712,7 @@ export default function CampaignDetailPage() {
 
             {/* Manual Schedule Session Dialog */}
             <Dialog open={manualScheduleDialogOpen} onOpenChange={setManualScheduleDialogOpen}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader>
                         <DialogTitle>{t('campaigns.scheduleSession', 'Schedule Session')}</DialogTitle>
                         <DialogDescription>
@@ -1740,7 +1745,7 @@ export default function CampaignDetailPage() {
                                                         {t('campaigns.moduleComplete', 'Complete')}
                                                     </span>
                                                 ) : (
-                                                    `${mod.scheduledHours}/${mod.totalHours}h`
+                                                    `${mod.totalHours}h`
                                                 )}
                                             </span>
                                         </div>
@@ -1763,21 +1768,11 @@ export default function CampaignDetailPage() {
                                         <SelectItem 
                                             key={mod.id} 
                                             value={mod.id}
-                                            disabled={mod.isComplete}
                                         >
                                             <span className="flex items-center gap-2">
-                                                {mod.isComplete && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                                                <span className={mod.isComplete ? "text-muted-foreground" : ""}>
-                                                    {mod.name}
-                                                </span>
-                                                <span className={cn(
-                                                    "text-xs",
-                                                    mod.isComplete ? "text-green-600" : "text-orange-600"
-                                                )}>
-                                                    {mod.isComplete 
-                                                        ? t('campaigns.moduleComplete', 'Complete')
-                                                        : `${mod.remainingHours}h ${t('campaigns.remainingHours', 'remaining')}`
-                                                    }
+                                                <span>{mod.name}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    ({mod.durationHours}h)
                                                 </span>
                                             </span>
                                         </SelectItem>
@@ -1791,24 +1786,12 @@ export default function CampaignDetailPage() {
                             const selectedModStatus = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
                             if (!selectedModStatus) return null
                             return (
-                                <Card className="bg-blue-50 border-blue-200">
-                                    <CardContent className="pt-3 pb-3">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="font-medium">{selectedModStatus.name}</span>
-                                            <Badge variant="outline" className="bg-white">
-                                                {selectedModStatus.scheduledHours}h / {selectedModStatus.totalHours}h {t('campaigns.scheduledHours', 'scheduled')}
-                                            </Badge>
+                                <Card className="bg-blue-50 border-blue-200 shadow-sm">
+                                    <CardContent className="p-4 flex items-center justify-between">
+                                        <div className="font-medium text-lg">
+                                            {selectedModStatus.name}
+                                            <span className="ml-2 text-muted-foreground font-normal text-sm">({selectedModStatus.durationHours}h)</span>
                                         </div>
-                                        <Progress 
-                                            value={selectedModStatus.totalHours > 0 
-                                                ? (selectedModStatus.scheduledHours / selectedModStatus.totalHours) * 100 
-                                                : 0
-                                            } 
-                                            className="h-2 mt-2" 
-                                        />
-                                        <p className="text-xs text-blue-700 mt-1">
-                                            {selectedModStatus.remainingHours}h {t('campaigns.remainingHours', 'remaining')}
-                                        </p>
                                     </CardContent>
                                 </Card>
                             )
@@ -1835,13 +1818,13 @@ export default function CampaignDetailPage() {
                                             {t('campaigns.noTraineesForModule', 'No trainees enrolled for this campaign')}
                                         </p>
                                     ) : (
-                                        <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2 bg-muted/20">
+                                        <div className="max-h-[200px] overflow-y-auto space-y-1 border rounded-md p-2 bg-muted/20 custom-scrollbar">
                                             {scheduleModuleTrainees.map(trainee => (
                                                 <div 
                                                     key={trainee.userId} 
                                                     className={cn(
-                                                        "flex items-center justify-between p-2 rounded-md text-sm",
-                                                        trainee.isComplete ? "bg-green-50 opacity-60" : "bg-white hover:bg-muted/50"
+                                                        "flex items-center justify-between p-2 rounded-md text-sm transition-colors",
+                                                        trainee.isComplete ? "bg-green-50/50" : "bg-white hover:bg-muted/50"
                                                     )}
                                                 >
                                                     <div className="flex items-center gap-2">
@@ -1870,31 +1853,17 @@ export default function CampaignDetailPage() {
                                                             {trainee.fullName}
                                                         </label>
                                                     </div>
-                                                    <span className={cn(
-                                                        "text-xs font-medium flex items-center gap-1",
-                                                        trainee.isComplete 
-                                                            ? "text-green-600" 
-                                                            : trainee.hoursAttended > 0 
-                                                                ? "text-blue-600" 
-                                                                : "text-orange-600"
-                                                    )}>
-                                                        {trainee.isComplete ? (
-                                                            <>
-                                                                <CheckCircle2 className="h-3 w-3" />
-                                                                {t('campaigns.moduleComplete', 'Complete')}
-                                                            </>
-                                                        ) : trainee.hoursAttended > 0 ? (
-                                                            <>
-                                                                <Calendar className="h-3 w-3" />
-                                                                {trainee.hoursAttended}/{trainee.hoursTotal}h
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <XCircle className="h-3 w-3" />
+                                                    <div className="text-right text-xs">
+                                                        {trainee.hoursAttended === 0 ? (
+                                                            <span className="text-orange-600 font-medium">
                                                                 {t('campaigns.noSession', 'No session')}
-                                                            </>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                {trainee.hoursAttended}/{trainee.hoursTotal}h {t('campaigns.scheduledHours', 'scheduled')}
+                                                            </span>
                                                         )}
-                                                    </span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

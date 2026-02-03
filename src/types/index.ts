@@ -90,6 +90,8 @@ export interface Session {
         code: string;
         passScorePercent?: number;
     } | null; // Legacy - deprecated
+    participantCount?: number;
+    participantDisplay?: string | null;
 }
 
 export interface SessionCreate {

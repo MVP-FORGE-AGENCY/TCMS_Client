@@ -175,7 +175,7 @@ export default function SessionDetailPage() {
                 // Campaign context - show module name with session number
                 const moduleName = urlModuleName || (session as any).curriculumModule?.name || session.programme?.code || ''
                 const sessionLabel = sessionNumber && totalSessions && parseInt(totalSessions) > 1
-                    ? `${moduleName} - Session ${sessionNumber}`
+                    ? t('sessions.sessionLabel', { module: moduleName, number: sessionNumber })
                     : moduleName
                 setLabel(id, sessionLabel)
             } else {
@@ -340,10 +340,10 @@ export default function SessionDetailPage() {
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight">
                             {campaignId && urlModuleName ? (
                                 sessionNumber && totalSessions && parseInt(totalSessions) > 1
-                                    ? `${decodeURIComponent(urlModuleName)} - Session ${sessionNumber}`
+                                    ? t('sessions.sessionLabel', { module: decodeURIComponent(urlModuleName), number: sessionNumber })
                                     : decodeURIComponent(urlModuleName)
                             ) : (
-                                `${session.programme?.code || (session as any).curriculumModule?.name || 'Session'} - ${session.programme?.name || new Date(session.dateStart).toLocaleDateString()}`
+                                `${session.programme?.code || (session as any).curriculumModule?.name || t('sessions.session', 'Session')} - ${session.programme?.name || new Date(session.dateStart).toLocaleDateString()}`
                             )}
                         </h1>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground mt-1 text-sm">
@@ -351,7 +351,7 @@ export default function SessionDetailPage() {
                                 isCompleted ? "default" : 
                                 isInProgress ? "destructive" : "secondary"
                             }>
-                                {session.status?.replace('_', ' ').toUpperCase()}
+                                {t(`sessions.attendanceStatus.${session.status}`, session.status?.replace('_', ' ').toUpperCase())}
                             </Badge>
                             <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-1">
@@ -366,7 +366,7 @@ export default function SessionDetailPage() {
                             <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                {session.instructor?.fullName || 'Unassigned'}
+                                {session.instructor?.fullName || t('sessions.unassigned', 'Unassigned')}
                             </span>
                         </div>
                     </div>
@@ -375,13 +375,13 @@ export default function SessionDetailPage() {
                 <div className="flex flex-wrap gap-2">
                     {isCompleted && (
                         <Button variant="outline" onClick={handleGenerateAttendance}>
-                            <FileText className="mr-2 h-4 w-4" /> Attendance Sheet
+                            <FileText className="mr-2 h-4 w-4" /> {t('sessions.attendanceSheetButton', 'Attendance Sheet')}
                         </Button>
                     )}
                     {isCompleted && !campaignId && (
                         <>
                             <Button variant="outline" onClick={handleGenerateCertificates}>
-                                <Award className="mr-2 h-4 w-4" /> Generate Certificates
+                                <Award className="mr-2 h-4 w-4" /> {t('sessions.generateCertificates', 'Generate Certificates')}
                             </Button>
                             {participants.some(p => p.certificateUrl) && (
                                 <Button 
@@ -403,7 +403,7 @@ export default function SessionDetailPage() {
                                         })
                                     }}
                                 >
-                                    <Award className="mr-2 h-4 w-4" /> Send All by Email
+                                    <Award className="mr-2 h-4 w-4" /> {t('sessions.sendCertificates', 'Send All by Email')}
                                 </Button>
                             )}
                         </>
@@ -411,11 +411,11 @@ export default function SessionDetailPage() {
                     {isPlanned && (
                         <>
                             <Button variant="outline" onClick={() => setIsParticipantsModalOpen(true)}>
-                                <Users className="mr-2 h-4 w-4" /> Manage Participants
+                                <Users className="mr-2 h-4 w-4" /> {t('sessions.manageParticipants', 'Manage Participants')}
                             </Button>
                             {(['admin', 'training_manager'].includes(user?.role || '') || user?.id === session.instructorId) && (
                                 <Button onClick={handleStartSession}>
-                                    <Play className="mr-2 h-4 w-4" /> Start Session
+                                    <Play className="mr-2 h-4 w-4" /> {t('sessions.startSession', 'Start Session')}
                                 </Button>
                             )}
                         </>
@@ -423,11 +423,11 @@ export default function SessionDetailPage() {
                     {isInProgress && (
                         (session as any).isFinalModuleSession ? (
                             <Button variant="default" onClick={() => setIsResultsModalOpen(true)}>
-                                <CheckCircle className="mr-2 h-4 w-4" /> End & Record Results
+                                <CheckCircle className="mr-2 h-4 w-4" /> {t('sessions.endAndRecord', 'End & Record Results')}
                             </Button>
                         ) : (
                             <Button variant="default" onClick={handleEndSession}>
-                                <CheckCircle className="mr-2 h-4 w-4" /> End Session
+                                <CheckCircle className="mr-2 h-4 w-4" /> {t('sessions.endSession', 'End Session')}
                             </Button>
                         )
                     )}
@@ -455,13 +455,13 @@ export default function SessionDetailPage() {
                             <CardContent>
                                 <div className="flex gap-8">
                                     <div className="space-y-1">
-                                        <div className="text-sm font-medium">Theory Pass Score</div>
+                                        <div className="text-sm font-medium">{t('sessions.theoryPassScore', 'Theory Pass Score')}</div>
                                         <div className="text-2xl font-bold">
                                             {session.programme?.passScorePercent || 75}%
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-sm font-medium">Practical Pass Score</div>
+                                        <div className="text-sm font-medium">{t('sessions.practicalPassScore', 'Practical Pass Score')}</div>
                                         <div className="text-2xl font-bold">
                                             {session.programme?.passScorePercent || 75}%
                                         </div>
@@ -474,18 +474,18 @@ export default function SessionDetailPage() {
                     {/* Participants Table */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Participants ({participants.length})</CardTitle>
+                            <CardTitle>{t('sessions.participantsCount', { count: participants.length })}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0 md:p-6">
                             <div className="overflow-x-auto">
                                 <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Attendance</TableHead>
-                                        <TableHead>Comments</TableHead>
-                                        {(isCompleted) && <TableHead>Result</TableHead>}
-                                        <TableHead className="w-[100px]">Actions</TableHead>
+                                        <TableHead>{t('common.name', 'Name')}</TableHead>
+                                        <TableHead>{t('common.attendance', 'Attendance')}</TableHead>
+                                        <TableHead>{t('grading.comments', 'Comments')}</TableHead>
+                                        {(isCompleted) && <TableHead>{t('common.result', 'Result')}</TableHead>}
+                                        <TableHead className="w-[100px]">{t('common.actions', 'Actions')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -519,7 +519,7 @@ export default function SessionDetailPage() {
                                                         p.attendance === 'excused' ? 'outline' : 
                                                         'destructive'
                                                     }>
-                                                        {p.attendance}
+                                                        {p.attendance ? t(`sessions.attendanceStatus.${p.attendance}`, p.attendance) : '-'}
                                                     </Badge>
                                                 )}
                                             </TableCell>
@@ -533,7 +533,7 @@ export default function SessionDetailPage() {
                                                             }
                                                         }}
                                                         className="max-w-[300px]"
-                                                        placeholder="Add comments..."
+                                                        placeholder={t('grading.addComments', "Add comments...")}
                                                     />
                                                 ) : (
                                                     <span className="text-sm text-muted-foreground">{p.comments || '-'}</span>
@@ -542,7 +542,7 @@ export default function SessionDetailPage() {
                                             {isCompleted && (
                                                 <TableCell>
                                                     <Badge variant={p.overallResult === 'pass' ? 'default' : p.overallResult === 'fail' ? 'destructive' : 'secondary'}>
-                                                        {p.overallResult ? p.overallResult.toUpperCase() : 'N/A'}
+                                                        {p.overallResult ? t(`sessions.results.${p.overallResult}`, p.overallResult.toUpperCase()) : 'N/A'}
                                                     </Badge>
                                                 </TableCell>
                                             )}
@@ -551,7 +551,7 @@ export default function SessionDetailPage() {
                                                 {p.certificateUrl && (
                                                     <>
                                                         <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
-                                                            <FileText className="h-4 w-4 mr-1" /> View
+                                                            <FileText className="h-4 w-4 mr-1" /> {t('common.view', 'View')}
                                                         </Button>
                                                         <Button 
                                                             variant="ghost" 
@@ -565,7 +565,7 @@ export default function SessionDetailPage() {
                                                                 }
                                                             }}
                                                         >
-                                                            <Award className="h-4 w-4 mr-1" /> Email
+                                                            <Award className="h-4 w-4 mr-1" /> {t('common.email', 'Email')}
                                                         </Button>
                                                     </>
                                                 )}
@@ -577,7 +577,7 @@ export default function SessionDetailPage() {
                                                         className="text-amber-600 border-amber-600 hover:bg-amber-50"
                                                         onClick={() => openRetakeDialog(p)}
                                                     >
-                                                        <RotateCcw className="h-4 w-4 mr-1" /> Retake
+                                                        <RotateCcw className="h-4 w-4 mr-1" /> {t('sessions.retake', 'Retake')}
                                                     </Button>
                                                 )}
                                             </TableCell>
