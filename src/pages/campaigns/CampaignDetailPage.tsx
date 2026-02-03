@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
     ArrowLeft, Calendar, Users, Play, Pause, Award,
-    UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download
+    UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download, Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,6 +45,8 @@ export default function CampaignDetailPage() {
     const [enrollDialogOpen, setEnrollDialogOpen] = useState(false)
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
     const [enrolling, setEnrolling] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [departmentFilter, setDepartmentFilter] = useState('all')
 
     // Auto-scheduler dialog
     const [schedulerDialogOpen, setSchedulerDialogOpen] = useState(false)
@@ -74,8 +76,21 @@ export default function CampaignDetailPage() {
         scheduleAll: false,
         dateStart: '',
         instructorId: '',
-        location: ''
+        location: '',
+        sessionDurationHours: 2,
+        selectedTraineeIds: [] as string[]
     })
+    // Trainees for manual schedule module selection
+    interface ScheduleModuleTrainee {
+        userId: string
+        fullName: string
+        email: string
+        hoursAttended: number
+        hoursTotal: number
+        isComplete: boolean
+    }
+    const [scheduleModuleTrainees, setScheduleModuleTrainees] = useState<ScheduleModuleTrainee[]>([])
+    const [loadingScheduleTrainees, setLoadingScheduleTrainees] = useState(false)
 
     // Materials state
     interface Material {
@@ -369,6 +384,52 @@ export default function CampaignDetailPage() {
         }
     }, [campaign?.curriculum?.id])
 
+    // Load trainees when module is selected in manual schedule form
+    useEffect(() => {
+        const loadScheduleModuleTrainees = async () => {
+            if (!id || !manualScheduleForm.moduleId) {
+                setScheduleModuleTrainees([])
+                return
+            }
+            try {
+                setLoadingScheduleTrainees(true)
+                const response = await api.get(`/campaigns/${id}/modules/${manualScheduleForm.moduleId}/trainees`)
+                const trainees = response.data.data?.trainees || []
+                
+                // Get selected module info for hour calculation
+                const selectedMod = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
+                const totalModuleHours = selectedMod?.totalHours || 0
+                
+                // Calculate hours per trainee based on sessions attended
+                const mappedTrainees: ScheduleModuleTrainee[] = trainees.map((t: ModuleTrainee) => {
+                    // Estimate hours: sessionsAttended / totalSessions * totalModuleHours
+                    const hoursAttended = t.totalSessions > 0 
+                        ? Math.round((t.sessionsAttended / t.totalSessions) * totalModuleHours * 10) / 10
+                        : 0
+                    return {
+                        userId: t.userId,
+                        fullName: t.fullName,
+                        email: t.email,
+                        hoursAttended,
+                        hoursTotal: totalModuleHours,
+                        isComplete: hoursAttended >= totalModuleHours && totalModuleHours > 0
+                    }
+                })
+                setScheduleModuleTrainees(mappedTrainees)
+                
+                // Auto-select non-complete trainees
+                const nonCompleteIds = mappedTrainees.filter(t => !t.isComplete).map(t => t.userId)
+                setManualScheduleForm(prev => ({ ...prev, selectedTraineeIds: nonCompleteIds }))
+            } catch (error) {
+                console.error('Failed to load schedule module trainees:', error)
+                setScheduleModuleTrainees([])
+            } finally {
+                setLoadingScheduleTrainees(false)
+            }
+        }
+        loadScheduleModuleTrainees()
+    }, [id, manualScheduleForm.moduleId])
+
     const handleGenerateSchedule = async () => {
         try {
             setScheduling(true)
@@ -435,7 +496,8 @@ export default function CampaignDetailPage() {
                 count: response.data.summary.sessionsCreated
             }))
             setManualScheduleDialogOpen(false)
-            setManualScheduleForm({ moduleId: '', scheduleAll: false, dateStart: '', instructorId: '', location: '' })
+            setManualScheduleForm({ moduleId: '', scheduleAll: false, dateStart: '', instructorId: '', location: '', sessionDurationHours: 2, selectedTraineeIds: [] })
+            setScheduleModuleTrainees([])
             loadCampaign()
             loadCampaignSessions()
         } catch (error: any) {
@@ -457,9 +519,66 @@ export default function CampaignDetailPage() {
         }
     }
 
+    const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+    
+    const handleDeleteSession = async (sessionId: string) => {
+        if (!confirm(t('sessions.confirmDelete', 'Are you sure you want to delete this session? This action cannot be undone.'))) {
+            return
+        }
+        try {
+            setDeletingSessionId(sessionId)
+            await api.delete(`/sessions/${sessionId}`)
+            toast.success(t('sessions.deleted', 'Session deleted'))
+            loadCampaignSessions()
+        } catch (error: any) {
+            console.error('Failed to delete session:', error)
+            toast.error(error.response?.data?.error?.message || t('errors.deleteError', 'Failed to delete session'))
+        } finally {
+            setDeletingSessionId(null)
+        }
+    }
+
 
     const enrolledIds = new Set(campaign?.enrollments?.map(e => e.userId) || [])
     const availableEmployees = employees.filter(e => !enrolledIds.has(e.id))
+    
+    // Departments for filter
+    const departments = Array.from(new Set(employees.map(e => e.departmentTag).filter(Boolean))) as string[]
+
+    // Filter employees
+    const filteredEmployees = availableEmployees.filter(emp => {
+        const doc = (emp.fullName + ' ' + (emp.email || '')).toLowerCase()
+        const matchesSearch = doc.includes(searchTerm.toLowerCase())
+        const matchesDepartment = departmentFilter === 'all' || emp.departmentTag === departmentFilter
+        return matchesSearch && matchesDepartment
+    })
+
+    // Compute module scheduling status for manual scheduling
+    // Note: A module being "complete" is per-trainee, not per-module overall
+    // We show total scheduled hours as informational only; actual completion is checked per-trainee
+    const totalEnrollments = campaign?.enrollments?.length || 0
+    const moduleSchedulingStatus = curriculumModules.map(mod => {
+        const sessionsForModule = campaignSessions.filter(
+            s => (s.curriculumModuleId || s.curriculumModule?.id) === mod.id
+        )
+        const scheduledHours = sessionsForModule.reduce((acc, s) => {
+            const start = new Date(s.dateStart).getTime()
+            const end = s.dateEnd ? new Date(s.dateEnd).getTime() : start
+            return acc + (end - start) / (1000 * 60 * 60)
+        }, 0)
+        const totalHours = mod.durationHours || 0
+        // Total hours needed = module hours × number of enrolled trainees
+        const totalHoursNeeded = totalHours * totalEnrollments
+        return {
+            ...mod,
+            scheduledHours: Math.round(scheduledHours * 10) / 10,
+            totalHours,
+            totalHoursNeeded,
+            remainingHours: Math.max(0, Math.round((totalHoursNeeded - scheduledHours) * 10) / 10),
+            // A module is only complete if we've scheduled enough hours for all trainees
+            isComplete: totalEnrollments > 0 && scheduledHours >= totalHoursNeeded && totalHoursNeeded > 0
+        }
+    })
 
     if (loading) {
         return (
@@ -570,7 +689,7 @@ export default function CampaignDetailPage() {
                         <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-5 w-5 text-muted-foreground" />
                             <span>
-                                {format(new Date(campaign.dateRangeStart), 'MMM d')} - {format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
+                                {format(new Date(campaign.dateRangeStart), 'MMM d')} - {new Date(campaign.dateRangeEnd).getFullYear() >= 2099 ? t('common.ongoing', 'Ongoing') : format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
                             </span>
                         </div>
                     </CardContent>
@@ -593,7 +712,11 @@ export default function CampaignDetailPage() {
                         <div className="flex gap-2">
                             <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button>
+                                    <Button onClick={() => {
+                                        setSearchTerm('')
+                                        setDepartmentFilter('all')
+                                        setEnrollDialogOpen(true)
+                                    }}>
                                         <UserPlus className="mr-2 h-4 w-4" />
                                         {t('campaigns.addTrainees', 'Add Trainees')}
                                     </Button>
@@ -605,11 +728,35 @@ export default function CampaignDetailPage() {
                                             {t('campaigns.selectTrainees', 'Select trainees to enroll in this campaign.')}
                                         </DialogDescription>
                                     </DialogHeader>
+                                    {/* Filters */}
+                                    <div className="flex gap-2 mb-4">
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder={t('common.search', 'Search')}
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="pl-8"
+                                            />
+                                        </div>
+                                        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                                            <SelectTrigger className="w-[180px]">
+                                                <SelectValue placeholder={t('common.department', 'Department')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{t('common.all', 'All')}</SelectItem>
+                                                {departments.map(dept => (
+                                                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
                                     <div className="max-h-80 overflow-auto space-y-2">
-                                        {availableEmployees.map((emp) => (
+                                        {filteredEmployees.map((emp) => (
                                             <div 
                                                 key={emp.id}
-                                                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
+                                                className="group flex items-center gap-3 rounded-lg border p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
                                                 onClick={() => {
                                                     if (selectedEmployees.includes(emp.id)) {
                                                         setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id))
@@ -620,23 +767,26 @@ export default function CampaignDetailPage() {
                                             >
                                                 <Checkbox 
                                                     checked={selectedEmployees.includes(emp.id)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            setSelectedEmployees([...selectedEmployees, emp.id])
-                                                        } else {
-                                                            setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id))
-                                                        }
-                                                    }}
+                                                    className="pointer-events-none group-hover:border-accent-foreground"
                                                 />
-                                                <div>
+                                                <div className="flex-1">
                                                     <p className="font-medium">{emp.fullName}</p>
-                                                    <p className="text-sm text-muted-foreground">{emp.email}</p>
+                                                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground group-hover:text-accent-foreground">
+                                                        <span>{emp.email}</span>
+                                                        {emp.departmentTag && (
+                                                            <Badge variant="outline" className="text-xs group-hover:border-accent-foreground group-hover:text-accent-foreground">
+                                                                {emp.departmentTag}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
-                                        {availableEmployees.length === 0 && (
+                                        {filteredEmployees.length === 0 && (
                                             <p className="text-center text-muted-foreground py-4">
-                                                {t('campaigns.allEnrolled', 'All employees are already enrolled.')}
+                                                {availableEmployees.length === 0 
+                                                    ? t('campaigns.allEnrolled', 'All employees are already enrolled.')
+                                                    : t('common.noData', 'No data found')}
                                             </p>
                                         )}
                                     </div>
@@ -699,17 +849,17 @@ export default function CampaignDetailPage() {
                                                                 {mod.name}
                                                             </span>
                                                             <Select 
-                                                                value={moduleInstructors[mod.id] || ''}
+                                                                value={moduleInstructors[mod.id] || 'default'}
                                                                 onValueChange={(v) => setModuleInstructors({
                                                                     ...moduleInstructors, 
-                                                                    [mod.id]: v
+                                                                    [mod.id]: v === 'default' ? '' : v
                                                                 })}
                                                             >
                                                                 <SelectTrigger className="flex-1">
                                                                     <SelectValue placeholder={t('common.default', 'Default')} />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="">
+                                                                    <SelectItem value="default">
                                                                         {t('common.default', 'Default')}
                                                                     </SelectItem>
                                                                     {instructors.map((i) => (
@@ -743,10 +893,12 @@ export default function CampaignDetailPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="1">1 hour</SelectItem>
-                                                    <SelectItem value="2">2 hours</SelectItem>
-                                                    <SelectItem value="4">4 hours</SelectItem>
-                                                    <SelectItem value="8">8 hours (full day)</SelectItem>
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(hours => (
+                                                        <SelectItem key={hours} value={hours.toString()}>
+                                                            {hours} {hours === 1 ? t('common.hour', 'hour') : t('common.hours', 'hours')}
+                                                            {hours === 8 && ` (${t('common.fullDay', 'full day')})`}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -805,15 +957,35 @@ export default function CampaignDetailPage() {
 
                                         <Card className="bg-muted/50">
                                             <CardContent className="pt-4">
-                                                <p className="text-sm text-muted-foreground">
-                                                    {t('campaigns.willGenerate', 'This will generate approximately')}:
-                                                </p>
-                                                <p className="text-lg font-medium">
-                                                    {Math.ceil((campaign.enrollments?.length || 0) / campaign.maxPerSession)} {t('campaigns.sessions', 'sessions')}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    ({campaign.enrollments?.length || 0} {t('campaigns.trainees', 'trainees')} ÷ {campaign.maxPerSession} {t('campaigns.perSession', 'per session')})
-                                                </p>
+                                                {(() => {
+                                                    const groupCount = Math.ceil((campaign.enrollments?.length || 0) / (campaign.maxPerSession || 1))
+                                                    const totalDuration = curriculumModules.reduce((acc, mod) => acc + (mod.durationHours || 0), 0)
+                                                    // Fallback: if total duration is 0, use module count as a rough proxy for "sessions" or assume 2h per module
+                                                    const effectiveTotalDuration = totalDuration > 0 ? totalDuration : (curriculumModules.length * 2) 
+                                                    
+                                                    const sessDuration = schedulerForm.sessionDurationHours || 2
+                                                    const sessionsPerGroup = Math.ceil(effectiveTotalDuration / sessDuration)
+                                                    const totalSessions = groupCount * sessionsPerGroup
+
+                                                    return (
+                                                        <>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {t('campaigns.willGenerate', 'This will generate approximately')}:
+                                                            </p>
+                                                            <p className="text-lg font-medium">
+                                                                {totalSessions} {t('campaigns.sessions', 'sessions')}
+                                                            </p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {groupCount} {t('campaigns.groups', 'groups')} × {sessionsPerGroup} {t('campaigns.sessionsPerGroup', 'sessions/group')}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                ({campaign.enrollments?.length || 0} {t('campaigns.trainees', 'trainees')} ÷ {campaign.maxPerSession} {t('campaigns.perSession', 'per session')})
+                                                                {' × '}
+                                                                ({effectiveTotalDuration}h {t('common.total', 'total')} ÷ {sessDuration}h {t('campaigns.perSession', 'per session')})
+                                                            </p>
+                                                        </>
+                                                    )
+                                                })()}
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -851,14 +1023,14 @@ export default function CampaignDetailPage() {
                                         const getDisplayStatus = () => {
                                             // If trainee has any failed modules, show Failed
                                             if (enrollment.hasFailedModules) {
-                                                return { label: 'Failed', color: 'bg-red-500' }
+                                                return { label: t('common.statusFailed', 'Failed'), color: 'bg-red-500' }
                                             }
                                             // If all modules passed, show Passed
                                             if (enrollment.allModulesPassed) {
-                                                return { label: 'Passed', color: 'bg-green-500' }
+                                                return { label: t('common.passed', 'Passed'), color: 'bg-green-500' }
                                             }
                                             // Otherwise, ongoing
-                                            return { label: 'Ongoing', color: 'bg-blue-500' }
+                                            return { label: t('common.ongoing', 'Ongoing'), color: 'bg-blue-500' }
                                         }
                                         const displayStatus = getDisplayStatus()
                                         
@@ -872,13 +1044,13 @@ export default function CampaignDetailPage() {
                                                     </Badge>
                                                     {enrollment.hasFailedModules && (
                                                         <span className="ml-2 text-xs text-red-500">
-                                                            ({enrollment.failedModuleCount} failed)
+                                                            {t('campaigns.failedModulesCount', '({{count}} failed)', { count: enrollment.failedModuleCount })}
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className={(enrollment.absenceCount ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
-                                                        {enrollment.absenceCount ?? 0} of {enrollment.totalSessions ?? 0}
+                                                        {enrollment.absenceCount ?? 0} {t('common.of', 'of')} {campaignSessions.length === 0 ? 0 : (enrollment.totalSessions ?? 0)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
@@ -948,7 +1120,13 @@ export default function CampaignDetailPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {campaignModulesStats.map((mod, idx) => (
+                                        {campaignModulesStats.map((mod, idx) => {
+                                            // Calculate stats from actual sessions
+                                            const modSessions = campaignSessions.filter(s => (s.curriculumModuleId || s.curriculumModule?.id) === mod.id)
+                                            const completedCount = modSessions.filter(s => s.status === 'completed').length
+                                            const totalCount = modSessions.length
+                                            
+                                            return (
                                             <tr key={mod.id} className="hover:bg-muted/25">
                                                 <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
                                                 <td className="px-4 py-3 font-medium">{mod.name}</td>
@@ -959,12 +1137,12 @@ export default function CampaignDetailPage() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-muted-foreground">
-                                                        {mod.completedSessions} / {mod.totalSessions}
+                                                        {completedCount} / {totalCount}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <Progress 
-                                                        value={mod.totalSessions > 0 ? (mod.completedSessions / mod.totalSessions) * 100 : 0} 
+                                                        value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0} 
                                                         className="w-24" 
                                                     />
                                                 </td>
@@ -978,7 +1156,7 @@ export default function CampaignDetailPage() {
                                                     </Button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )})}
                                     </tbody>
                                 </table>
                             </div>
@@ -1034,7 +1212,7 @@ export default function CampaignDetailPage() {
                                                     </span>
                                                     {trainee.sessionsAbsent > 0 && (
                                                         <div className="text-xs text-orange-500">
-                                                            ({trainee.sessionsAbsent} absent)
+                                                            {t('campaigns.absentCount', '({{count}} absent)', { count: trainee.sessionsAbsent })}
                                                         </div>
                                                     )}
                                                 </td>
@@ -1066,40 +1244,34 @@ export default function CampaignDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="schedule" className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">
-                            {t('campaigns.generatedSessions', 'Generated Sessions')} 
-                            {campaignSessions.length > 0 && (
-                                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                    ({campaignSessions.length})
-                                </span>
-                            )}
-                        </h3>
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium">{t('campaigns.generatedSessions', 'Generated Sessions')}</h3>
                         <div className="flex gap-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => setManualScheduleDialogOpen(true)}
-                            >
+                             <Button variant="outline" onClick={() => setSchedulerDialogOpen(true)}>
+                                <Wand2 className="mr-2 h-4 w-4" />
+                                {t('campaigns.autoSchedule', 'Auto-Schedule')}
+                            </Button>
+                            <Button onClick={() => setManualScheduleDialogOpen(true)}>
                                 <CalendarPlus className="mr-2 h-4 w-4" />
                                 {t('campaigns.scheduleSession', 'Schedule Session')}
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
-                                {t('campaigns.viewInSchedule', 'View in Schedule')}
-                            </Button>
                         </div>
                     </div>
-                    
+
                     {loadingSessions ? (
                         <Card className="p-8 text-center">
                             <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
                         </Card>
                     ) : campaignSessions.length === 0 ? (
-                        <Card className="p-8 text-center">
-                            <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <Card className="flex flex-col items-center justify-center py-10 text-center">
+                            <Calendar className="h-12 w-12 text-muted-foreground/50" />
                             <p className="mt-4 text-muted-foreground">
                                 {t('campaigns.noSessions', 'No sessions generated yet. Use the Auto-Scheduler to create sessions.')}
                             </p>
+                            <Button variant="outline" className="mt-4" onClick={() => setSchedulerDialogOpen(true)}>
+                                <Wand2 className="mr-2 h-4 w-4" />
+                                {t('campaigns.autoSchedule', 'Auto-Schedule')}
+                            </Button>
                         </Card>
                     ) : (
                         <div className="rounded-lg border">
@@ -1161,13 +1333,28 @@ export default function CampaignDetailPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right flex gap-1 justify-end">
                                                     {session.status === 'planned' && (
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm"
-                                                            onClick={() => openEditSessionDialog(session)}
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
+                                                        <>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm"
+                                                                onClick={() => openEditSessionDialog(session)}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm"
+                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                disabled={deletingSessionId === session.id}
+                                                                onClick={() => handleDeleteSession(session.id)}
+                                                            >
+                                                                {deletingSessionId === session.id ? (
+                                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                                                                ) : (
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </>
                                                     )}
                                                     <Button 
                                                         variant="ghost" 
@@ -1520,7 +1707,7 @@ export default function CampaignDetailPage() {
 
             {/* Manual Schedule Session Dialog */}
             <Dialog open={manualScheduleDialogOpen} onOpenChange={setManualScheduleDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{t('campaigns.scheduleSession', 'Schedule Session')}</DialogTitle>
                         <DialogDescription>
@@ -1528,6 +1715,40 @@ export default function CampaignDetailPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
+                        {/* Module Status Overview */}
+                        <Card className="bg-muted/30">
+                            <CardContent className="pt-4 pb-2">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">
+                                    {t('campaigns.moduleStatus', 'Module Status')}
+                                </p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                    {moduleSchedulingStatus.map(mod => (
+                                        <div key={mod.id} className="flex items-center justify-between text-sm">
+                                            <span className={cn(
+                                                "truncate flex-1",
+                                                mod.isComplete && "text-muted-foreground line-through"
+                                            )}>
+                                                {mod.name}
+                                            </span>
+                                            <span className={cn(
+                                                "ml-2 text-xs font-medium",
+                                                mod.isComplete ? "text-green-600" : mod.remainingHours > 0 ? "text-orange-600" : "text-muted-foreground"
+                                            )}>
+                                                {mod.isComplete ? (
+                                                    <span className="flex items-center gap-1">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        {t('campaigns.moduleComplete', 'Complete')}
+                                                    </span>
+                                                ) : (
+                                                    `${mod.scheduledHours}/${mod.totalHours}h`
+                                                )}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <div className="space-y-2">
                             <Label>{t('sessions.module', 'Module')} *</Label>
                             <Select 
@@ -1538,14 +1759,219 @@ export default function CampaignDetailPage() {
                                     <SelectValue placeholder={t('campaigns.selectModule', 'Select module')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {curriculumModules.map((mod) => (
-                                        <SelectItem key={mod.id} value={mod.id}>
-                                            {mod.name} ({mod.durationHours || 0}h)
+                                    {moduleSchedulingStatus.map((mod) => (
+                                        <SelectItem 
+                                            key={mod.id} 
+                                            value={mod.id}
+                                            disabled={mod.isComplete}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                {mod.isComplete && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                                                <span className={mod.isComplete ? "text-muted-foreground" : ""}>
+                                                    {mod.name}
+                                                </span>
+                                                <span className={cn(
+                                                    "text-xs",
+                                                    mod.isComplete ? "text-green-600" : "text-orange-600"
+                                                )}>
+                                                    {mod.isComplete 
+                                                        ? t('campaigns.moduleComplete', 'Complete')
+                                                        : `${mod.remainingHours}h ${t('campaigns.remainingHours', 'remaining')}`
+                                                    }
+                                                </span>
+                                            </span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* Selected Module Summary */}
+                        {manualScheduleForm.moduleId && (() => {
+                            const selectedModStatus = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
+                            if (!selectedModStatus) return null
+                            return (
+                                <Card className="bg-blue-50 border-blue-200">
+                                    <CardContent className="pt-3 pb-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="font-medium">{selectedModStatus.name}</span>
+                                            <Badge variant="outline" className="bg-white">
+                                                {selectedModStatus.scheduledHours}h / {selectedModStatus.totalHours}h {t('campaigns.scheduledHours', 'scheduled')}
+                                            </Badge>
+                                        </div>
+                                        <Progress 
+                                            value={selectedModStatus.totalHours > 0 
+                                                ? (selectedModStatus.scheduledHours / selectedModStatus.totalHours) * 100 
+                                                : 0
+                                            } 
+                                            className="h-2 mt-2" 
+                                        />
+                                        <p className="text-xs text-blue-700 mt-1">
+                                            {selectedModStatus.remainingHours}h {t('campaigns.remainingHours', 'remaining')}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })()}
+
+                        {/* Trainee Selection for Module */}
+                        {manualScheduleForm.moduleId && (
+                            <Card className="border-dashed">
+                                <CardContent className="pt-3 pb-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <Label className="text-sm font-medium">
+                                            {t('campaigns.selectTrainees', 'Select Trainees')}
+                                        </Label>
+                                        <span className="text-xs text-muted-foreground">
+                                            {manualScheduleForm.selectedTraineeIds.length} / {scheduleModuleTrainees.length} {t('common.selected', 'selected')}
+                                        </span>
+                                    </div>
+                                    {loadingScheduleTrainees ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                            {t('common.loading', 'Loading...')}
+                                        </p>
+                                    ) : scheduleModuleTrainees.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                            {t('campaigns.noTraineesForModule', 'No trainees enrolled for this campaign')}
+                                        </p>
+                                    ) : (
+                                        <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2 bg-muted/20">
+                                            {scheduleModuleTrainees.map(trainee => (
+                                                <div 
+                                                    key={trainee.userId} 
+                                                    className={cn(
+                                                        "flex items-center justify-between p-2 rounded-md text-sm",
+                                                        trainee.isComplete ? "bg-green-50 opacity-60" : "bg-white hover:bg-muted/50"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Checkbox 
+                                                            id={`trainee-${trainee.userId}`}
+                                                            checked={manualScheduleForm.selectedTraineeIds.includes(trainee.userId)}
+                                                            disabled={trainee.isComplete}
+                                                            onCheckedChange={(checked) => {
+                                                                if (checked) {
+                                                                    setManualScheduleForm(prev => ({
+                                                                        ...prev,
+                                                                        selectedTraineeIds: [...prev.selectedTraineeIds, trainee.userId]
+                                                                    }))
+                                                                } else {
+                                                                    setManualScheduleForm(prev => ({
+                                                                        ...prev,
+                                                                        selectedTraineeIds: prev.selectedTraineeIds.filter(id => id !== trainee.userId)
+                                                                    }))
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label 
+                                                            htmlFor={`trainee-${trainee.userId}`} 
+                                                            className={cn("cursor-pointer", trainee.isComplete && "line-through text-muted-foreground")}
+                                                        >
+                                                            {trainee.fullName}
+                                                        </label>
+                                                    </div>
+                                                    <span className={cn(
+                                                        "text-xs font-medium flex items-center gap-1",
+                                                        trainee.isComplete 
+                                                            ? "text-green-600" 
+                                                            : trainee.hoursAttended > 0 
+                                                                ? "text-blue-600" 
+                                                                : "text-orange-600"
+                                                    )}>
+                                                        {trainee.isComplete ? (
+                                                            <>
+                                                                <CheckCircle2 className="h-3 w-3" />
+                                                                {t('campaigns.moduleComplete', 'Complete')}
+                                                            </>
+                                                        ) : trainee.hoursAttended > 0 ? (
+                                                            <>
+                                                                <Calendar className="h-3 w-3" />
+                                                                {trainee.hoursAttended}/{trainee.hoursTotal}h
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <XCircle className="h-3 w-3" />
+                                                                {t('campaigns.noSession', 'No session')}
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2 mt-2">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                                const allNonComplete = scheduleModuleTrainees.filter(t => !t.isComplete).map(t => t.userId)
+                                                setManualScheduleForm(prev => ({ ...prev, selectedTraineeIds: allNonComplete }))
+                                            }}
+                                        >
+                                            {t('common.selectAll', 'Select All')}
+                                        </Button>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                                setManualScheduleForm(prev => ({ ...prev, selectedTraineeIds: [] }))
+                                            }}
+                                        >
+                                            {t('common.deselectAll', 'Deselect All')}
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>{t('campaigns.sessionDuration', 'Session Duration (hours)')} *</Label>
+                                <Select 
+                                    value={manualScheduleForm.sessionDurationHours?.toString()}
+                                    onValueChange={(v) => setManualScheduleForm({ ...manualScheduleForm, sessionDurationHours: parseInt(v) })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(hours => {
+                                            const selectedModStatus = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
+                                            const exceedsRemaining = selectedModStatus && hours > selectedModStatus.remainingHours
+                                            return (
+                                                <SelectItem key={hours} value={hours.toString()}>
+                                                    {hours} {hours === 1 ? t('common.hour', 'hour') : t('common.hours', 'hours')}
+                                                    {hours === 8 && ` (${t('common.fullDay', 'full day')})`}
+                                                    {exceedsRemaining && ` ⚠️`}
+                                                </SelectItem>
+                                            )
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                {(() => {
+                                    const selectedModStatus = moduleSchedulingStatus.find(m => m.id === manualScheduleForm.moduleId)
+                                    if (selectedModStatus && manualScheduleForm.sessionDurationHours > selectedModStatus.remainingHours) {
+                                        return (
+                                            <p className="text-xs text-orange-600">
+                                                ⚠️ {t('campaigns.exceedsRemaining', 'Exceeds remaining hours for this module')}
+                                            </p>
+                                        )
+                                    }
+                                    return null
+                                })()}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>{t('sessions.dateTime', 'Date & Time')} *</Label>
+                                <Input 
+                                    type="datetime-local"
+                                    value={manualScheduleForm.dateStart}
+                                    onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, dateStart: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-2">
                             <Checkbox 
                                 id="scheduleAll"
@@ -1559,46 +1985,44 @@ export default function CampaignDetailPage() {
                                 {t('campaigns.scheduleAllForModule', 'Schedule all remaining sessions for this module')}
                             </label>
                         </div>
-                        <div className="space-y-2">
-                            <Label>{t('sessions.dateTime', 'Date & Time')} *</Label>
-                            <Input 
-                                type="datetime-local"
-                                value={manualScheduleForm.dateStart}
-                                onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, dateStart: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('sessions.instructor', 'Instructor')}</Label>
-                            <Select 
-                                value={manualScheduleForm.instructorId}
-                                onValueChange={(v) => setManualScheduleForm({ ...manualScheduleForm, instructorId: v })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {instructors.map((i) => (
-                                        <SelectItem key={i.id} value={i.id}>
-                                            {i.fullName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('sessions.location', 'Location')}</Label>
-                            <Input 
-                                value={manualScheduleForm.location}
-                                onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, location: e.target.value })}
-                                placeholder="e.g., Training Center A"
-                            />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>{t('sessions.instructor', 'Instructor')}</Label>
+                                <Select 
+                                    value={manualScheduleForm.instructorId}
+                                    onValueChange={(v) => setManualScheduleForm({ ...manualScheduleForm, instructorId: v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {instructors.map((i) => (
+                                            <SelectItem key={i.id} value={i.id}>
+                                                {i.fullName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>{t('sessions.location', 'Location')}</Label>
+                                <Input 
+                                    value={manualScheduleForm.location}
+                                    onChange={(e) => setManualScheduleForm({ ...manualScheduleForm, location: e.target.value })}
+                                    placeholder="e.g., Training Center A"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setManualScheduleDialogOpen(false)}>
                             {t('common.cancel', 'Cancel')}
                         </Button>
-                        <Button onClick={handleManualSchedule} disabled={manualScheduling}>
+                        <Button 
+                            onClick={handleManualSchedule} 
+                            disabled={manualScheduling || !manualScheduleForm.moduleId || !manualScheduleForm.dateStart}
+                        >
                             <CalendarPlus className="mr-2 h-4 w-4" />
                             {manualScheduling ? t('campaigns.scheduling', 'Scheduling...') : t('campaigns.schedule', 'Schedule')}
                         </Button>

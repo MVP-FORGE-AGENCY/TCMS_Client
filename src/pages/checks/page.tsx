@@ -210,7 +210,7 @@ const ChecksPage = () => {
                                             {day}
                                         </div>
                                     ))}
-                                    {calendarDays.map((day, dayIdx) => {
+                                    {calendarDays.map((day, _dayIdx) => {
                                         const dayChecks = getChecksForDay(day);
                                         return (
                                             <div

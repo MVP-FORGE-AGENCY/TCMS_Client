@@ -69,14 +69,18 @@ export default function CampaignsPage() {
     }
 
     const handleCreateCampaign = async () => {
-        if (!newCampaign.name || !newCampaign.curriculumId || !newCampaign.dateRangeStart || !newCampaign.dateRangeEnd) {
+        if (!newCampaign.name || !newCampaign.curriculumId || !newCampaign.dateRangeStart) {
             toast.error(t('validation.required', 'All fields are required'))
             return
         }
 
         try {
             setCreating(true)
-            const response = await api.post('/campaigns', newCampaign)
+            const payload = {
+                ...newCampaign,
+                dateRangeEnd: newCampaign.dateRangeEnd || null
+            }
+            const response = await api.post('/campaigns', payload)
             toast.success(t('campaigns.created', 'Campaign created'))
             setDialogOpen(false)
             setNewCampaign({
@@ -321,7 +325,7 @@ export default function CampaignsPage() {
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Calendar className="h-4 w-4" />
                                         <span>
-                                            {format(new Date(campaign.dateRangeStart), 'MMM d')} - {format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
+                                            {format(new Date(campaign.dateRangeStart), 'MMM d')} - {new Date(campaign.dateRangeEnd).getFullYear() >= 2099 ? t('common.ongoing', 'Ongoing') : format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
                                         </span>
                                     </div>
 
