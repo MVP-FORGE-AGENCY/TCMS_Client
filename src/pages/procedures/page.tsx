@@ -37,7 +37,11 @@ export default function ProceduresPage() {
     const fetchSops = async () => {
         try {
             setIsLoading(true)
-            const response = await api.get('/sop')
+            const params: any = {}
+            if (user?.organisationId) {
+                params.organisationId = user.organisationId
+            }
+            const response = await api.get('/sop', { params })
             setSops(response.data.data || [])
         } catch (error) {
             console.error("Failed to fetch SOPs:", error)

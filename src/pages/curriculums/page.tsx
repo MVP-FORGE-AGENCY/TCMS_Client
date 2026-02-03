@@ -80,9 +80,9 @@ export default function CurriculumsPage() {
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t('curriculums.title', 'Curriculums')}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('curriculums.title')}</h1>
                     <p className="text-muted-foreground">
-                        {t('curriculums.subtitle', 'Define training and assessment modules for your organization.')}
+                        {t('curriculums.subtitle')}
                     </p>
                 </div>
             </div>
@@ -91,7 +91,7 @@ export default function CurriculumsPage() {
                 {!isAuditor && (
                 <Button onClick={() => navigate('/curriculums/new')}>
                     <Plus className="mr-2 h-4 w-4" />
-                    {t('curriculums.createCurriculum', 'Create Curriculum')}
+                    {t('curriculums.createCurriculum')}
                 </Button>
                 )}
             </div>

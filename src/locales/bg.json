@@ -372,7 +372,7 @@
             "selectedRows": "{{selected}} от {{total}} ред(а) избрани."
         },
         "edit": "Редактирай",
-        "history": "История",
+        "historyLabel": "История",
         "delete": "Изтрий",
         "confirmDelete": "Сигурни ли сте, че искате да изтриете този служител?",
         "createLoginAccount": "Създай акаунт за вход",
@@ -679,7 +679,9 @@
         "nextReview": "Следващ преглед",
         "version": "Версия",
         "contents": "Съдържание",
-        "noProcedures": "Няма намерени процедури"
+        "noProcedures": "Няма намерени процедури",
+        "create": "Създай процедура",
+        "createSuccess": "Процедурата е създадена успешно"
     },
     "validation": {
         "required": "Това поле е задължително",
@@ -787,9 +789,15 @@
         "name": "Име",
         "type": "Тип",
         "validity": "Валидност",
+        "placeholderCode": "напр., A320-REC-2024",
+        "placeholderName": "напр., A320 Периодично обучение",
         "basicInfo": "Основна информация",
         "description": "Описание",
         "standardTags": "Регулаторни тагове",
+        "selectStandard": "Изберете стандарт...",
+        "searchStandards": "Търсене или нов...",
+        "createStandard": "Създай \"{{val}}\"",
+        "noStandardsFound": "Въведете текст за търсене или създаване.",
         "standardTagsDesc": "Връзка към регулаторни стандарти (напр. EASA-LVO)",
         "modules": "Модули",
         "modulesDesc": "Плъзнете за пренареждане. Синьо = Обучение, Лилаво = Оценяване.",
@@ -798,6 +806,7 @@
         "noModules": "Няма модули. Добавете първия си модул.",
         "moduleType": "Тип модул",
         "moduleName": "Име на модул",
+        "placeholderModuleName": "напр., Наземна теория",
         "moduleDescription": "Описание (опционално)",
         "duration": "Продължителност (часове)",
         "deliveryMethod": "Метод на провеждане",
@@ -827,13 +836,76 @@
         "integratedGrading": "Интегрирано оценяване",
         "integratedGradingDesc": "Оценяването се извършва по време на последната сесия. Подходящо за по-кратки модули.",
         "dedicatedAssessment": "Специализирано оценяване",
-        "dedicatedAssessmentDesc": "Добавя допълнителна сесия специално за оценяване. Подходящо за дълги модули."
+        "dedicatedAssessmentDesc": "Добавя допълнителна сесия специално за оценяване. Подходящо за дълги модули.",
+        "gradingCriteria": "Критерии за оценяване",
+        "gradingType": "Тип оценяване",
+        "placeholderPassScore": "напр., 70",
+        "grading": {
+             "none": "Без оценка (Само обучение)",
+             "theory": "Само теория",
+             "practical": "Само практика",
+             "both": "Теория и Практика"
+        },
+        "theoryPassScore": "Праг за преминаване - Теория (%)",
+        "practicalPassScore": "Праг за преминаване - Практика (%)",
+        "validityLabel": "Валидност",
+        "statusLabel": "Статус",
+        "noTags": "Няма дефинирани регулаторни тагове",
+        "noTrainees": "Няма обучаеми, готови за проверка на професионалната компетентност.",
+        "noMaterials": "Все още няма качени материали",
+        "tabs": {
+            "overview": "Преглед",
+            "modules": "Модули",
+            "materials": "Материали",
+            "trainees": "Обучаеми"
+        },
+        "sections": {
+            "validityStatus": "Валидност и Статус",
+            "regulatoryTags": "Регулаторни тагове",
+            "trainingModules": "Обучителни модули",
+            "readyForCheck": "Готови за проверка",
+            "moduleResults": "Резултати от модули",
+            "description": "Описание"
+        },
+        "table": {
+            "trainee": "Обучаем",
+            "campaign": "Кампания",
+            "eligibleStandards": "Допустими стандарти",
+            "status": "Статус",
+            "actions": "Действия",
+            "title": "Заглавие",
+            "module": "Модул",
+            "type": "Тип",
+            "version": "Версия",
+            "uploadedBy": "Качено от"
+        },
+        "materials": {
+            "upload": "Качване на материал",
+            "uploadTitle": "Качване на обучителен материал",
+            "uploadDesc": "Качете нова версия на обучителен материал",
+            "title": "Заглавие",
+            "type": "Тип",
+            "module": "Модул",
+            "file": "Файл",
+            "allModules": "(Всички модули / Общи)",
+            "uploading": "Качване..."
+        },
+        "trainees": {
+            "scheduleCheck": "Насрочване на проверка",
+            "ready": "Готов",
+            "scheduled": "Насрочен",
+            "completed": "Завършен"
+        }
     },
     "campaigns": {
         "title": "Кампании",
         "subtitle": "Управление на обучителни кампании и масово планиране.",
         "createCampaign": "Създай кампания",
         "noCampaigns": "Няма намерени кампании",
+        "noCurriculums": "Няма намерени учебни планове",
+        "createCurriculumFirst": "Трябва да създадете учебен план преди да започнете кампания.",
+        "goToCurriculums": "Към учебни планове",
+        "statusLabel": "Статус",
         "getStarted": "Започнете, като създадете първата си кампания.",
         "name": "Име на кампания",
         "curriculum": "Учебен план",

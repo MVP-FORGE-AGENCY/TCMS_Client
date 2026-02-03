@@ -48,7 +48,7 @@ export default function CurriculumBuilder() {
     const [code, setCode] = useState('')
     const [name, setName] = useState('')
     const [type, setType] = useState<CurriculumType>('recurrent')
-    const [validityMonths, setValidityMonths] = useState<number | undefined>(12)
+
     const [standardTags, setStandardTags] = useState<string[]>([])
     const [description, setDescription] = useState('')
     const [modules, setModules] = useState<CurriculumModuleCreate[]>([])
@@ -120,7 +120,6 @@ export default function CurriculumBuilder() {
             setCode(curriculum.code)
             setName(curriculum.name)
             setType(curriculum.type)
-            setValidityMonths(curriculum.validityMonths)
             setStandardTags(curriculum.standardTags || [])
             setDescription(curriculum.description || '')
             setModules(curriculum.modules?.map((m: CurriculumModule) => ({
@@ -155,6 +154,11 @@ export default function CurriculumBuilder() {
             return
         }
 
+        if (standardTags.length === 0) {
+            toast.error(t('validation.standardRequired', 'At least one standard must be selected'))
+            return
+        }
+
         try {
             setSaving(true)
 
@@ -168,7 +172,6 @@ export default function CurriculumBuilder() {
                 await api.put(`/curriculums/${id}`, {
                     name,
                     type,
-                    validityMonths,
                     standardTags,
                     description
                 })
@@ -179,7 +182,6 @@ export default function CurriculumBuilder() {
                     code,
                     name,
                     type,
-                    validityMonths,
                     standardTags,
                     description,
                     modules: modulesWithSequence
@@ -319,7 +321,7 @@ export default function CurriculumBuilder() {
                                     value={code} 
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                                     disabled={isEditing}
-                                    placeholder="e.g., A320-REC-2024"
+                                    placeholder={t('curriculums.placeholderCode', 'e.g., A320-REC-2024')}
                                 />
                             </div>
 
@@ -329,7 +331,7 @@ export default function CurriculumBuilder() {
                                     id="name" 
                                     value={name} 
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="e.g., A320 Recurrent Training"
+                                    placeholder={t('curriculums.placeholderName', 'e.g., A320 Recurrent Training')}
                                 />
                             </div>
 
@@ -349,23 +351,7 @@ export default function CurriculumBuilder() {
                                 </Select>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="validity">{t('curriculums.validity', 'Validity (Months)')}</Label>
-                                <Select 
-                                    value={validityMonths?.toString() || ''} 
-                                    onValueChange={(v) => setValidityMonths(parseInt(v))}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={t('curriculums.selectValidity', 'Select validity')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="6">6 {t('common.months', 'months')}</SelectItem>
-                                        <SelectItem value="12">12 {t('common.months', 'months')}</SelectItem>
-                                        <SelectItem value="24">24 {t('common.months', 'months')}</SelectItem>
-                                        <SelectItem value="36">36 {t('common.months', 'months')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
 
                             <div className="space-y-2">
                                 <Label htmlFor="description">{t('curriculums.description', 'Description')}</Label>
@@ -423,7 +409,7 @@ export default function CurriculumBuilder() {
                                                     }}
                                                 >
                                                     <Plus className="h-4 w-4 text-primary" />
-                                                    <span className="font-medium text-primary">Create "{searchValue}"</span>
+                                                    <span className="font-medium text-primary">{t('curriculums.createStandard', { val: searchValue })}</span>
                                                 </div>
                                             )}
                                             
@@ -458,7 +444,7 @@ export default function CurriculumBuilder() {
                                             
                                             {availableStandards.length === 0 && !searchValue && (
                                                 <div className="py-4 text-center text-sm text-muted-foreground">
-                                                    Type to search or create a new standard.
+                                                    {t('curriculums.noStandardsFound', 'Type to search or create a new standard.')}
                                                 </div>
                                             )}
                                         </div>
@@ -598,7 +584,7 @@ export default function CurriculumBuilder() {
                                                     {module.requiredAssessors && (
                                                         <span className="flex items-center gap-1">
                                                             <Users className="h-3 w-3" />
-                                                            {module.requiredAssessors} assessor(s)
+                                                            {module.requiredAssessors} {t('checks.assessors', 'assessors')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -641,7 +627,7 @@ export default function CurriculumBuilder() {
                                 : t('curriculums.addModule', 'Add Module')}
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
 
 
                         <div className="space-y-2">
@@ -649,7 +635,7 @@ export default function CurriculumBuilder() {
                             <Input 
                                 value={moduleForm.name}
                                 onChange={(e) => setModuleForm({ ...moduleForm, name: e.target.value })}
-                                placeholder="e.g., Ground School Theory"
+                                placeholder={t('curriculums.placeholderModuleName', 'e.g., Ground School Theory')}
                             />
                         </div>
 
@@ -780,7 +766,7 @@ export default function CurriculumBuilder() {
                                                     ...moduleForm, 
                                                     theoryPassScore: parseFloat(e.target.value) || undefined
                                                 })}
-                                                placeholder="e.g., 70"
+                                                placeholder={t('curriculums.placeholderPassScore', 'e.g., 70')}
                                             />
                                         </div>
                                     )}
@@ -796,7 +782,7 @@ export default function CurriculumBuilder() {
                                                     ...moduleForm, 
                                                     practicalPassScore: parseFloat(e.target.value) || undefined
                                                 })}
-                                                placeholder="e.g., 80"
+                                                placeholder={t('curriculums.placeholderPassScore', 'e.g., 80')}
                                             />
                                         </div>
                                     )}

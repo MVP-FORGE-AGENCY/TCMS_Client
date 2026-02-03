@@ -142,7 +142,7 @@ export function PersonnelTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onViewHistory(employee)}
-                            title="View History"
+                            title={t('personnel.historyLabel')}
                         >
                             <Eye className="h-4 w-4" />
                         </Button>

@@ -240,7 +240,7 @@
             "selectedRows": "{{selected}} of {{total}} row(s) selected."
         },
         "edit": "Edit",
-        "history": "History",
+        "historyLabel": "History",
         "delete": "Delete",
         "confirmDelete": "Are you sure you want to delete this employee?",
         "salary": "Salary",
@@ -249,13 +249,7 @@
         "updateEmployee": "Update Employee",
         "createEmployee": "Create Employee",
         "selectRole": "Select role",
-        "roles": {
-             "admin": "Admin",
-             "training_manager": "Training Manager",
-             "instructor": "Instructor",
-             "employee": "Employee",
-             "auditor": "Internal Auditor"
-        },
+
         "employeeDetails": "Employee Details",
         "history": {
             "downloadFile": "Download Personnel File",
@@ -775,7 +769,9 @@
         "nextReview": "Next Review",
         "version": "Version",
         "contents": "Contents",
-        "noProcedures": "No procedures found"
+        "noProcedures": "No procedures found",
+        "create": "Create Procedure",
+        "createSuccess": "Procedure created successfully"
     },
     "validation": {
         "required": "This field is required",
@@ -850,9 +846,15 @@
         "name": "Name",
         "type": "Type",
         "validity": "Validity",
+        "placeholderCode": "e.g., A320-REC-2024",
+        "placeholderName": "e.g., A320 Recurrent Training",
         "basicInfo": "Basic Information",
         "description": "Description",
         "standardTags": "Regulatory Tags",
+        "selectStandard": "Select standard...",
+        "searchStandards": "Search or type new...",
+        "createStandard": "Create \"{{val}}\"",
+        "noStandardsFound": "Type to search or create a new standard.",
         "standardTagsDesc": "Link to regulatory standards (e.g., EASA-LVO)",
         "modules": "Modules",
         "modulesDesc": "Drag to reorder. Blue = Training, Purple = Assessment.",
@@ -861,6 +863,7 @@
         "noModules": "No modules yet. Add your first module.",
         "moduleType": "Module Type",
         "moduleName": "Module Name",
+        "placeholderModuleName": "e.g., Ground School Theory",
         "moduleDescription": "Description (Optional)",
         "duration": "Duration (Hours)",
         "deliveryMethod": "Delivery Method",
@@ -896,13 +899,62 @@
         "updated": "Curriculum updated",
         "gradingCriteria": "Grading Criteria",
         "gradingType": "Grading Type",
+        "placeholderPassScore": "e.g., 70",
+        "grading": {
+             "none": "No Scoring (Instruction Only)",
+             "theory": "Theory Only",
+             "practical": "Practical Only",
+             "both": "Both Theory & Practical"
+        },
         "theoryPassScore": "Theory Pass Score (%)",
         "practicalPassScore": "Practical Pass Score (%)",
-        "grading": {
-            "none": "No Scoring (Instruction Only)",
-            "theory": "Theory Only",
-            "practical": "Practical Only",
-            "both": "Both Theory & Practical"
+        "validityLabel": "Validity",
+        "statusLabel": "Status",
+        "noTags": "No tags defined",
+        "noTrainees": "No trainees currently ready for proficiency checks.",
+        "noMaterials": "No materials uploaded yet",
+        "tabs": {
+            "overview": "Overview",
+            "modules": "Modules",
+            "materials": "Materials",
+            "trainees": "Trainees"
+        },
+        "sections": {
+            "validityStatus": "Validity & Status",
+            "regulatoryTags": "Regulatory Tags",
+            "trainingModules": "Training Modules",
+            "readyForCheck": "Ready for Proficiency Check",
+            "moduleResults": "Module Results Overview",
+            "description": "Description"
+        },
+        "table": {
+            "trainee": "Trainee",
+            "campaign": "Campaign",
+            "eligibleStandards": "Eligible Standards",
+            "status": "Status",
+            "actions": "Actions",
+            "title": "Title",
+            "module": "Module",
+            "type": "Type",
+            "version": "Version",
+            "uploadedBy": "Uploaded By"
+        },
+        "materials": {
+            "upload": "Upload Material",
+            "uploadTitle": "Upload Training Material",
+            "uploadDesc": "Upload a new version of training material",
+            "title": "Title",
+            "type": "Type",
+            "module": "Module",
+            "file": "File",
+            "allModules": "(All Modules / General)",
+            "uploading": "Uploading..."
+        },
+        "trainees": {
+            "scheduleCheck": "Schedule Check",
+            "ready": "Ready",
+            "scheduled": "Scheduled",
+            "completed": "Completed"
         }
     },
     "campaigns": {
@@ -920,10 +972,14 @@
         "trainees": "trainees",
         "description": "Description (Optional)",
         "createDesc": "Set up a new training campaign for bulk scheduling.",
+        "noCurriculums": "No curriculums found",
+        "createCurriculumFirst": "You need to create a curriculum before starting a campaign.",
+        "goToCurriculums": "Go to Curriculums",
         "progress": "Progress",
         "dateRange": "Date Range",
         "enrolled": "enrolled",
         "completed": "completed",
+        "statusLabel": "Status",
         "enrollments": "Enrollments",
         "enrolledTrainees": "Enrolled Trainees",
         "addTrainees": "Add Trainees",

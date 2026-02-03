@@ -91,20 +91,32 @@ export function Sidebar({ className }: SidebarProps) {
             id: "planning",
             title: t("nav.groups.planning"),
             icon: CalendarDays,
-            roles: ["admin", "training_manager", "super_admin", "auditor"],
+            roles: ["admin", "training_manager", "super_admin"],
             defaultOpen: true,
             items: [
                 {
                     title: t("nav.campaigns"),
                     href: "/campaigns",
                     icon: CalendarDays,
-                    roles: ["admin", "training_manager", "super_admin", "auditor"],
+                    roles: ["admin", "training_manager", "super_admin"],
                 },
                 {
                     title: t("nav.curriculums"),
                     href: "/curriculums",
                     icon: GraduationCap,
-                    roles: ["admin", "training_manager", "super_admin", "auditor"],
+                    roles: ["admin", "training_manager", "super_admin"],
+                },
+                {
+                    title: t("nav.regulatoryLibrary"),
+                    href: "/standards",
+                    icon: Library,
+                    roles: ["admin", "super_admin", "training_manager"],
+                },
+                {
+                    title: t("nav.procedures"),
+                    href: "/procedures",
+                    icon: ClipboardList,
+                    roles: ["admin", "training_manager", "super_admin"],
                 },
             ],
         },
@@ -139,7 +151,7 @@ export function Sidebar({ className }: SidebarProps) {
                     title: t("nav.procedures"),
                     href: "/procedures",
                     icon: ClipboardList,
-                    roles: ["admin", "training_manager", "instructor", "assessor", "employee", "readonly", "super_admin", "auditor"],
+                    roles: ["instructor", "assessor", "employee", "readonly"],
                 },
             ],
         },
@@ -175,12 +187,6 @@ export function Sidebar({ className }: SidebarProps) {
             icon: Wrench,
             roles: ["admin", "super_admin", "training_manager"], // Manager can view settings
             items: [
-                {
-                    title: t("nav.regulatoryLibrary"),
-                    href: "/standards",
-                    icon: Library,
-                    roles: ["admin", "super_admin", "training_manager"], // Manager needs to seeing standards to schedule against them
-                },
                 {
                     title: t("nav.automation", "Automation Center"),
                     href: "/settings/automation",

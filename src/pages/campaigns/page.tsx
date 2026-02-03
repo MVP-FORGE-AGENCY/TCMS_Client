@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Calendar, Users, TrendingUp } from 'lucide-react'
+import { Plus, Calendar, Users, TrendingUp, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -258,6 +258,19 @@ export default function CampaignsPage() {
                         </Card>
                     ))}
                 </div>
+            ) : curriculums.length === 0 ? (
+                <Card className="p-12 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                        <BookOpen className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{t('campaigns.noCurriculums', 'No curriculums found')}</h3>
+                    <p className="text-muted-foreground mb-4">
+                        {t('campaigns.createCurriculumFirst', 'You need to create a curriculum before starting a campaign.')}
+                    </p>
+                    <Button onClick={() => navigate('/curriculums')}>
+                        {t('campaigns.goToCurriculums', 'Go to Curriculums')}
+                    </Button>
+                </Card>
             ) : campaigns.length === 0 ? (
                 <Card className="p-12 text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
