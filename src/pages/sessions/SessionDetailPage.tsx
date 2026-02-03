@@ -52,45 +52,10 @@ import { Label } from "@/components/ui/label"
 import type { ScheduleRetakeRequest, Employee } from "@/types"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useQuery } from "@tanstack/react-query"
-import { moduleResults } from "@/lib/api"
-import { SessionModuleGradingForm } from "@/components/forms/SessionModuleGradingForm"
 
-const ModuleGradingSection = ({ sessionId }: { sessionId: string }) => {
-    const { data, isLoading } = useQuery({
-        queryKey: ['session-module-grading', sessionId],
-        queryFn: () => moduleResults.getSessionGrading(sessionId)
-    });
-
-    if (isLoading) return <div>Loading grading data...</div>;
-
-    if (!data?.applicable && data?.message) {
-        return (
-            <Card>
-                <CardContent className="pt-6 text-center text-muted-foreground">
-                    {data.message}
-                </CardContent>
-            </Card>
-        );
-    }
-    
-    if (!data?.gradingList) return null;
-
-    return (
-        <Card>
-            <CardContent className="pt-6">
-                <SessionModuleGradingForm 
-                    sessionId={sessionId}
-                    moduleData={data.session.module}
-                    gradingList={data.gradingList}
-                />
-            </CardContent>
-        </Card>
-    );
-};
 
 export default function SessionDetailPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -191,12 +156,12 @@ export default function SessionDetailPage() {
     const handleStartSession = () => {
         setConfirmModal({
             open: true,
-            title: 'Start Session',
-            description: 'You are about to start this training session. Once started, participants will be marked as attending and the session cannot be reverted to planned status. Are you sure you want to proceed?',
+            title: t('sessions.startSessionTitle', 'Start Session'),
+            description: t('sessions.startSessionConfirm', 'You are about to start this training session. Once started, participants will be marked as attending and the session cannot be reverted to planned status. Are you sure you want to proceed?'),
             action: async () => {
                 try {
                     await api.patch(`/sessions/${id}/start`)
-                    toast.success("Session started successfully")
+                    toast.success(t('sessions.startSessionSuccess', "Session started successfully"))
                     fetchData()
                     setConfirmModal(prev => ({ ...prev, open: false }))
                 } catch (error: any) {
@@ -210,12 +175,12 @@ export default function SessionDetailPage() {
     const handleEndSession = () => {
         setConfirmModal({
             open: true,
-            title: 'End Session',
-            description: 'You are about to end this session. You will still be able to update attendance and comments afterward, but the session status will change to completed.',
+            title: t('sessions.endSessionTitle', 'End Session'),
+            description: t('sessions.endSessionConfirm', 'You are about to end this session. You will still be able to update attendance and comments afterward, but the session status will change to completed.'),
             action: async () => {
                 try {
                     await api.patch(`/sessions/${id}/end`)
-                    toast.success("Session ended successfully")
+                    toast.success(t('sessions.endSessionSuccess', "Session ended successfully"))
                     fetchData()
                     setConfirmModal(prev => ({ ...prev, open: false }))
                 } catch (error: any) {
@@ -251,7 +216,8 @@ export default function SessionDetailPage() {
 
     const handleGenerateAttendance = async () => {
         try {
-            const res = await api.post(`/sessions/${id}/attendance-sheet`)
+            // Send current language for localized PDF
+            const res = await api.post(`/sessions/${id}/attendance-sheet`, { language: i18n.language })
             // open in new tab
             // If the URL is signed/remote, window.open works.
             // If it needs download, we might need a hidden link.
@@ -438,9 +404,6 @@ export default function SessionDetailPage() {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="details">{t('sessions.tabs.details', 'Session Details')}</TabsTrigger>
-                    {(isInProgress || isCompleted) && (session as any).isFinalModuleSession && (
-                        <TabsTrigger value="grading">{t('sessions.tabs.grading', 'Module Grading')}</TabsTrigger>
-                    )}
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-6">
@@ -590,9 +553,6 @@ export default function SessionDetailPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="grading">
-                    <ModuleGradingSection sessionId={id || ''} />
-                </TabsContent>
             </Tabs>
 
 

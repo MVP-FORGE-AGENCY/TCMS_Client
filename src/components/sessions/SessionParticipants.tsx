@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import {
     Dialog,
     DialogContent,
@@ -20,7 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2 } from "lucide-react"
 import type { Session, Employee } from "@/types"
 import { api } from "@/lib/api"
-import { useEffect } from "react"
+
 
 // Mock employees for selection
 // Removed Mock employees
@@ -32,6 +33,7 @@ interface SessionParticipantsProps {
 }
 
 export function SessionParticipants({ session, open, onOpenChange }: SessionParticipantsProps) {
+    const { t } = useTranslation()
     const [participants, setParticipants] = useState<Employee[]>([])
     const [isAddMode, setIsAddMode] = useState(false)
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
@@ -145,9 +147,12 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Session Participants</DialogTitle>
+                    <DialogTitle>{t('sessions.participantsModal.title')}</DialogTitle>
                     <DialogDescription>
-                        Manage participants for session {session.programmeId} on {new Date(session.dateStart).toLocaleDateString()}
+                        {t('sessions.participantsModal.description', { 
+                            programme: session.programmeId, 
+                            date: new Date(session.dateStart).toLocaleDateString() 
+                        })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -155,10 +160,10 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
                             <div className="text-sm text-muted-foreground">
-                                {participants.length} / {session.capacity || 10} Enrolled
+                                {t('sessions.participantsModal.enrolledStatus', { current: participants.length, capacity: session.capacity || 10 })}
                             </div>
                             <Button onClick={() => setIsAddMode(true)} size="sm">
-                                <Plus className="mr-2 h-4 w-4" /> Add Participants
+                                <Plus className="mr-2 h-4 w-4" /> {t('sessions.participantsModal.addParticipants')}
                             </Button>
                         </div>
 
@@ -166,17 +171,17 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead>{t('common.name')}</TableHead>
+                                        <TableHead>{t('common.role')}</TableHead>
+                                        <TableHead>{t('common.status')}</TableHead>
+                                        <TableHead className="text-right">{t('common.actions')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {participants.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-muted-foreground">
-                                                No participants enrolled yet.
+                                                {t('sessions.participantsModal.noParticipants')}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -185,7 +190,7 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                                 <TableCell>{p.fullName}</TableCell>
                                                 <TableCell>{p.role}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="secondary">Planned</Badge>
+                                                    <Badge variant="secondary">{t('sessions.attendanceStatus.planned')}</Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <Button
@@ -222,7 +227,7 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                             onCheckedChange={(c) => setIsAdminOverride(c === true)}
                                         />
                                         <label htmlFor="override" className="font-medium cursor-pointer">
-                                            I confirm I want to override these restrictions (Admin/Manager only)
+                                            {t('sessions.participantsModal.overrideLabel')}
                                         </label>
                                     </div>
                                 )}
@@ -234,15 +239,15 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Role</TableHead>
+                                        <TableHead>{t('common.name')}</TableHead>
+                                        <TableHead>{t('common.role')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
-                                         <TableRow><TableCell colSpan={3} className="text-center">Loading...</TableCell></TableRow>
+                                         <TableRow><TableCell colSpan={3} className="text-center">{t('common.loading')}</TableCell></TableRow>
                                     ) : availableEmployees.length === 0 ? (
-                                         <TableRow><TableCell colSpan={3} className="text-center">No eligible employees found</TableCell></TableRow>
+                                         <TableRow><TableCell colSpan={3} className="text-center">{t('sessions.participantsModal.noEligible')}</TableCell></TableRow>
                                     ) : (
                                         availableEmployees.map((emp) => (
                                         <TableRow key={emp.id}>
@@ -265,10 +270,10 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                 setOverrideError(null)
                                 setIsAdminOverride(false)
                             }}>
-                                Cancel
+                                {t('common.cancel')}
                             </Button>
                             <Button onClick={handleAddParticipants} disabled={selectedEmployees.length === 0}>
-                                {isAdminOverride ? "Enrol (Override)" : "Add Selected"}
+                                {isAdminOverride ? t('sessions.participantsModal.enrolOverride') : t('sessions.participantsModal.addSelected')}
                             </Button>
                         </div>
                     </div>

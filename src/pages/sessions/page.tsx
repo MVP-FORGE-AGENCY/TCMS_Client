@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
-import { Plus, Calendar, Filter, X, List, ChevronLeft, ChevronRight, Settings2 } from "lucide-react"
+import { Plus, Calendar, Filter, X, List, ChevronLeft, ChevronRight, Settings2, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -54,13 +54,26 @@ const ALL_COLUMNS = [
 export default function SessionsPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
-    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
+    const canSchedule = ['admin', 'training_manager', 'instructor'].includes(user?.role || '')
     const [sessions, setSessions] = useState<Session[]>([])
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
     const [instructors, setInstructors] = useState<Employee[]>([])
     const [modules, setModules] = useState<CurriculumModule[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const navigate = useNavigate()
+
+    // My Sessions filter
+    const [showMySessions, setShowMySessions] = useState(false)
+    
+    const toggleMySessions = () => {
+        if (showMySessions) {
+            setFilterInstructor("")
+            setShowMySessions(false)
+        } else if (user?.id) {
+            setFilterInstructor(user.id)
+            setShowMySessions(true)
+        }
+    }
 
     // View mode
     const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
@@ -417,6 +430,14 @@ export default function SessionsPage() {
                         </TabsList>
                     </Tabs>
                     <Button 
+                        variant={showMySessions ? "secondary" : "outline"} 
+                        onClick={toggleMySessions}
+                        className={showMySessions ? "bg-primary/10 text-primary border-primary/20" : ""}
+                    >
+                        <User className="mr-2 h-4 w-4" /> 
+                        {t("sessions.mySessions", "My Sessions")}
+                    </Button>
+                    <Button 
                         variant={showFilters ? "secondary" : "outline"} 
                         onClick={() => setShowFilters(!showFilters)}
                     >
@@ -448,7 +469,7 @@ export default function SessionsPage() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
-                    {!isAuditor && (
+                    {canSchedule && (
                     <Button onClick={() => setIsCreateOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> {t("sessions.scheduleSession")}
                     </Button>
@@ -568,8 +589,8 @@ export default function SessionsPage() {
                             icon={Calendar}
                             title={t("common.noData")}
                             description={t("common.getStarted")}
-                            actionLabel={!isAuditor ? t("sessions.scheduleSession") : undefined}
-                            onAction={!isAuditor ? () => setIsCreateOpen(true) : undefined}
+                            actionLabel={canSchedule ? t("sessions.scheduleSession") : undefined}
+                            onAction={canSchedule ? () => setIsCreateOpen(true) : undefined}
                         />
                     ) : (
                         <>

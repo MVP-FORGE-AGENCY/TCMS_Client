@@ -151,7 +151,7 @@ const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onSchedul
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{trainee.jobTitle || trainee.role}</Badge>
+                                        <Badge variant="outline">{trainee.jobTitle || t(`roles.${trainee.role}`, trainee.role)}</Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {trainee.department || '-'}

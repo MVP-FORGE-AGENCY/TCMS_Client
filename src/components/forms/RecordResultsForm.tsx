@@ -32,6 +32,8 @@ import { api, reports, sessions } from "@/lib/api"
 import { toast } from "sonner"
 import { SignatureModal } from "@/components/common/SignatureModal"
 
+import { useTranslation } from "react-i18next"
+
 interface Participant {
     id: string
     userId: string
@@ -54,6 +56,8 @@ interface ParticipantResult {
     remedialNotes?: string
 }
 
+// ... (skipping unchanged interfaces)
+
 interface RecordResultsFormProps {
     session: Session | null
     open: boolean
@@ -62,6 +66,7 @@ interface RecordResultsFormProps {
 }
 
 export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: RecordResultsFormProps) {
+    const { t } = useTranslation()
     const [participants, setParticipants] = useState<Participant[]>([])
     const [results, setResults] = useState<Record<string, ParticipantResult>>({})
     const [isLoading, setIsLoading] = useState(false)
@@ -240,9 +245,9 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Record Results</DialogTitle>
+                    <DialogTitle>{t("sessions.recordResultsTitle", "Record Results")}</DialogTitle>
                     <DialogDescription>
-                        Record attendance and results for session on {session.dateStart}
+                        {t("sessions.recordResultsDesc", "Record attendance and results for session on {{date}}", { date: session.dateStart })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -250,11 +255,11 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
                 <div className="flex gap-2 mb-4">
                     <Button variant="outline" size="sm" onClick={handleGenerateAttendance}>
                         <FileDown className="mr-2 h-4 w-4" />
-                        Generate Attendance Sheet
+                        {t("sessions.attendanceSheetButton", "Generate Attendance Sheet")}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleGenerateCertificates}>
                         <Award className="mr-2 h-4 w-4" />
-                        Generate Certificates
+                        {t("sessions.generateCertificates", "Generate Certificates")}
                     </Button>
                 </div>
 
@@ -267,29 +272,29 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
                 ) : participants.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         <AlertCircle className="mx-auto h-8 w-8 mb-2" />
-                        <p>No participants enrolled in this session</p>
+                        <p>{t("sessions.noParticipants", "No participants enrolled in this session")}</p>
                     </div>
                 ) : (
                     <div className="rounded-md border overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="min-w-[150px]">Participant</TableHead>
-                                    <TableHead className="w-[100px]">Attendance</TableHead>
+                                    <TableHead className="min-w-[150px]">{t("sessions.participant", "Participant")}</TableHead>
+                                    <TableHead className="w-[100px]">{t("sessions.attendance", "Attendance")}</TableHead>
                                     {hasTheory && (
                                         <>
-                                            <TableHead className="w-[80px] text-center">Theory %</TableHead>
-                                            <TableHead className="w-[80px] text-center">Theory</TableHead>
+                                            <TableHead className="w-[80px] text-center">{t("sessions.theory", "Theory")} %</TableHead>
+                                            <TableHead className="w-[80px] text-center">{t("sessions.theory", "Theory")}</TableHead>
                                         </>
                                     )}
                                     {hasPractical && (
                                         <>
-                                            <TableHead className="w-[80px] text-center">Pract %</TableHead>
-                                            <TableHead className="w-[80px] text-center">Pract</TableHead>
+                                            <TableHead className="w-[80px] text-center">{t("sessions.practical", "Practical")} %</TableHead>
+                                            <TableHead className="w-[80px] text-center">{t("sessions.practical", "Practical")}</TableHead>
                                         </>
                                     )}
-                                    <TableHead className="w-[80px] text-center">Overall</TableHead>
-                                    <TableHead className="min-w-[150px]">Comments</TableHead>
+                                    <TableHead className="w-[80px] text-center">{t("sessions.overall", "Overall")}</TableHead>
+                                    <TableHead className="min-w-[150px]">{t("sessions.comments", "Comments")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -315,10 +320,10 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="planned">Planned</SelectItem>
-                                                        <SelectItem value="present">Present</SelectItem>
-                                                        <SelectItem value="absent">Absent</SelectItem>
-                                                        <SelectItem value="excused">Excused</SelectItem>
+                                                        <SelectItem value="planned">{t("sessions.status.planned", "Planned")}</SelectItem>
+                                                        <SelectItem value="present">{t("sessions.status.present", "Present")}</SelectItem>
+                                                        <SelectItem value="absent">{t("sessions.status.absent", "Absent")}</SelectItem>
+                                                        <SelectItem value="excused">{t("sessions.status.excused", "Excused")}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
@@ -374,11 +379,11 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
                                                         <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
                                                             <div className="flex items-center text-xs text-amber-600 font-medium">
                                                                 <AlertTriangle className="w-3 h-3 mr-1" />
-                                                                Remedial Action Required
+                                                                {t("sessions.remedialActionRequired", "Remedial Action Required")}
                                                             </div>
                                                             <Input
                                                                 className="min-w-[120px] border-amber-200 focus:ring-amber-200"
-                                                                placeholder="Remedial actions..."
+                                                                placeholder={t("sessions.remedialActionsPlaceholder", "Remedial actions...")}
                                                                 value={r.remedialNotes || ""}
                                                                 disabled={!!session.isSigned}
                                                                 onChange={(e) => updateResult(p.userId, "remedialNotes", e.target.value)}
@@ -397,12 +402,12 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
 
                 <DialogFooter className="mt-4">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t("sessions.cancel", "Cancel")}
                     </Button>
                     {session.isSigned ? (
                         <div className="flex items-center text-green-600 px-4 py-2 bg-green-50 rounded-md border border-green-200">
                            <Award className="w-4 h-4 mr-2" />
-                           <span className="font-semibold text-sm">Signed & Finalized</span>
+                           <span className="font-semibold text-sm">{t("sessions.signedFinalized", "Signed & Finalized")}</span>
                         </div>
                     ) : (
                         <>
@@ -413,11 +418,11 @@ export function RecordResultsForm({ session, open, onOpenChange, onSubmit }: Rec
                                     onClick={() => setIsSignModalOpen(true)}
                                     className="mr-2"
                                 >
-                                    Sign Results
+                                    {t("sessions.signResults", "Sign Results")}
                                 </Button>
                             )}
                             <Button onClick={handleSubmit} disabled={isSaving || participants.length === 0}>
-                                {isSaving ? "Saving..." : "Save Results"}
+                                {isSaving ? t("sessions.saving", "Saving...") : t("sessions.saveResults", "Save Results")}
                             </Button>
                         </>
                     )}

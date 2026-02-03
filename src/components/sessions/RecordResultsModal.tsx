@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ export function RecordResultsModal({
     onOpenChange,
     onSaved
 }: RecordResultsModalProps) {
+    const { t } = useTranslation()
     const [isLoading, setIsLoading] = useState(false)
     const [results, setResults] = useState<any[]>([])
     const [confirmModal, setConfirmModal] = useState<{
@@ -113,8 +115,8 @@ export function RecordResultsModal({
 
         setConfirmModal({
             open: true,
-            title: "Complete Session",
-            description: "This will complete the session and create competence records for passed participants. Are you sure you want to continue?",
+            title: t('sessions.completeSessionTitle', "Complete Session"),
+            description: t('sessions.completeSessionConfirm', "This will complete the session and create competence records for passed participants. Are you sure you want to continue?"),
             action: async () => {
                  setConfirmModal(prev => ({ ...prev, open: false }))
                  await handleSubmit()
@@ -126,14 +128,14 @@ export function RecordResultsModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Record Session Results</DialogTitle>
+                    <DialogTitle>{t('sessions.recordResultsTitle', "Record Session Results")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
                     <div className="flex gap-4 text-sm text-muted-foreground bg-muted p-2 rounded">
-                         <div>Pass Criteria:</div>
-                         <div>Theory: ≥{theoryPass}%</div>
-                         <div>Practical: ≥{practicalPass}%</div>
+                         <div>{t('sessions.passCriteria', "Pass Criteria:")}</div>
+                         <div>{t('sessions.theoryCriteria', { score: theoryPass })}</div>
+                         <div>{t('sessions.practicalCriteria', { score: practicalPass })}</div>
                     </div>
 
                     <div className="space-y-4">
@@ -160,7 +162,7 @@ export function RecordResultsModal({
                                         <div className="grid grid-cols-2 gap-4">
                                             {/* Theory */}
                                             <div className="space-y-2">
-                                                <Label>Theory Score (%)</Label>
+                                                <Label>{t('sessions.results.theoryScore', "Theory Score (%)")}</Label>
                                                 <div className="flex gap-2">
                                                     <Input
                                                         type="number"
@@ -175,7 +177,7 @@ export function RecordResultsModal({
 
                                             {/* Practical */}
                                             <div className="space-y-2">
-                                                <Label>Practical Score (%)</Label>
+                                                <Label>{t('sessions.results.practicalScore', "Practical Score (%)")}</Label>
                                                 <div className="flex gap-2">
                                                     <Input
                                                         type="number"
@@ -189,17 +191,17 @@ export function RecordResultsModal({
                                             </div>
 
                                             <div className="col-span-2 space-y-2">
-                                                <Label>Comments</Label>
+                                                <Label>{t('sessions.comments', "Comments")}</Label>
                                                 <Input 
                                                     value={r.comments} 
                                                     onChange={(e) => updateResult(r.userId, 'comments', e.target.value)}
-                                                    placeholder="Optional comments..."
+                                                    placeholder={t('sessions.commentsPlaceholder', "Optional comments...")}
                                                 />
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="text-sm text-muted-foreground italic">
-                                            Attendance marked as {r.attendance}. No results required.
+                                            {t('sessions.attendanceMarkedAs', { status: r.attendance })}
                                         </div>
                                     )}
                                 </div>
@@ -209,9 +211,9 @@ export function RecordResultsModal({
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('sessions.cancel', "Cancel")}</Button>
                     <Button onClick={completeSession} disabled={isLoading}>
-                        {isLoading ? "Saving..." : "Save Results & Complete Session"}
+                        {isLoading ? t('sessions.saving', "Saving...") : t('sessions.saveComple', "Save Results & Complete Session")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

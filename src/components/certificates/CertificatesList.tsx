@@ -2,10 +2,11 @@ import { useEffect, useState } from "react"
 import { certificates, api } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, FileText, Loader2, PlusCircle } from "lucide-react"
+import { Download, FileText, Loader2, PlusCircle, Award, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { useTranslation } from "react-i18next"
 
 interface Certificate {
     id: string
@@ -28,6 +29,7 @@ interface CertificatesListProps {
 }
 
 export function CertificatesList({ userId, availableCampaigns = [], availableChecks = [] }: CertificatesListProps) {
+    const { t } = useTranslation()
     const [certs, setCerts] = useState<Certificate[]>([])
     const [loading, setLoading] = useState(true)
     const [downloading, setDownloading] = useState<string | null>(null)
@@ -59,7 +61,13 @@ export function CertificatesList({ userId, availableCampaigns = [], availableChe
             const url = response.data?.url
             
             if (url) {
-                window.open(url, '_blank')
+                if (url.includes('/stream')) {
+                    const res = await api.get(url, { responseType: 'blob' });
+                    const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                    window.open(blobUrl, '_blank');
+                } else {
+                    window.open(url, '_blank');
+                }
             } else {
                 toast.error("Failed to generate download link")
             }
@@ -133,16 +141,19 @@ export function CertificatesList({ userId, availableCampaigns = [], availableChe
         <div className="space-y-8">
             {/* 1. Issued Certificates */}
             <div>
-                <h3 className="text-lg font-semibold mb-4">Issued Certificates</h3>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Award className="h-5 w-5 text-blue-600" />
+                    {t('certificatesView.issued')}
+                </h3>
                 {certs.length === 0 ? (
                     <div className="text-center p-8 text-muted-foreground border rounded-lg bg-slate-50">
                         <FileText className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                        <p>No certificates issued yet</p>
+                        <p>{t('certificatesView.noneIssued')}</p>
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {certs.map((cert) => (
-                            <Card key={cert.id} className="hover:shadow-md transition-shadow">
+                            <Card key={cert.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <Badge variant="outline" className="font-mono text-xs">
@@ -185,7 +196,7 @@ export function CertificatesList({ userId, availableCampaigns = [], availableChe
             {/* 2. Passed Campaigns (Generate) */}
             {(availableCampaigns.length > 0) && (
                 <div>
-                    <h3 className="text-lg font-semibold mb-4">Eligible for Certificate</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-amber-700">{t('certificatesView.eligible')}</h3>
                     <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {/* Deduplicate campaigns by name or group them? 
                             availableCampaigns is list of sessions. We need unique campaigns. 
@@ -226,10 +237,13 @@ export function CertificatesList({ userId, availableCampaigns = [], availableChe
             {/* 3. Proficiency Check Protocols */}
             {(availableChecks.length > 0) && (
                 <div>
-                    <h3 className="text-lg font-semibold mb-4">Proficiency Check Protocols</h3>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                        {t('certificatesView.protocols')}
+                    </h3>
                     <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {availableChecks.map((check) => (
-                            <Card key={check.id}>
+                            <Card key={check.id} className="border-l-4 border-l-emerald-500">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-base">{check.profileCode}</CardTitle>
                                     <CardDescription>{check.profileName}</CardDescription>

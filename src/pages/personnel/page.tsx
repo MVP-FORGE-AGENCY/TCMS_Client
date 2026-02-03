@@ -51,6 +51,7 @@ export default function PersonnelPage() {
 
     const { user } = useAuth()
     const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
+    const canCreate = ["admin", "super_admin"].includes(user?.role || "")
     const canInviteAuditor = ["admin", "super_admin"].includes(user?.role || "")
 
     const handleCreate = async (values: any) => {
@@ -153,9 +154,11 @@ export default function PersonnelPage() {
 							<ShieldCheck className="mr-2 h-4 w-4" /> {t("personnel.auditors.addAuditor")}
 						</Button>
 					)}
-					<Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
-						<Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
-					</Button>
+					{canCreate && (
+                        <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
+						    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
+					    </Button>
+                    )}
 				</div>
                 )}
             </div>
@@ -167,8 +170,8 @@ export default function PersonnelPage() {
                     icon={Users}
                     title={t("common.noData")}
                     description={t("common.getStarted")}
-                    actionLabel={canEdit ? t("personnel.addEmployee") : undefined}
-                    onAction={canEdit ? openCreateModal : undefined}
+                    actionLabel={canCreate ? t("personnel.addEmployee") : undefined}
+                    onAction={canCreate ? openCreateModal : undefined}
                 />
             ) : (
                 <Tabs defaultValue="employees" className="w-full">
