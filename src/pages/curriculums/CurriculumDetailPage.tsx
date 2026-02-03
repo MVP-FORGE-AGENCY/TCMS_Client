@@ -87,11 +87,8 @@ export default function CurriculumDetailPage() {
     const { data: curriculum, isLoading } = useQuery<Curriculum>({
         queryKey: ['curriculum', id],
         queryFn: async () => {
-             // In a real app we would use typed api wrapper but here we use direct api call based on earlier code
-             // But earlier code imported 'curriculums' from @/lib/api? 
-             // Let's stick to api.get as in lines 126 in problem file
             const res = await api.get(`/curriculums/${id}`)
-            return res.data
+            return res.data.data  // Backend returns { data: curriculum }
         }
     })
 
@@ -182,7 +179,7 @@ export default function CurriculumDetailPage() {
                                 </div>
                                 <div className="flex justify-between py-2 border-b">
                                     <span className="text-muted-foreground">{t('curriculums.totalModules')}</span>
-                                    <span className="font-medium">{curriculum.modules.length}</span>
+                                    <span className="font-medium">{curriculum.modules?.length ?? 0}</span>
                                 </div>
                             </CardContent>
                         </Card>
@@ -234,7 +231,7 @@ export default function CurriculumDetailPage() {
                                 {/* Vertical Timeline Line */}
                                 <div className="absolute left-6 top-4 bottom-4 w-0.5 bg-muted" />
 
-                                {curriculum.modules.length > 0 ? (
+                                {curriculum.modules && curriculum.modules.length > 0 ? (
                                     curriculum.modules.map((module, index) => (
                                         <div key={module.id} className="relative flex gap-4 bg-card p-4 rounded-lg border">
                                             <div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm">
@@ -312,7 +309,7 @@ export default function CurriculumDetailPage() {
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="all">{t('curriculums.materials.allModules')}</SelectItem>
-                                                    {curriculum.modules.map(m => (
+                                                    {curriculum.modules?.map(m => (
                                                         <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>

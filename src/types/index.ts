@@ -371,6 +371,7 @@ export interface CurriculumModuleCreate {
     theoryPassScore?: number;
     practicalPassScore?: number;
     requiresFinalAssessment?: boolean;
+    skipAssessment?: boolean;
 }
 
 export interface Curriculum {

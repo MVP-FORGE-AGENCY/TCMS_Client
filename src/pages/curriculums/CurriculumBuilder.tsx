@@ -71,7 +71,8 @@ export default function CurriculumBuilder() {
         requiresTheory: false,
         requiresPractical: false,
         allowsNotScored: true,
-        requiresFinalAssessment: false
+        requiresFinalAssessment: false,
+        skipAssessment: false
     })
 
     // Grading type helpers
@@ -157,6 +158,15 @@ export default function CurriculumBuilder() {
         if (standardTags.length === 0) {
             toast.error(t('validation.standardRequired', 'At least one standard must be selected'))
             return
+        }
+
+        // Ensure at least one module has assessment
+        if (modules.length > 0) {
+            const hasAssessment = modules.some(m => !m.skipAssessment)
+            if (!hasAssessment) {
+                toast.error(t('validation.assessmentRequired', 'At least one module must include assessment'))
+                return
+            }
         }
 
         try {
@@ -272,8 +282,13 @@ export default function CurriculumBuilder() {
     }
 
     const totalHours = modules.reduce((sum, m) => sum + (m.durationHours || 0), 0)
-    const instructionCount = modules.filter(m => m.type === 'instruction').length
-    const assessmentCount = modules.filter(m => m.type === 'assessment').length
+    // Count modules by grading type
+    const theoryOnlyCount = modules.filter(m => m.requiresTheory && !m.requiresPractical).length
+    const practicalOnlyCount = modules.filter(m => !m.requiresTheory && m.requiresPractical).length
+    const theoryAndPracticalCount = modules.filter(m => m.requiresTheory && m.requiresPractical).length
+    const lectureOnlyCount = modules.filter(m => m.skipAssessment).length
+    // Count modules that have assessments (not skipped)
+    const assessmentModulesCount = modules.filter(m => !m.skipAssessment).length
 
     if (loading) {
         return (
@@ -477,21 +492,48 @@ export default function CurriculumBuilder() {
                                     <span className="text-muted-foreground">{t('curriculums.totalModules', 'Total Modules')}</span>
                                     <span className="font-medium">{modules.length}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                        {t('curriculums.instruction', 'Training')}
-                                    </span>
-                                    <span className="font-medium">{instructionCount}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-violet-500" />
-                                        {t('curriculums.assessment', 'Checks')}
-                                    </span>
-                                    <span className="font-medium">{assessmentCount}</span>
-                                </div>
                                 <Separator />
+                                {theoryOnlyCount > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                            {t('curriculums.grading.theory', 'Theory Only')}
+                                        </span>
+                                        <span className="font-medium">{theoryOnlyCount}</span>
+                                    </div>
+                                )}
+                                {practicalOnlyCount > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-violet-500" />
+                                            {t('curriculums.grading.practical', 'Practical Only')}
+                                        </span>
+                                        <span className="font-medium">{practicalOnlyCount}</span>
+                                    </div>
+                                )}
+                                {theoryAndPracticalCount > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-green-500" />
+                                            {t('curriculums.grading.both', 'Both Theory & Practical')}
+                                        </span>
+                                        <span className="font-medium">{theoryAndPracticalCount}</span>
+                                    </div>
+                                )}
+                                {lectureOnlyCount > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-gray-400" />
+                                            {t('curriculums.noAssessment', 'No Assessment')}
+                                        </span>
+                                        <span className="font-medium">{lectureOnlyCount}</span>
+                                    </div>
+                                )}
+                                <Separator />
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('curriculums.assessmentsCount', 'Assessments')}</span>
+                                    <span className="font-medium">{assessmentModulesCount}</span>
+                                </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">{t('curriculums.totalHours', 'Total Hours')}</span>
                                     <span className="font-medium">{totalHours}h</span>
@@ -651,10 +693,29 @@ export default function CurriculumBuilder() {
                         <div className="space-y-3">
                             <Label>{t('curriculums.assessmentStrategy', 'Assessment Strategy')}</Label>
                             <RadioGroup
-                                value={moduleForm.requiresFinalAssessment ? "dedicated" : "integrated"}
-                                onValueChange={(v) => setModuleForm({ ...moduleForm, requiresFinalAssessment: v === "dedicated" })}
-                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                value={moduleForm.skipAssessment ? "noAssessment" : (moduleForm.requiresFinalAssessment ? "dedicated" : "integrated")}
+                                onValueChange={(v) => setModuleForm({ 
+                                    ...moduleForm, 
+                                    skipAssessment: v === "noAssessment",
+                                    requiresFinalAssessment: v === "dedicated"
+                                })}
+                                className="space-y-3"
                             >
+                                <div>
+                                    <RadioGroupItem value="noAssessment" id="noAssessment" className="peer sr-only" />
+                                    <Label
+                                        htmlFor="noAssessment"
+                                        className="cursor-pointer flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:border-primary/50 hover:bg-accent/50 hover:shadow-sm peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5 transition-all duration-200"
+                                    >
+                                        <BookOpen className="mb-3 h-6 w-6 text-muted-foreground" />
+                                        <div className="text-center">
+                                            <div className="font-semibold">{t('curriculums.noAssessment', 'No Assessment')}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                {t('curriculums.noAssessmentDesc', 'Lecture-only module. Assessment occurs in a later module.')}
+                                            </div>
+                                        </div>
+                                    </Label>
+                                </div>
                                 <div>
                                     <RadioGroupItem value="integrated" id="integrated" className="peer sr-only" />
                                     <Label
@@ -709,6 +770,8 @@ export default function CurriculumBuilder() {
 
 
 
+                        {/* Grading Criteria - only show when assessment is included */}
+                        {!moduleForm.skipAssessment && (
                         <div className="space-y-4 pt-2 border-t">
                             <Label className="text-base">{t('curriculums.gradingCriteria', 'Grading Criteria')}</Label>
                             
@@ -789,6 +852,7 @@ export default function CurriculumBuilder() {
                                 </div>
                             )}
                         </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label>{t('curriculums.moduleDescription', 'Description (Optional)')}</Label>

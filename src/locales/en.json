@@ -57,7 +57,9 @@
         "previous": "Previous",
         "next": "Next",
         "table": "Table",
-        "calendar": "Calendar"
+        "calendar": "Calendar",
+        "months": "months",
+        "month": "month"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -761,20 +763,10 @@
             "atLeastOneMethod": "At least one method must be selected"
         }
     },
-    "procedures": {
-        "title": "Standard Operating Procedures",
-        "subtitle": "Documented procedures for training and competence management (EASA 5.5 compliant).",
-        "viewProcedure": "View Procedure",
-        "lastReviewed": "Last Reviewed",
-        "nextReview": "Next Review",
-        "version": "Version",
-        "contents": "Contents",
-        "noProcedures": "No procedures found",
-        "create": "Create Procedure",
-        "createSuccess": "Procedure created successfully"
-    },
     "validation": {
         "required": "This field is required",
+        "standardRequired": "At least one standard must be selected",
+        "assessmentRequired": "At least one module must include assessment",
         "invalidEmail": "Invalid email address",
         "invalidGuid": "Invalid identifier",
         "minLength": "Minimum length is {{min}} characters",
@@ -786,6 +778,18 @@
         "endDateAfterStart": "End date must be after start date",
         "validationFailed": "Validation failed",
         "fixErrors": "Please fix the following errors:"
+    },
+    "procedures": {
+        "title": "Standard Operating Procedures",
+        "subtitle": "Documented procedures for training and competence management (EASA 5.5 compliant).",
+        "viewProcedure": "View Procedure",
+        "lastReviewed": "Last Reviewed",
+        "nextReview": "Next Review",
+        "version": "Version",
+        "contents": "Contents",
+        "noProcedures": "No procedures found",
+        "create": "Create Procedure",
+        "createSuccess": "Procedure created successfully"
     },
     "errors": {
         "generic": "An unexpected error occurred",
@@ -872,6 +876,7 @@
         "assessment": "Checks",
         "totalHours": "total",
         "totalModules": "Total Modules",
+        "assessmentsCount": "Assessments",
         "summary": "Summary",
         "builderSubtitle": "Define training and assessment modules.",
         "selectValidity": "Select validity",
@@ -894,6 +899,8 @@
         "integratedGradingDesc": "Grading occurs during the last training session. Best for shorter modules.",
         "dedicatedAssessment": "Dedicated Assessment",
         "dedicatedAssessmentDesc": "Adds an extra session specifically for assessment. Best for long modules.",
+        "noAssessment": "No Assessment",
+        "noAssessmentDesc": "Lecture-only module. Assessment occurs in a later module.",
         "loadError": "Failed to load curriculum",
         "created": "Curriculum created",
         "updated": "Curriculum updated",
@@ -993,6 +1000,8 @@
         "instructorByModule": "Instructor by Module",
         "instructorByModuleDesc": "Optionally assign different instructors per module. Leave blank to use default.",
         "selectInstructor": "Select instructor",
+        "defaultLocation": "Default Location",
+        "locationPlaceholder": "e.g., Training Center A",
         "location": "Location",
         "sessionDuration": "Session Duration (hours)",
         "willGenerate": "This will generate approximately",

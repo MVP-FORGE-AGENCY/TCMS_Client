@@ -57,7 +57,9 @@
         "previous": "Предишна",
         "next": "Следваща",
         "table": "Таблица",
-        "calendar": "Календар"
+        "calendar": "Календар",
+        "months": "месеца",
+        "month": "месец"
     },
     "nav": {
         "dashboard": "Табло",
@@ -685,6 +687,8 @@
     },
     "validation": {
         "required": "Това поле е задължително",
+        "standardRequired": "Трябва да изберете поне един стандарт",
+        "assessmentRequired": "Поне един модул трябва да включва оценяване",
         "invalidEmail": "Невалиден имейл адрес",
         "invalidGuid": "Невалиден идентификатор",
         "minLength": "Минималната дължина е {{min}} символа",
@@ -815,6 +819,7 @@
         "assessment": "Проверки",
         "totalHours": "общо",
         "totalModules": "Общо модули",
+        "assessmentsCount": "Оценявания",
         "summary": "Обобщение",
         "builderSubtitle": "Дефиниране на модули за обучение и оценяване.",
         "selectValidity": "Изберете валидност",
@@ -837,6 +842,8 @@
         "integratedGradingDesc": "Оценяването се извършва по време на последната сесия. Подходящо за по-кратки модули.",
         "dedicatedAssessment": "Специализирано оценяване",
         "dedicatedAssessmentDesc": "Добавя допълнителна сесия специално за оценяване. Подходящо за дълги модули.",
+        "noAssessment": "Без оценяване",
+        "noAssessmentDesc": "Модул само с лекции. Оценяването се случва в следващ модул.",
         "gradingCriteria": "Критерии за оценяване",
         "gradingType": "Тип оценяване",
         "placeholderPassScore": "напр., 70",
@@ -933,6 +940,8 @@
         "instructorByModule": "Инструктор по модул",
         "instructorByModuleDesc": "Опционално назначаване на различни инструктори за всеки модул. Оставете празно за използване на подразбиращия се.",
         "selectInstructor": "Изберете инструктор",
+        "defaultLocation": "Място по подразбиране",
+        "locationPlaceholder": "напр. Учебен център А",
         "location": "Място",
         "sessionDuration": "Продължителност на сесия (часове)",
         "willGenerate": "Това ще генерира приблизително",

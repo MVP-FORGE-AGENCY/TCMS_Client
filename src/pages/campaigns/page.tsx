@@ -201,7 +201,7 @@ export default function CampaignsPage() {
                                     <Input 
                                         value={newCampaign.defaultLocation || ''}
                                         onChange={(e) => setNewCampaign({ ...newCampaign, defaultLocation: e.target.value })}
-                                        placeholder="e.g., Training Center A"
+                                        placeholder={t('campaigns.locationPlaceholder', 'e.g., Training Center A')}
                                     />
                                 </div>
                             </div>
