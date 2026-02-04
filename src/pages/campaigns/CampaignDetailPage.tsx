@@ -807,7 +807,7 @@ export default function CampaignDetailPage() {
                                         {t('campaigns.autoSchedule', 'Auto-Schedule')}
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="max-h-[85vh] overflow-y-auto">
                                     <DialogHeader>
                                         <DialogTitle>{t('campaigns.autoScheduler', 'Auto-Scheduler')}</DialogTitle>
                                         <DialogDescription>

@@ -208,6 +208,10 @@ export default function SessionDetailPage() {
     const handleUpdateComments = async (participantId: string, comments: string) => {
         try {
             await api.patch(`/sessions/${id}/participants/${participantId}/comments`, { comments })
+            // Update local state to ensure modal gets fresh data
+            setParticipants(prev => prev.map(p => 
+                p.id === participantId ? { ...p, comments } : p
+            ))
             toast.success("Comments saved")
         } catch (error) {
             toast.error("Failed to update comments")
