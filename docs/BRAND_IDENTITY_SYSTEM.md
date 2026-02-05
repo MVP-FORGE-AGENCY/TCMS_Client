@@ -1,6 +1,6 @@
-# TCMS Brand Identity System
+# CertifyCloud Brand Identity System
 
-A comprehensive design system and visual identity framework for the Training & Competence Management System. This document serves as the single source of truth for all design decisions, color usage, typography, and brand applications across digital, print, and marketing materials.
+A comprehensive design system and visual identity framework for CertifyCloud, the modern compliance management platform. This document serves as the single source of truth for all design decisions, color usage, typography, and brand applications across digital, print, and marketing materials.
 
 ---
 
@@ -8,20 +8,20 @@ A comprehensive design system and visual identity framework for the Training & C
 
 ### Brand Essence
 
-**Name**: TCMS (Training & Competence Management System)
+**Name**: CertifyCloud
 
-**Tagline**: "Compliance Made Automatic"
+**Tagline**: "Compliance Without Complexity"
 
-**Brand Promise**: Simplifying aviation compliance through intelligent, user-centered technology
+**Brand Promise**: Eliminating compliance burden through intelligent automation and intuitive design
 
-**Core Positioning**: Purpose-built training and competence management system for aviation and high-compliance industries
+**Core Positioning**: Purpose-built compliance and training management platform for aviation and high-compliance industries worldwide
 
 ### Brand Personality
 
 - **Professional** – Enterprise-grade capability and reliability
 - **Trustworthy** – Built on security and compliance expertise
-- **Approachable** – Complex features made simple through design
-- **Innovation-Driven** – Modern technology meeting traditional aviation standards
+- **Approachable** – Complex features made simple through elegant design
+- **Innovation-Driven** – Modern cloud-native technology meeting regulatory standards
 - **Human-Centered** – User needs guide every design decision
 
 ---
@@ -30,11 +30,11 @@ A comprehensive design system and visual identity framework for the Training & C
 
 ### Primary Color System
 
-The TCMS primary color palette consists of carefully selected hues that convey professionalism, trust, and aviation standards while ensuring accessibility and visual distinction.
+The CertifyCloud primary color palette consists of carefully selected hues that convey professionalism, trust, and aviation standards while ensuring accessibility and visual distinction.
 
 #### Core Brand Colors
 
-**TCMS Blue (Primary)**
+**CertifyCloud Blue (Primary)**
 - **Hex**: `#0066FF`
 - **RGB**: `0, 102, 255`
 - **HSL**: `221°, 100%, 50%`
@@ -236,7 +236,7 @@ Or web font: `JetBrains Mono`, `Fira Code` for better aesthetics
 | **Secondary** | Slate-700 | `#334155` | 9:1 | Body text, descriptions |
 | **Tertiary** | Slate-500 | `#64748B` | 4.5:1 | Secondary text, hints |
 | **Disabled** | Slate-300 | `#CBD5E1` | 2:1 | Disabled states, placeholders |
-| **Link** | TCMS Blue | `#0066FF` | 6.5:1 | Clickable links, CTAs |
+| **Link** | CertifyCloud Blue | `#0066FF` | 6.5:1 | Clickable links, CTAs |
 
 ---
 
@@ -245,7 +245,7 @@ Or web font: `JetBrains Mono`, `Fira Code` for better aesthetics
 ### Button System
 
 **Primary Button**
-- **Background**: TCMS Blue (`#0066FF`)
+- **Background**: CertifyCloud Blue (`#0066FF`)
 - **Text**: White
 - **Padding**: 12px 24px
 - **Border Radius**: 8px
@@ -266,7 +266,7 @@ Or web font: `JetBrains Mono`, `Fira Code` for better aesthetics
 
 **Tertiary/Ghost Button**
 - **Background**: Transparent
-- **Text**: TCMS Blue
+- **Text**: CertifyCloud Blue
 - **Padding**: 12px 24px
 - **Hover**: Blue-50 background
 - **Usage**: Less emphasis actions, links, text actions
@@ -437,7 +437,7 @@ Icon (32px, Color-matching)
 
 **Multi-Step Workflow**
 - **Progress Indicator**: 3-5 steps maximum
-- **Current Step**: Bold, TCMS Blue
+- **Current Step**: Bold, CertifyCloud Blue
 - **Completed Steps**: Green check, Slate text
 - **Next Steps**: Slate-300, disabled appearance
 
@@ -449,7 +449,7 @@ Icon (32px, Color-matching)
 
 **Header**
 - **Background**: White / Slate-50
-- **Logo**: TCMS wordmark (color variant)
+- **Logo**: CertifyCloud wordmark (color variant)
 - **Navigation**: Slate-700 text, blue hover
 - **CTA Button**: Primary blue button
 
@@ -463,7 +463,7 @@ Icon (32px, Color-matching)
 **Feature Cards**
 - **Layout**: 3-column grid (responsive)
 - **Card Style**: Standard card with icon
-- **Icon**: 48px, TCMS Blue
+- **Icon**: 48px, CertifyCloud Blue
 - **Title**: H4, Slate-900
 - **Description**: Small, Slate-600
 - **Accent**: Left border in status green
@@ -471,7 +471,7 @@ Icon (32px, Color-matching)
 **Pricing Table**
 - **Header**: H2, Slate-900
 - **Plans**: 3 columns with card styling
-- **Pricing**: H2, TCMS Blue
+- **Pricing**: H2, CertifyCloud Blue
 - **Features**: Bulleted list, small text
 - **CTA**: Primary button on each card
 
@@ -481,7 +481,7 @@ Icon (32px, Color-matching)
 - **Width**: 260px (collapsed: 60px)
 - **Background**: Slate-800 (dark mode) or White (light mode)
 - **Text**: Slate-50 on dark, Slate-700 on light
-- **Active Item**: TCMS Blue background
+- **Active Item**: CertifyCloud Blue background
 - **Icons**: 20px, consistent set (Lucide)
 - **Spacing**: 12px between items
 
@@ -500,7 +500,7 @@ Icon (32px, Color-matching)
 ### Marketing Materials
 
 **Color Usage Hierarchy**
-1. **Primary**: TCMS Blue (30-40% of design)
+1. **Primary**: CertifyCloud Blue (30-40% of design)
 2. **Secondary**: Slate grays (40-50% of design)
 3. **Accent**: Status colors for emphasis (10-20% of design)
 
@@ -541,9 +541,9 @@ Icon (32px, Color-matching)
 |-----------|-----------|-------|-------|
 | Slate-900 | White | 20:1 | AAA |
 | Slate-700 | White | 9:1 | AAA |
-| TCMS Blue | White | 6.5:1 | AA |
+| CertifyCloud Blue | White | 6.5:1 | AA |
 | Emerald-500 | White | 4.1:1 | AA |
-| White | TCMS Blue | 9:1 | AAA |
+| White | CertifyCloud Blue | 9:1 | AAA |
 
 ### Accessibility Checklist
 
@@ -771,15 +771,16 @@ module.exports = {
 
 ### Document Control
 
-**Document Version**: 1.0
-**Last Updated**: January 15, 2026
-**Next Review**: April 15, 2026 (Quarterly)
+**Document Version**: 2.0
+**Last Updated**: January 20, 2026
+**Next Review**: April 20, 2026 (Quarterly)
 
 ### Change Log
 
 | Date | Version | Change | Author |
 |------|---------|--------|--------|
-| 2026-01-15 | 1.0 | Initial brand identity system | Design Team |
+| 2026-01-15 | 1.0 | Initial brand identity system (TCMS) | Design Team |
+| 2026-01-20 | 2.0 | Rebrand to CertifyCloud with new tagline | Brand Team |
 
 ### Update Process
 
@@ -795,7 +796,7 @@ module.exports = {
 
 ### Color Quick Reference
 
-Primary: #0066FF (TCMS Blue)
+Primary: #0066FF (CertifyCloud Blue)
 Dark: #1E293B (Slate-800)
 Light: #F1F5F9 (Slate-50)
 
@@ -842,10 +843,10 @@ Element spacing: 16px
 - Accessibility Testing Report
 
 ### Related Documents
-- TCMS UI/UX Design Specification
-- TCMS Technical Specification
-- TCMS Marketing Guidelines
+- CertifyCloud UI/UX Design Specification
+- CertifyCloud Technical Specification
+- CertifyCloud Marketing Guidelines
 
 ---
 
-**© 2024-2026 TCMS. All rights reserved. This brand identity system is proprietary and intended for internal use and authorized partners only.**
+**© 2024-2026 CertifyCloud. All rights reserved. This brand identity system is proprietary and intended for internal use and authorized partners only.**
