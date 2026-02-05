@@ -33,7 +33,7 @@ export default function CampaignDetailPage() {
     const { id } = useParams<{ id: string }>()
 
     const [campaign, setCampaign] = useState<Campaign | null>(null)
-    const [loading, setLoading] = useState(true)
+
     const [employees, setEmployees] = useState<Employee[]>([])
     const [instructors, setInstructors] = useState<Employee[]>([])
     const [campaignSessions, setCampaignSessions] = useState<Session[]>([])
@@ -212,14 +212,12 @@ export default function CampaignDetailPage() {
 
     const loadCampaign = async () => {
         try {
-            setLoading(true)
+
             const response = await api.get(`/campaigns/${id}`)
             setCampaign(response.data.data)
         } catch (error) {
             console.error('Failed to load campaign:', error)
             toast.error(t('campaigns.loadError', 'Failed to load campaign'))
-        } finally {
-            setLoading(false)
         }
     }
 
