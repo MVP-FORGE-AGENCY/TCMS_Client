@@ -8,7 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
     ArrowLeft, Calendar, Users, Play, Pause, Award,
-    UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download, Search
+    UserPlus, Wand2, Trash2, CheckCircle2, XCircle, Pencil, CalendarPlus, FileText, Download, Search, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { api, curriculums, materialActions } from '@/lib/api'
 import type { Campaign, Employee, GenerateScheduleRequest, Session, CurriculumModule } from '@/types'
 import { cn } from '@/lib/utils'
@@ -120,6 +121,9 @@ export default function CampaignDetailPage() {
     }
     const [campaignModulesStats, setCampaignModulesStats] = useState<CampaignModuleStats[]>([])
     const [loadingModules, setLoadingModules] = useState(false)
+    const [generatingCerts, setGeneratingCerts] = useState(false)
+    const [certConfirmOpen, setCertConfirmOpen] = useState(false)
+    const [emailCertificates, setEmailCertificates] = useState(false)
     
     // Module detail dialog
     interface ModuleTrainee {
@@ -579,21 +583,38 @@ export default function CampaignDetailPage() {
         }
     })
 
-    if (loading) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-        )
+    // Compute eligible trainees
+    const eligibleTrainees = campaign?.enrollments?.filter(e => e.allModulesPassed) || []
+    const eligibleTraineesIds = eligibleTrainees.map(e => e.userId)
+    const allEligibleHaveCerts = eligibleTrainees.length > 0 && eligibleTrainees.every(e => e.certificateId)
+    
+    const handleOpenCertDialog = () => {
+        if (eligibleTrainees.length === 0) {
+            toast.info(t('campaigns.noEligibleTrainees', 'No eligible trainees found'))
+            return
+        }
+        setCertConfirmOpen(true)
     }
 
-    if (!campaign) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <p className="text-muted-foreground">{t('campaigns.notFound', 'Campaign not found')}</p>
-            </div>
-        )
+    const handleGenerateCertificates = async () => {
+        try {
+            setGeneratingCerts(true)
+            const res = await api.post(`/reports/campaigns/${id}/certificate`, { userIds: eligibleTraineesIds, email: emailCertificates })
+            const { generated, skipped } = res.data
+            toast.success(t('campaigns.certificatesGenerated', `Generated ${generated} certs. Skipped ${skipped}.`, { generated, skipped }))
+            setCertConfirmOpen(false)
+            loadCampaign() // Reload to update certificate status
+        } catch (error: any) {
+            console.error('Failed to generate certificates:', error)
+            toast.error(error.response?.data?.error || t('errors.generateError', 'Failed to generate certificates'))
+        } finally {
+            setGeneratingCerts(false)
+        }
     }
+
+    // ... existing status change handler ...
+
+    if (!campaign) return <div className="p-8 text-center">{t('common.loading', 'Loading...')}</div>
 
     return (
         <div className="space-y-6">
@@ -633,17 +654,85 @@ export default function CampaignDetailPage() {
                             {t('campaigns.pause', 'Pause')}
                         </Button>
                     )}
-                    {campaign.progressPercent === 100 && (
-                        <Button 
-                            variant="outline" 
-                            onClick={() => toast.info('Certificate generation for campaigns coming soon!')}
-                        >
-                            <Award className="mr-2 h-4 w-4" />
-                            {t('campaigns.generateCertificates', 'Generate Certificates')}
-                        </Button>
+                    
+                    {(campaign.status === 'completed' || campaign.progressPercent === 100) && (
+                        allEligibleHaveCerts ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" disabled className="gap-2">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            {t('campaigns.certificatesGenerated', 'Certificates Generated')}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('campaigns.certificatesGeneratedTooltip', 'View certificates in employee personnel files')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : (
+                            <Button 
+                                variant="outline" 
+                                onClick={handleOpenCertDialog}
+                                disabled={generatingCerts}
+                                className="gap-2"
+                            >
+                                {generatingCerts ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Award className="h-4 w-4" />
+                                )}
+                                {t('campaigns.generateCertificates', 'Generate Certificates')}
+                            </Button>
+                        )
                     )}
                 </div>
             </div>
+
+            {/* Certificate Generation Dialog */}
+            <Dialog open={certConfirmOpen} onOpenChange={setCertConfirmOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('campaigns.certificateGeneration', 'Certificate Generation')}</DialogTitle>
+                        <DialogDescription>
+                            {t('campaigns.eligibleTrainees', 'Eligible Trainees:')} {eligibleTrainees.length}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="max-h-60 overflow-y-auto rounded-md border p-2">
+                             {eligibleTrainees.map((e) => (
+                                <div key={e.userId} className="flex items-center justify-between py-1 text-sm">
+                                    <span>{e.user?.fullName || e.userId}</span>
+                                    {e.certificateId && <Badge variant="secondary" className="text-xs">{t('campaigns.generated', 'Generated')}</Badge>}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex items-center space-x-2 rounded-lg border p-3 bg-muted/50">
+                            <Checkbox 
+                                id="emailCerts" 
+                                checked={emailCertificates} 
+                                onCheckedChange={(c) => setEmailCertificates(!!c)} 
+                                disabled
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="emailCerts" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    {t('campaigns.emailCertificates', 'Email certificates to participants')}
+                                </Label>
+                                <p className="text-[0.8rem] text-muted-foreground">{t('campaigns.toBeImplemented', '(To be implemented)')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCertConfirmOpen(false)}>
+                            {t('common.cancel', 'Cancel')}
+                        </Button>
+                        <Button onClick={handleGenerateCertificates} disabled={generatingCerts}>
+                            {generatingCerts && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('common.confirm', 'Confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Stats */}
             <div className="grid gap-4 md:grid-cols-4">
@@ -653,7 +742,7 @@ export default function CampaignDetailPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-end gap-2">
-                            <span className="text-3xl font-bold">{campaign.progressPercent}%</span>
+                            <span className="text-3xl font-bold">{campaign.progressPercent || 0}%</span>
                         </div>
                         <Progress value={campaign.progressPercent} className="mt-2" />
                     </CardContent>
@@ -1131,7 +1220,7 @@ export default function CampaignDetailPage() {
                                                 <td className="px-4 py-3 font-medium">{mod.name}</td>
                                                 <td className="px-4 py-3">
                                                     <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
-                                                        {mod.type}
+                                                        {t(`modules.types.${mod.type}`, mod.type)}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -1228,8 +1317,10 @@ export default function CampaignDetailPage() {
                                                         trainee.result === 'in_progress' ? 'bg-blue-500' :
                                                         'bg-gray-500'
                                                     }>
-                                                        {trainee.result === 'in_progress' ? 'In Progress' : 
-                                                         trainee.result === 'not_assessed' ? 'Not Assessed' :
+                                                        {trainee.result === 'in_progress' ? t('sessions.statuses.in_progress', 'In Progress') : 
+                                                         trainee.result === 'not_assessed' ? t('common.notAssessed', 'Not Assessed') :
+                                                         trainee.result === 'pass' ? t('common.passed', 'Passed') :
+                                                         trainee.result === 'fail' ? t('common.statusFailed', 'Failed') :
                                                          trainee.result.toUpperCase()}
                                                     </Badge>
                                                 </td>
@@ -1280,6 +1371,7 @@ export default function CampaignDetailPage() {
                                         <tr>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.date', 'Date')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.time', 'Time')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.duration', 'Duration')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.module', 'Module')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.location', 'Location')}</th>
                                             <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.instructor', 'Instructor')}</th>
@@ -1306,6 +1398,14 @@ export default function CampaignDetailPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd || session.dateStart), 'HH:mm')}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {(() => {
+                                                        const start = new Date(session.dateStart).getTime()
+                                                        const end = session.dateEnd ? new Date(session.dateEnd).getTime() : start
+                                                        const hours = Math.round(((end - start) / (1000 * 60 * 60)) * 10) / 10
+                                                        return `${hours}${t('common.hourShort', 'h')}`
+                                                    })()}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-col">
@@ -1501,7 +1601,7 @@ export default function CampaignDetailPage() {
 
                     <Card className="border-destructive">
                         <CardHeader>
-                            <CardTitle className="text-destructive">{t('common.dangerZone', 'Danger Zone')}</CardTitle>
+                            <CardTitle className="text-destructive">{t('campaigns.dangerZone', 'Danger Zone')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Button 
@@ -1555,7 +1655,7 @@ export default function CampaignDetailPage() {
                                         <td className="px-4 py-2 font-medium">{mod.name}</td>
                                         <td className="px-4 py-2">
                                             <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
-                                                {mod.type}
+                                                {t(`modules.types.${mod.type}`, mod.type)}
                                             </Badge>
                                         </td>
                                         <td className="px-4 py-2">
@@ -1578,8 +1678,10 @@ export default function CampaignDetailPage() {
                                                 mod.result === 'in_progress' ? 'bg-blue-500' :
                                                 'bg-gray-500'
                                             }>
-                                                {mod.result === 'in_progress' ? 'In Progress' :
-                                                 mod.result === 'not_assessed' ? 'Not Assessed' :
+                                                {mod.result === 'in_progress' ? t('sessions.statuses.in_progress', 'In Progress') :
+                                                 mod.result === 'not_assessed' ? t('common.notAssessed', 'Not Assessed') :
+                                                 mod.result === 'pass' ? t('common.passed', 'Passed') :
+                                                 mod.result === 'fail' ? t('common.statusFailed', 'Failed') :
                                                  mod.result.toUpperCase()}
                                             </Badge>
                                         </td>

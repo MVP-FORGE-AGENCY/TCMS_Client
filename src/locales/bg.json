@@ -31,6 +31,7 @@
         "startDate": "Начална дата",
         "back": "Назад",
         "print": "Печат",
+        "viewDetails": "Преглед на детайли",
         "view": "Преглед",
         "close": "Затвори",
         "confirm": "Потвърди",
@@ -62,6 +63,7 @@
         "months": "месеца",
         "month": "месец",
         "ongoing": "Текущ",
+        "notAssessed": "Неоценен",
         "attendance": "Присъствие",
         "result": "Резултат",
         "enrolledAt": "Записан на",
@@ -69,6 +71,7 @@
         "passed": "Успешен",
         "of": "от",
         "hour": "час",
+        "hourShort": "ч",
         "hours": "часа",
         "fullDay": "цял ден"
     },
@@ -85,6 +88,7 @@
         "standards": "Стандарти",
         "schedule": "График",
         "campaigns": "Кампании",
+        "modules": "Модули",
         "curriculums": "Учебни планове",
         "groups": {
             "planning": "Планиране",
@@ -553,6 +557,9 @@
         "date": "Дата",
         "instructor": "Инструктор",
         "location": "Локация",
+        "duration": "Продължителност",
+        "trainees": "Обучаеми",
+        "traineesCount": "{{count}} обучаеми",
         "type": "Тип",
         "campaign": "Кампания",
         "module": "Модул",
@@ -1081,8 +1088,7 @@
         "scheduleSessionDesc": "Ръчно планирайте сесия за конкретен модул.",
         "selectModule": "Изберете модул",
         "scheduleAllForModule": "Планирайте всички оставащи сесии за този модул",
-        "selectTrainees": "Изберете обучаеми",
-        "noTraineesForModule": "Няма записани обучаеми за тази кампания",
+
         "noSession": "Няма сесия",
         "scheduling": "Планиране...",
         "trainingMaterials": "Учебни материали",
@@ -1092,6 +1098,17 @@
         "traineeDetailsDesc": "Прегледайте резултатите от модулите и планирайте повторни явявания за неуспешни модули.",
         "noSessions": "Няма генерирани сесии все още. Използвайте автоматичния планировчик.",
         "dangerZone": "Опасна зона",
+        "generateCertificates": "Генериране на сертификати",
+        "noEligibleTrainees": "Няма допустими обучаеми (трябва да са преминал всички модули).",
+        "confirmGenerate": "Генериране на сертификати за {{count}} обучаеми?",
+        "certificatesGenerated": "Генерирани {{generated}} сертификати. Пропуснати {{skipped}}.",
+        "certificateGeneration": "Генериране на сертификати",
+        "emailCertificates": "Изпращане на сертификатите по имейл",
+        "toBeImplemented": "(Предстои)",
+        "eligibleTrainees": "Допустими обучаеми:",
+        "generated": "Генерирани",
+
+        "certificatesGeneratedTooltip": "Можете да видите генерираните сертификати в досието на всеки служител в секция 'Персонал'.",
         "generatedSessions": "Генерирани сесии",
         "noEnrollments": "Все още няма записани обучаеми.",
         "status": {
@@ -1135,5 +1152,11 @@
         "eligible": "Допустими за сертификат",
         "protocols": "Протоколи от проверки",
         "noneIssued": "Няма издадени сертификати"
+    },
+    "modules": {
+        "types": {
+            "instruction": "Обучение",
+            "assessment": "Оценяване"
+        }
     }
 }

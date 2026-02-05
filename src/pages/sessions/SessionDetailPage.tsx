@@ -20,7 +20,8 @@ import {
     MapPin,
     FileText,
     Award,
-    RotateCcw
+    RotateCcw,
+    Clock
 } from "lucide-react"
 import type { Session, SessionResult } from "@/types"
 import { api } from "@/lib/api"
@@ -327,6 +328,16 @@ export default function SessionDetailPage() {
                             <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
                                 {new Date(session.dateStart).toLocaleDateString()}
+                            </span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {(() => {
+                                    const start = new Date(session.dateStart).getTime()
+                                    const end = session.dateEnd ? new Date(session.dateEnd).getTime() : start
+                                    const hours = Math.round(((end - start) / (1000 * 60 * 60)) * 10) / 10
+                                    return `${hours}h`
+                                })()}
                             </span>
                             <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-1">

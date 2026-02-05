@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { TrafficLightCard } from "@/components/ui/traffic-light-card"
 import { Filter, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useAuth } from "@/context/AuthContext"
 
 // Define types locally if not yet in global types
 interface CompetenceItem {
@@ -56,6 +57,7 @@ export default function CompetenceDashboard() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
+    const { user } = useAuth() // Access user for role check
     
     const [data, setData] = useState<CompetenceItem[]>([])
     const [summary, setSummary] = useState<CompetenceSummary>({ valid: 0, expiringSoon: 0, expired: 0, notAcquired: 0 })
@@ -202,7 +204,8 @@ export default function CompetenceDashboard() {
                     />
                 </div>
                 
-                {/* Employee Filter */}
+            {/* Employee Filter - Hidden for employees */}
+            {user?.role !== 'employee' && (
                 <Select value={userId} onValueChange={(val) => {
                     setSearchParams(prev => {
                         if (val === 'all') prev.delete("userId")
@@ -221,6 +224,7 @@ export default function CompetenceDashboard() {
                         ))}
                     </SelectContent>
                 </Select>
+            )}
 
                 <Select value={status} onValueChange={handleStatusFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">

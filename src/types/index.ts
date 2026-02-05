@@ -448,6 +448,8 @@ export interface CampaignEnrollment {
         email: string;
         departmentTag?: string;
     };
+    certificateId?: string;
+    certificateNumber?: string;
 }
 
 export interface Campaign {
