@@ -1,5 +1,6 @@
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,11 +51,58 @@ import {
 import { Label } from "@/components/ui/label"
 import type { ScheduleRetakeRequest, Employee } from "@/types"
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useQuery } from "@tanstack/react-query"
+import { moduleResults } from "@/lib/api"
+import { SessionModuleGradingForm } from "@/components/forms/SessionModuleGradingForm"
+
+const ModuleGradingSection = ({ sessionId }: { sessionId: string }) => {
+    const { data, isLoading } = useQuery({
+        queryKey: ['session-module-grading', sessionId],
+        queryFn: () => moduleResults.getSessionGrading(sessionId)
+    });
+
+    if (isLoading) return <div>Loading grading data...</div>;
+
+    if (!data?.applicable && data?.message) {
+        return (
+            <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                    {data.message}
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    if (!data?.gradingList) return null;
+
+    return (
+        <Card>
+            <CardContent className="pt-6">
+                <SessionModuleGradingForm 
+                    sessionId={sessionId}
+                    moduleData={data.session.module}
+                    gradingList={data.gradingList}
+                />
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function SessionDetailPage() {
+    const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { user } = useAuth()
     const { setLabel } = useBreadcrumb()
+    
+    // Campaign context from URL params
+    const campaignId = searchParams.get('campaignId')
+    const campaignName = searchParams.get('campaignName')
+    const urlModuleName = searchParams.get('moduleName')
+    const sessionNumber = searchParams.get('sessionNumber')
+    const totalSessions = searchParams.get('totalSessions')
     
     // Modal states
     const [confirmModal, setConfirmModal] = useState<{
@@ -123,20 +171,59 @@ export default function SessionDetailPage() {
 
     useEffect(() => {
         if (session && id) {
-            setLabel(id, `${session.programme?.code} - ${new Date(session.dateStart).toLocaleDateString()}`)
+            if (campaignId && campaignName) {
+                // Campaign context - show module name with session number
+                const moduleName = urlModuleName || (session as any).curriculumModule?.name || session.programme?.code || ''
+                const sessionLabel = sessionNumber && totalSessions && parseInt(totalSessions) > 1
+                    ? `${moduleName} - Session ${sessionNumber}`
+                    : moduleName
+                setLabel(id, sessionLabel)
+            } else {
+                // Default context - handle both programme and curriculum-based sessions
+                const sessionName = session.programme?.code || 
+                    (session as any).curriculumModule?.name || 
+                    'Session';
+                setLabel(id, `${sessionName} - ${new Date(session.dateStart).toLocaleDateString()}`)
+            }
         }
-    }, [session, id])
+    }, [session, id, campaignId, campaignName, urlModuleName, sessionNumber, totalSessions])
 
-    const handleStartSession = async () => {
-        if (!confirm("Are you sure you want to start this session?")) return
-        try {
-            await api.patch(`/sessions/${id}/start`)
-            toast.success("Session started successfully")
-            fetchData()
-        } catch (error: any) {
-            console.error("Failed to start session:", error)
-            toast.error(error.response?.data?.error?.message || "Failed to start session")
-        }
+    const handleStartSession = () => {
+        setConfirmModal({
+            open: true,
+            title: 'Start Session',
+            description: 'You are about to start this training session. Once started, participants will be marked as attending and the session cannot be reverted to planned status. Are you sure you want to proceed?',
+            action: async () => {
+                try {
+                    await api.patch(`/sessions/${id}/start`)
+                    toast.success("Session started successfully")
+                    fetchData()
+                    setConfirmModal(prev => ({ ...prev, open: false }))
+                } catch (error: any) {
+                    console.error("Failed to start session:", error)
+                    toast.error(error.response?.data?.error?.message || "Failed to start session")
+                }
+            }
+        })
+    }
+
+    const handleEndSession = () => {
+        setConfirmModal({
+            open: true,
+            title: 'End Session',
+            description: 'You are about to end this session. You will still be able to update attendance and comments afterward, but the session status will change to completed.',
+            action: async () => {
+                try {
+                    await api.patch(`/sessions/${id}/end`)
+                    toast.success("Session ended successfully")
+                    fetchData()
+                    setConfirmModal(prev => ({ ...prev, open: false }))
+                } catch (error: any) {
+                    console.error("Failed to end session:", error)
+                    toast.error(error.response?.data?.error?.message || "Failed to end session")
+                }
+            }
+        })
     }
 
     const handleUpdateAttendance = async (participantId: string, attendance: string) => {
@@ -246,12 +333,18 @@ export default function SessionDetailPage() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate("/sessions")} className="shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => navigate(campaignId ? `/campaigns/${campaignId}` : "/sessions")} className="shrink-0">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="min-w-0">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-                            {session.programme?.code} - {session.programme?.name}
+                            {campaignId && urlModuleName ? (
+                                sessionNumber && totalSessions && parseInt(totalSessions) > 1
+                                    ? `${decodeURIComponent(urlModuleName)} - Session ${sessionNumber}`
+                                    : decodeURIComponent(urlModuleName)
+                            ) : (
+                                `${session.programme?.code || (session as any).curriculumModule?.name || 'Session'} - ${session.programme?.name || new Date(session.dateStart).toLocaleDateString()}`
+                            )}
                         </h1>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground mt-1 text-sm">
                             <Badge variant={
@@ -280,12 +373,12 @@ export default function SessionDetailPage() {
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                    {(isPlanned || isInProgress || isCompleted) && (
+                    {isCompleted && (
                         <Button variant="outline" onClick={handleGenerateAttendance}>
                             <FileText className="mr-2 h-4 w-4" /> Attendance Sheet
                         </Button>
                     )}
-                    {isCompleted && (
+                    {isCompleted && !campaignId && (
                         <>
                             <Button variant="outline" onClick={handleGenerateCertificates}>
                                 <Award className="mr-2 h-4 w-4" /> Generate Certificates
@@ -328,153 +421,180 @@ export default function SessionDetailPage() {
                         </>
                     )}
                     {isInProgress && (
-                        <Button variant="default" onClick={() => setIsResultsModalOpen(true)}>
-                            <CheckCircle className="mr-2 h-4 w-4" /> End & Record Results
-                        </Button>
+                        (session as any).isFinalModuleSession ? (
+                            <Button variant="default" onClick={() => setIsResultsModalOpen(true)}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> End & Record Results
+                            </Button>
+                        ) : (
+                            <Button variant="default" onClick={handleEndSession}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> End Session
+                            </Button>
+                        )
                     )}
                 </div>
             </div>
 
             {/* Content */}
-            <div className="grid gap-6">
-                {/* Pass Criteria Info (for In Progress/Completed) */}
-                {(isInProgress || isCompleted) && (
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="details">{t('sessions.tabs.details', 'Session Details')}</TabsTrigger>
+                    {(isInProgress || isCompleted) && (session as any).isFinalModuleSession && (
+                        <TabsTrigger value="grading">{t('sessions.tabs.grading', 'Module Grading')}</TabsTrigger>
+                    )}
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-6">
+                    {/* Pass Criteria Info (for In Progress/Completed) */}
+                    {(isInProgress || isCompleted) && (
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">
+                                    {t('sessions.assessmentCriteria', 'Assessment Criteria')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-8">
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-medium">Theory Pass Score</div>
+                                        <div className="text-2xl font-bold">
+                                            {session.programme?.passScorePercent || 75}%
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-medium">Practical Pass Score</div>
+                                        <div className="text-2xl font-bold">
+                                            {session.programme?.passScorePercent || 75}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Participants Table */}
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Assessment Criteria
-                            </CardTitle>
+                        <CardHeader>
+                            <CardTitle>Participants ({participants.length})</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex gap-8">
-                                <div className="space-y-1">
-                                    <div className="text-sm font-medium">Theory Pass Score</div>
-                                    <div className="text-2xl font-bold">
-                                        {session.programme?.passScorePercent || 75}%
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-sm font-medium">Practical Pass Score</div>
-                                    <div className="text-2xl font-bold">
-                                        {session.programme?.passScorePercent || 75}%
-                                    </div>
-                                </div>
+                        <CardContent className="p-0 md:p-6">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Attendance</TableHead>
+                                        <TableHead>Comments</TableHead>
+                                        {(isCompleted) && <TableHead>Result</TableHead>}
+                                        <TableHead className="w-[100px]">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {participants.map((p) => (
+                                        <TableRow key={p.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{p.fullName}</div>
+                                                <div className="text-xs text-muted-foreground">{p.email}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {isInProgress ? (
+                                                    <Select 
+                                                        value={p.attendance} 
+                                                        onValueChange={(val) => handleUpdateAttendance(p.id, val)}
+                                                    >
+                                                        <SelectTrigger className="w-[130px]">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="planned">{t('sessions.attendanceStatus.planned', 'Planned')}</SelectItem>
+                                                            <SelectItem value="present">{t('sessions.attendanceStatus.present', 'Present')}</SelectItem>
+                                                            <SelectItem value="late">{t('sessions.attendanceStatus.late', 'Late')}</SelectItem>
+                                                            <SelectItem value="absent">{t('sessions.attendanceStatus.absent', 'Absent')}</SelectItem>
+                                                            <SelectItem value="excused">{t('sessions.attendanceStatus.excused', 'Excused')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : (
+                                                    <Badge variant={
+                                                        p.attendance === 'present' ? 'default' : 
+                                                        p.attendance === 'late' ? 'secondary' :
+                                                        p.attendance === 'excused' ? 'outline' : 
+                                                        'destructive'
+                                                    }>
+                                                        {p.attendance}
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {isInProgress ? (
+                                                    <Input 
+                                                        defaultValue={p.comments || ''}
+                                                        onBlur={(e) => {
+                                                            if (e.target.value !== p.comments) {
+                                                                handleUpdateComments(p.id, e.target.value)
+                                                            }
+                                                        }}
+                                                        className="max-w-[300px]"
+                                                        placeholder="Add comments..."
+                                                    />
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">{p.comments || '-'}</span>
+                                                )}
+                                            </TableCell>
+                                            {isCompleted && (
+                                                <TableCell>
+                                                    <Badge variant={p.overallResult === 'pass' ? 'default' : p.overallResult === 'fail' ? 'destructive' : 'secondary'}>
+                                                        {p.overallResult ? p.overallResult.toUpperCase() : 'N/A'}
+                                                    </Badge>
+                                                </TableCell>
+                                            )}
+                                            <TableCell className="flex gap-1">
+                                                {/* Certificate actions */}
+                                                {p.certificateUrl && (
+                                                    <>
+                                                        <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
+                                                            <FileText className="h-4 w-4 mr-1" /> View
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await api.post(`/sessions/${id}/certificates/send`, { userIds: [p.userId] })
+                                                                    toast.success(`Certificate sent to ${p.email}`)
+                                                                } catch (error) {
+                                                                    toast.error('Failed to send certificate')
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Award className="h-4 w-4 mr-1" /> Email
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {/* Schedule Retake for failed trainees */}
+                                                {isCompleted && p.overallResult === 'fail' && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                                                        onClick={() => openRetakeDialog(p)}
+                                                    >
+                                                        <RotateCcw className="h-4 w-4 mr-1" /> Retake
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                             </div>
                         </CardContent>
                     </Card>
-                )}
+                </TabsContent>
 
-                {/* Participants Table */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Participants ({participants.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 md:p-6">
-                        <div className="overflow-x-auto">
-                            <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Attendance</TableHead>
-                                    <TableHead>Comments</TableHead>
-                                    {(isCompleted) && <TableHead>Result</TableHead>}
-                                    <TableHead className="w-[100px]">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {participants.map((p) => (
-                                    <TableRow key={p.id}>
-                                        <TableCell>
-                                            <div className="font-medium">{p.fullName}</div>
-                                            <div className="text-xs text-muted-foreground">{p.email}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {isInProgress ? (
-                                                <Select 
-                                                    value={p.attendance} 
-                                                    onValueChange={(val) => handleUpdateAttendance(p.id, val)}
-                                                >
-                                                    <SelectTrigger className="w-[130px]">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="planned">Planned</SelectItem>
-                                                        <SelectItem value="present">Present</SelectItem>
-                                                        <SelectItem value="absent">Absent</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : (
-                                                <Badge variant={p.attendance === 'present' ? 'default' : 'secondary'}>
-                                                    {p.attendance}
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {isInProgress ? (
-                                                <Input 
-                                                    defaultValue={p.comments || ''}
-                                                    onBlur={(e) => {
-                                                        if (e.target.value !== p.comments) {
-                                                            handleUpdateComments(p.id, e.target.value)
-                                                        }
-                                                    }}
-                                                    className="max-w-[300px]"
-                                                    placeholder="Add comments..."
-                                                />
-                                            ) : (
-                                                <span className="text-sm text-muted-foreground">{p.comments || '-'}</span>
-                                            )}
-                                        </TableCell>
-                                        {isCompleted && (
-                                            <TableCell>
-                                                <Badge variant={p.overallResult === 'pass' ? 'default' : p.overallResult === 'fail' ? 'destructive' : 'secondary'}>
-                                                    {p.overallResult ? p.overallResult.toUpperCase() : 'N/A'}
-                                                </Badge>
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="flex gap-1">
-                                            {/* Certificate actions */}
-                                            {p.certificateUrl && (
-                                                <>
-                                                    <Button variant="ghost" size="sm" onClick={() => p.certificateUrl && window.open(p.certificateUrl, '_blank')}>
-                                                        <FileText className="h-4 w-4 mr-1" /> View
-                                                    </Button>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        onClick={async () => {
-                                                            try {
-                                                                await api.post(`/sessions/${id}/certificates/send`, { userIds: [p.userId] })
-                                                                toast.success(`Certificate sent to ${p.email}`)
-                                                            } catch (error) {
-                                                                toast.error('Failed to send certificate')
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Award className="h-4 w-4 mr-1" /> Email
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {/* Schedule Retake for failed trainees */}
-                                            {isCompleted && p.overallResult === 'fail' && (
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                                                    onClick={() => openRetakeDialog(p)}
-                                                >
-                                                    <RotateCcw className="h-4 w-4 mr-1" /> Retake
-                                                </Button>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                <TabsContent value="grading">
+                    <ModuleGradingSection sessionId={id || ''} />
+                </TabsContent>
+            </Tabs>
+
 
             <RecordResultsModal 
                 session={session}
@@ -506,9 +626,9 @@ export default function SessionDetailPage() {
             <Dialog open={retakeDialogOpen} onOpenChange={setRetakeDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Schedule Retake</DialogTitle>
+                        <DialogTitle>{t('sessions.retakeTitle', 'Schedule Retake')}</DialogTitle>
                         <DialogDescription>
-                            Schedule a retake session for {selectedTrainee?.fullName}
+                            {t('sessions.retakeDesc', 'Schedule a retake session for {{name}}', { name: selectedTrainee?.fullName })}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -521,7 +641,7 @@ export default function SessionDetailPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Retake Date *</Label>
+                            <Label>{t('sessions.retakeDate', 'Retake Date *')}</Label>
                             <Input 
                                 type="datetime-local"
                                 value={retakeForm.dateStart}
@@ -557,8 +677,7 @@ export default function SessionDetailPage() {
                         <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
                             <CardContent className="pt-4">
                                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                                    This will create a new session linked to the original attempt. 
-                                    The trainee will be automatically enrolled.
+                                    {t('sessions.retakeInfo', 'This will create a new session linked to the original attempt. The trainee will be automatically enrolled.')}
                                 </p>
                             </CardContent>
                         </Card>

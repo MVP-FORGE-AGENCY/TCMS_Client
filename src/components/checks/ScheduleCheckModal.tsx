@@ -1,367 +1,637 @@
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { checks, api } from '@/lib/api'
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { 
+    X, 
+    AlertTriangle, 
+    Users, 
+    Calendar, 
+    MapPin,
+    UserCheck,
+    ChevronLeft,
+    ChevronRight,
+    CheckCircle
+} from 'lucide-react'
 
 interface ScheduleCheckModalProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
-    initialProfileId?: string;
-    initialTraineeId?: string;
-    initialTraineeName?: string;
+    isOpen: boolean
+    onClose: () => void
+    preselectedCandidates?: string[]
+    preselectedStandardId?: string
+    eligibleStandards?: Array<{ id: string; code: string; name: string }>
+    onSuccess?: () => void
 }
 
-const ScheduleCheckModal: React.FC<ScheduleCheckModalProps> = ({ 
-    open, onOpenChange, onSuccess, initialProfileId, initialTraineeId, initialTraineeName
-}) => {
-    const [loading, setLoading] = useState(false);
-    const [profiles, setProfiles] = useState<any[]>([]);
-    const [trainees, setTrainees] = useState<any[]>([]);
-    const [assessors, setAssessors] = useState<any[]>([]);
-    
-    // Form State
-    const [profileId, setProfileId] = useState(initialProfileId || '');
-    
-    // Trainee State: Single (string) or Group (array)
-    // If initialTraineeId is present, we are in "Single Mode" (fixed trainee).
-    // If not, we are in "Group Mode" (multi-select).
-    const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
-    
-    const [selectedAssessors, setSelectedAssessors] = useState<string[]>([]);
-    const [date, setDate] = useState<Date | undefined>(new Date());
-    const [time, setTime] = useState('10:00');
-    const [location, setLocation] = useState('');
-    const [isRetake, setIsRetake] = useState(false);
-    const [checkType, setCheckType] = useState('combined');
+interface Candidate {
+    id: string
+    fullName: string
+    email: string
+}
 
-    // Derived
-    const isSingleMode = !!initialTraineeId;
+interface Standard {
+    id: string
+    code: string
+    name: string
+    checkDefinition?: {
+        items: { id: string; text: string; is_mandatory: boolean }[]
+        requiredAssessors: number
+        intervalMonths: number
+    }
+    hasTheory?: boolean
+    theoryPassScore?: number
+    hasPractical?: boolean
+    practicalPassScore?: number
+}
 
+interface Assessor {
+    id: string
+    fullName: string
+    email: string
+    role: string
+}
 
-    // Fetch Profiles & Assessors on distinct mounts or open
+interface Conflict {
+    assessorId: string
+    assessorName: string
+    candidateId: string
+    candidateName: string
+    message: string
+}
+
+export function ScheduleCheckModal({ 
+    isOpen, 
+    onClose, 
+    preselectedCandidates = [],
+    preselectedStandardId,
+    eligibleStandards = [],
+    onSuccess
+}: ScheduleCheckModalProps) {
+    const { t } = useTranslation()
+    const queryClient = useQueryClient()
+    
+    const [step, setStep] = useState(1)
+    const [candidates, setCandidates] = useState<Candidate[]>([])
+    const [selectedStandardId, setSelectedStandardId] = useState<string>('')
+    const [checkType, setCheckType] = useState<'full_renewal' | 'partial'>('full_renewal')
+    const [dateStart, setDateStart] = useState('')
+    const [location, setLocation] = useState('')
+    const [selectedAssessorIds, setSelectedAssessorIds] = useState<string[]>([])
+    const [conflicts, setConflicts] = useState<Conflict[]>([])
+
+    // Fetch candidates when preselectedCandidates changes
     useEffect(() => {
-        if (open) {
-            fetchProfiles();
-            fetchAssessors();
-            // Reset if not provided
-            if (!initialProfileId) setProfileId('');
+        if (preselectedCandidates.length > 0) {
+            loadCandidates(preselectedCandidates)
+        }
+    }, [preselectedCandidates])
+
+    // Auto-select standard if preselected
+    useEffect(() => {
+        if (preselectedStandardId) {
+            setSelectedStandardId(preselectedStandardId)
+        }
+    }, [preselectedStandardId])
+
+    // Use passed-in eligible standards if provided, otherwise fetch suitable standards
+    const { data: fetchedStandards } = useQuery({
+        queryKey: ['standards-for-checks', candidates.map(c => c.id).join(',')],
+        queryFn: async () => {
+            // If candidates selected, fetch only eligible standards
+            if (candidates.length > 0) {
+                const res = await checks.getEligibleStandards(candidates.map(c => c.id))
+                return (res.data || []) as Standard[]
+            }
+            // Otherwise show all active standards
+            const res = await api.get('/standards', { params: { isActive: true } })
+            return (res.data.data || res.data) as Standard[]
+        },
+        enabled: isOpen && eligibleStandards.length === 0
+    })
+
+    // Use eligible standards if provided via props, otherwise fall back to fetched standards
+    const availableStandards: Standard[] = eligibleStandards.length > 0 
+        ? eligibleStandards.map(s => ({ ...s, checkDefinition: undefined }))
+        : (fetchedStandards || [])
+
+    const selectedStandard = availableStandards.find(s => s.id === selectedStandardId)
+
+    // Filter standards by preselected if provided
+    const filteredStandards = preselectedStandardId 
+        ? availableStandards.filter(s => s.id === preselectedStandardId)
+        : availableStandards
+
+    // Fetch available assessors
+    const { data: assessors } = useQuery({
+        queryKey: ['assessors'],
+        queryFn: async () => {
+            const res = await api.get('/employees', { 
+                params: { 
+                    role: 'assessor,training_manager,admin',
+                    isActive: true 
+                } 
+            })
+            return res.data.data as Assessor[]
+        },
+        enabled: isOpen && step >= 4
+    })
+
+    const loadCandidates = async (ids: string[]) => {
+        try {
+            const res = await api.get('/employees', { params: { ids: ids.join(',') } })
+            const data = res.data.data || res.data
+            setCandidates(data.filter((e: any) => ids.includes(e.id)).map((e: any) => ({
+                id: e.id,
+                fullName: e.fullName || e.full_name,
+                email: e.email
+            })))
+        } catch (error) {
+            console.error('Failed to load candidates:', error)
+        }
+    }
+
+    const createCheckMutation = useMutation({
+        mutationFn: async () => {
+            if (!selectedStandard) return // Should be blocked by step validation
+
+            return checks.create({
+                standardId: selectedStandardId,
+                checkType,
+                candidateIds: candidates.map(c => c.id),
+                assessorIds: selectedAssessorIds,
+                dateStart,
+                location: location || undefined,
+                passCriteria: {
+                    required: [
+                        ...(selectedStandard.hasTheory ? ['theory'] : []),
+                        ...(selectedStandard.hasPractical ? ['practical'] : [])
+                    ],
+                    practical: (selectedStandard.hasPractical ? selectedStandard.practicalPassScore || 70 : 'pass') as any,
+                    theory: (selectedStandard.hasTheory ? selectedStandard.theoryPassScore || 70 : undefined) as any
+                }
+            })
+        },
+        onSuccess: (data) => {
+            toast.success(t('checks.scheduled', 'Proficiency check scheduled'))
+            queryClient.invalidateQueries({ queryKey: ['proficiency-checks'] })
+            queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
+            queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
+            queryClient.invalidateQueries({ queryKey: ['eligible-by-standard'] })
             
-            if (initialTraineeId) {
-                setSelectedTraineeIds([initialTraineeId]);
-            } else {
-                setSelectedTraineeIds([]);
+            if (onSuccess) {
+                onSuccess()
+            }
+
+            if (data.conflicts && data.conflicts.length > 0) {
+                toast.warning(t('checks.conflictsDetected', 'Some conflicts were detected'))
             }
             
-            setSelectedAssessors([]);
-            setDate(new Date());
-            setTime('10:00');
-            setLocation('');
-            setIsRetake(false);
+            handleClose()
+        },
+        onError: (error: any) => {
+            const message = error.response?.data?.error?.message || 'Failed to schedule check'
+            toast.error(message)
         }
-    }, [open, initialProfileId, initialTraineeId]);
+    })
 
-    // Fetch Trainees when Profile changes (Only needed for Group Mode)
-    useEffect(() => {
-        if (profileId && !isSingleMode) {
-            fetchEligibleTrainees(profileId);
-        } else if (!profileId) {
-            setTrainees([]);
-        }
-    }, [profileId, isSingleMode]);
+    const handleClose = () => {
+        setStep(1)
+        setCandidates([])
+        setSelectedStandardId('')
+        setCheckType('full_renewal')
+        setDateStart('')
+        setLocation('')
+        setSelectedAssessorIds([])
+        setConflicts([])
+        onClose()
+    }
 
-    const fetchProfiles = async () => {
-        try {
-            const res = await api.get('/proficiency-profiles');
-            setProfiles(res.data.data);
-            if (initialProfileId) setProfileId(initialProfileId);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+    const removeCandidate = (candidateId: string) => {
+        setCandidates(prev => prev.filter(c => c.id !== candidateId))
+    }
 
-    const fetchAssessors = async () => {
-        try {
-            // Fetch users with role assessor or training_manager
-            // Endpoint is /employees (mounted at root of api v1)
-            // Default limit is 20, we need more to filter client side effectively
-            const allRes = await api.get('/employees', { params: { limit: 100 } });
-            
-            // Response structure is { data: [...], pagination: {...} }
-            const users = allRes.data.data || [];
-            
-            // Filter: Assessor or Training Manager (or Admin)
-            const filtered = users.filter((u: any) => 
-                ['assessor', 'training_manager', 'admin'].includes(u.role)
-            );
-            setAssessors(filtered);
-        } catch (error) {
-            console.error("Failed to fetch assessors", error);
-        }
-    };
-    
+    const toggleAssessor = (assessorId: string) => {
+        setSelectedAssessorIds(prev => 
+            prev.includes(assessorId)
+                ? prev.filter(id => id !== assessorId)
+                : [...prev, assessorId]
+        )
+    }
 
-    const fetchEligibleTrainees = async (pId: string) => {
-        try {
-            const res = await api.get('/checks/eligible', { params: { profileId: pId, withinDays: 365 } }); 
-            setTrainees(res.data.trainees);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!processForm()) return;
-
-        setLoading(true);
-        try {
-            // Combine date and time
-            const dateStart = new Date(date!);
-            const [hours, minutes] = time.split(':').map(Number);
-            dateStart.setHours(hours, minutes);
-
-            // Loop through selected trainees and create a check for each
-            const promises = selectedTraineeIds.map(tId => 
-                api.post('/checks', {
-                    profileId,
-                    traineeId: tId,
-                    assessorIds: selectedAssessors,
-                    dateStart: dateStart.toISOString(),
-                    location,
-                    checkType
-                })
-            );
-
-            await Promise.all(promises);
-
-            toast.success(`Scheduled ${selectedTraineeIds.length} check(s) successfully`);
-            onSuccess();
-            onOpenChange(false);
-        } catch (error: any) {
-            console.error(error);
-            // Handle error (show first error?)
-             if (error.response?.status === 409) {
-                toast.error(`Conflict of Interest: ${error.response.data.error.message}`);
-            } else {
-                toast.error('Failed to schedule checks');
+    const checkForConflicts = async () => {
+        const newConflicts: Conflict[] = []
+        
+        for (const assessorId of selectedAssessorIds) {
+            for (const candidate of candidates) {
+                try {
+                    const res = await checks.checkConflict(candidate.id, assessorId, dateStart)
+                    if (res.hasConflict) {
+                        const assessor = assessors?.find(a => a.id === assessorId)
+                        newConflicts.push({
+                            assessorId,
+                            assessorName: assessor?.fullName || 'Unknown',
+                            candidateId: candidate.id,
+                            candidateName: candidate.fullName,
+                            message: res.message || `${assessor?.fullName} has a potential conflict with ${candidate.fullName}`
+                        })
+                    }
+                } catch {
+                    // Ignore conflict check errors
+                }
             }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const processForm = () => {
-        if (!profileId) { toast.error('Select a profile'); return false; }
-        if (selectedTraineeIds.length === 0) { toast.error('Select at least one trainee'); return false; }
-        if (selectedAssessors.length === 0) { toast.error('Select at least one assessor'); return false; }
-        if (!date) { toast.error('Select a date'); return false; }
-        
-        // Check profile requirements
-        const selectedProfile = profiles.find(p => p.id === profileId);
-        if (selectedProfile && selectedAssessors.length < selectedProfile.requiredAssessors) {
-             toast.error(`This profile requires at least ${selectedProfile.requiredAssessors} assessors`);
-             return false;
         }
         
-        return true;
-    };
+        setConflicts(newConflicts)
+    }
 
-    const toggleAssessor = (id: string) => {
-        setSelectedAssessors(prev => 
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
-    };
-
-    const toggleTrainee = (id: string) => {
-        if (isSingleMode) return; // Cannot toggle in single mode
-        setSelectedTraineeIds(prev => 
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
-    };
-    
-    // Select all available trainees
-    const selectAllTrainees = () => {
-        if (isSingleMode) return;
-        const allIds = trainees.map(t => t.userId);
-        if (selectedTraineeIds.length === allIds.length) {
-            setSelectedTraineeIds([]);
-        } else {
-            setSelectedTraineeIds(allIds);
+    const handleNext = async () => {
+        if (step === 4) {
+            await checkForConflicts()
         }
-    };
+        setStep(prev => Math.min(prev + 1, 5))
+    }
+
+    const handleBack = () => {
+        setStep(prev => Math.max(prev - 1, 1))
+    }
+
+    const handleSubmit = () => {
+        createCheckMutation.mutate()
+    }
+
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    }
+
+    const canProceed = () => {
+        switch (step) {
+            case 1: return candidates.length > 0
+            case 2: return !!selectedStandardId
+            case 3: return !!dateStart
+            case 4: return selectedAssessorIds.length > 0
+            case 5: return true
+            default: return false
+        }
+    }
+
+    // Removed duplicates
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 pb-2">
-                    <DialogTitle>{isSingleMode ? 'Schedule Proficiency Check' : 'Schedule Group Check'}</DialogTitle>
-                    <DialogDescription>Assign assessors and schedule checks for selected trainees.</DialogDescription>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        {t('checks.scheduleCheck', 'Schedule Proficiency Check')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('checks.scheduleCheckDesc', 'Follow the steps to schedule a proficiency assessment')}
+                    </DialogDescription>
                 </DialogHeader>
-                
-                <div className="space-y-4 px-6 py-2 overflow-y-auto flex-1">
-                    {/* Profile & Standard */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Profile</label>
-                        <Select value={profileId} onValueChange={setProfileId} disabled={!!initialProfileId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select profile" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {profiles.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.code} - {p.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {profileId && (
-                             <div className="text-sm text-muted-foreground mt-1">
-                                <span className="font-semibold">Standard:</span> {profiles.find(p => p.id === profileId)?.standard?.code} - {profiles.find(p => p.id === profileId)?.standard?.name}
-                                <span className="ml-4"><span className="font-semibold">Req. Assessors:</span> {profiles.find(p => p.id === profileId)?.requiredAssessors}</span>
-                             </div>
-                        )}
-                    </div>
 
-                    {/* Check Type */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Check Type</label>
-                         <div className="flex space-x-4 pt-1">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="type-combined" checked={checkType === 'combined'} onCheckedChange={() => setCheckType('combined')} />
-                                <label htmlFor="type-combined" className="text-sm">Combined</label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="type-theory" checked={checkType === 'theory'} onCheckedChange={() => setCheckType('theory')} />
-                                <label htmlFor="type-theory" className="text-sm">Theory</label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="type-practical" checked={checkType === 'practical'} onCheckedChange={() => setCheckType('practical')} />
-                                <label htmlFor="type-practical" className="text-sm">Practical</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Trainee Selection */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Trainees {selectedTraineeIds.length > 0 && `(${selectedTraineeIds.length})`}</label>
-                        
-                        {isSingleMode ? (
-                            <div className="p-2 border rounded-md bg-muted/50 text-sm">
-                                {initialTraineeName || trainees.find(t => t.userId === initialTraineeId)?.fullName || 'Loading...'}
-                            </div>
-                        ) : (
-                            <div className="border rounded-md">
-                                <div className="p-2 border-b bg-muted/20 flex justify-between items-center">
-                                    <span className="text-xs text-muted-foreground">Select Eligible Trainees</span>
-                                    <Button variant="ghost" size="sm" onClick={selectAllTrainees} className="h-6 text-xs">
-                                        {selectedTraineeIds.length === trainees.length ? 'Deselect All' : 'Select All'}
-                                    </Button>
-                                </div>
-                                <div className="p-2 h-[150px] overflow-y-auto space-y-1">
-                                    {trainees.length === 0 ? (
-                                        <div className="text-sm text-muted-foreground p-2">Select a profile to see eligible trainees.</div>
-                                    ) : (
-                                        trainees.map(t => (
-                                            <div key={t.userId} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
-                                                <Checkbox 
-                                                    id={`trainee-${t.userId}`} 
-                                                    checked={selectedTraineeIds.includes(t.userId)}
-                                                    onCheckedChange={() => toggleTrainee(t.userId)}
-                                                />
-                                                <label htmlFor={`trainee-${t.userId}`} className="flex-1 text-sm cursor-pointer">
-                                                    <span className="font-medium">{t.fullName}</span>
-                                                    <span className="text-muted-foreground text-xs ml-2">({t.department || 'N/A'})</span>
-                                                </label>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Assessors */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Assessors</label>
-                        <div className="border rounded-md p-2 h-[120px] overflow-y-auto space-y-2">
-                            {assessors.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-xs space-y-1">
-                                    <span>No assessors found.</span>
-                                    <span>Check your network or permissions.</span>
-                                </div>
-                            ) : (
-                                assessors.map(u => (
-                                    <div key={u.id} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`users-${u.id}`} 
-                                            checked={selectedAssessors.includes(u.id)}
-                                            onCheckedChange={() => toggleAssessor(u.id)}
-                                        />
-                                        <label htmlFor={`users-${u.id}`} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            {u.fullName || u.full_name}
-                                        </label>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Date & Time */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Date</label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date ? format(date, "PPP") : "Pick a date"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Time</label>
-                            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-                        </div>
-                    </div>
-
-                    {/* Location */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Location</label>
-                        <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Simulator B" />
-                    </div>
-
-                    {/* Retake */}
-                    <div className="flex items-center space-x-2 pt-2">
-                         <Checkbox id="retake" checked={isRetake} onCheckedChange={(c) => setIsRetake(!!c)} />
-                         <label htmlFor="retake" className="text-sm font-medium">Is Retake?</label>
-                    </div>
-
+                {/* Step indicators */}
+                <div className="flex items-center justify-center gap-2 py-4">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                        <div 
+                            key={s}
+                            className={`h-2 w-8 rounded-full transition-colors ${
+                                s === step ? 'bg-primary' : 
+                                s < step ? 'bg-primary/50' : 'bg-muted'
+                            }`}
+                        />
+                    ))}
                 </div>
 
+                <div className="min-h-[300px] py-4">
+                    {/* Step 1: Confirm Candidates */}
+                    {step === 1 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-lg font-medium">
+                                <Users className="h-5 w-5" />
+                                {t('checks.step1', 'Step 1: Confirm Candidates')}
+                            </div>
+                            
+                            {candidates.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    {t('checks.noCandidatesSelected', 'No candidates selected')}
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {candidates.map(candidate => (
+                                        <div 
+                                            key={candidate.id}
+                                            className="flex items-center justify-between p-3 rounded-lg border"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback className="text-xs">
+                                                        {getInitials(candidate.fullName)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-medium">{candidate.fullName}</div>
+                                                    <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => removeCandidate(candidate.id)}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
+                    {/* Step 2: Select Standard */}
+                    {step === 2 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-lg font-medium">
+                                <CheckCircle className="h-5 w-5" />
+                                {t('checks.step2', 'Step 2: Select Standard')}
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>{t('checks.standard', 'Training Standard')}</Label>
+                                    <Select value={selectedStandardId} onValueChange={setSelectedStandardId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('checks.selectStandard', 'Select a standard...')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredStandards?.map((std: Standard) => (
+                                                <SelectItem key={std.id} value={std.id}>
+                                                    <span className="font-mono text-xs mr-2">{std.code}</span>
+                                                    {std.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                <DialogFooter className="p-6 pt-2">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={loading}>
-                        {loading ? 'Scheduling...' : 'Schedule Check(s)'}
-                    </Button>
+                                <div className="space-y-2">
+                                    <Label>{t('checks.checkType', 'Check Type')}</Label>
+                                    <Select value={checkType} onValueChange={(v) => setCheckType(v as 'full_renewal' | 'partial')}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="full_renewal">
+                                                {t('checks.fullRenewal', 'Full Renewal')}
+                                                <span className="text-xs text-muted-foreground ml-2">- Extends validity</span>
+                                            </SelectItem>
+                                            <SelectItem value="partial">
+                                                {t('checks.partial', 'Partial / Custom')}
+                                                <span className="text-xs text-muted-foreground ml-2">- Does not extend validity</span>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3: Logistics & Configuration */}
+                    {step === 3 && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2 text-lg font-medium">
+                                <Calendar className="h-5 w-5" />
+                                {t('checks.step3', 'Step 3: Schedule & Configuration')}
+                            </div>
+
+                            <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+                                <h3 className="font-medium text-sm flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-primary" />
+                                    {t('checks.passCriteria', 'Pass Criteria')}
+                                    <Badge variant="outline" className="ml-auto font-normal text-xs">
+                                        Defined by Standard
+                                    </Badge>
+                                </h3>
+                                
+                                {selectedStandard ? (
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between items-center p-2 rounded bg-background border">
+                                            <span className="text-muted-foreground">{t('checks.theoryAssessment', 'Theory Assessment')}</span>
+                                            {selectedStandard.hasTheory ? (
+                                                <span className="font-medium text-green-600">
+                                                    Required ({selectedStandard.theoryPassScore || 70}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">Not Required</span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 rounded bg-background border">
+                                            <span className="text-muted-foreground">{t('checks.practicalAssessment', 'Practical Assessment')}</span>
+                                            {selectedStandard.hasPractical ? (
+                                                <span className="font-medium text-green-600">
+                                                    Required ({selectedStandard.practicalPassScore || 70}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">Not Required</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-muted-foreground text-sm italic">
+                                        Please select a standard to view criteria.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="dateStart">{t('common.dateTime', 'Date & Time')}</Label>
+                                <Input
+                                    id="dateStart"
+                                    type="datetime-local"
+                                    value={dateStart}
+                                    onChange={(e) => setDateStart(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="location" className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    {t('common.location', 'Location')}
+                                </Label>
+                                <Input
+                                    id="location"
+                                    placeholder={t('checks.locationPlaceholder', 'e.g., Sim Room 1, Training Center')}
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 4: Select Assessors */}
+                    {step === 4 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-lg font-medium">
+                                <UserCheck className="h-5 w-5" />
+                                {t('checks.step4', 'Step 4: Select Assessors')}
+                            </div>
+                            
+                            <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                                {assessors?.map(assessor => (
+                                    <div 
+                                        key={assessor.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                            selectedAssessorIds.includes(assessor.id) 
+                                                ? 'border-primary bg-primary/5' 
+                                                : 'hover:bg-muted/50'
+                                        }`}
+                                        onClick={() => toggleAssessor(assessor.id)}
+                                    >
+                                        <Checkbox checked={selectedAssessorIds.includes(assessor.id)} />
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarFallback className="text-xs">
+                                                {getInitials(assessor.fullName)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium">{assessor.fullName}</div>
+                                            <div className="text-xs text-muted-foreground">{assessor.email}</div>
+                                        </div>
+                                        <Badge variant="outline" className="ml-auto">{assessor.role}</Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 5: Review & Confirm */}
+                    {step === 5 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-lg font-medium">
+                                <CheckCircle className="h-5 w-5" />
+                                {t('checks.step5', 'Step 5: Review & Confirm')}
+                            </div>
+
+                            {/* Conflict warnings */}
+                            {/* Conflict warnings */}
+                            {conflicts.length > 0 && (
+                                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-3">
+                                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold">
+                                        <AlertTriangle className="h-5 w-5" />
+                                        {t('checks.conflictWarning', 'Conflict of Interest Detected')}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground bg-background/50 p-2 rounded">
+                                        The following assessor-candidate pairs violate the "No Self-Checking" rule (training conducted within restricted window).
+                                    </p>
+                                    <div className="space-y-2 text-sm">
+                                        {conflicts.map((conflict, i) => (
+                                            <div key={i} className="flex flex-col gap-1 p-2 border border-red-200 dark:border-red-900/50 rounded bg-background/50">
+                                                <div className="font-semibold flex items-center gap-2">
+                                                    <span className="text-red-600">Assessor: {conflict.assessorName}</span>
+                                                    <span className="text-muted-foreground">→</span>
+                                                    <span>Candidate: {conflict.candidateName}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground ml-4">
+                                                    Reason: {conflict.message}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('common.candidates', 'Candidates')}:</span>
+                                    <span className="font-medium">{candidates.length} selected</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('checks.standard', 'Standard')}:</span>
+                                    <span className="font-medium">
+                                        {availableStandards?.find(s => s.id === selectedStandardId)?.name || '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('checks.checkType', 'Check Type')}:</span>
+                                    <span className="font-medium">
+                                        {checkType === 'full_renewal' ? t('checks.fullRenewal', 'Full Renewal') : t('checks.partial', 'Partial')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('common.dateTime', 'Date/Time')}:</span>
+                                    <span className="font-medium">
+                                        {dateStart ? new Date(dateStart).toLocaleString() : '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('common.location', 'Location')}:</span>
+                                    <span className="font-medium">{location || '-'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t('common.assessors', 'Assessors')}:</span>
+                                    <span className="font-medium">{selectedAssessorIds.length} selected</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="flex justify-between">
+                    <div>
+                        {step > 1 && (
+                            <Button variant="outline" onClick={handleBack}>
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                {t('common.back', 'Back')}
+                            </Button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleClose}>
+                            {t('common.cancel', 'Cancel')}
+                        </Button>
+                        {step < 5 ? (
+                            <Button onClick={handleNext} disabled={!canProceed()}>
+                                {t('common.next', 'Next')}
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        ) : (
+                            <Button 
+                                onClick={handleSubmit} 
+                                disabled={createCheckMutation.isPending}
+                            >
+                                {createCheckMutation.isPending 
+                                    ? t('common.scheduling', 'Scheduling...')
+                                    : t('checks.scheduleCheck', 'Schedule Check')
+                                }
+                            </Button>
+                        )}
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-};
+    )
+}
 
-export default ScheduleCheckModal;
+export default ScheduleCheckModal

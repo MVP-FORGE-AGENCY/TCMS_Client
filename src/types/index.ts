@@ -64,6 +64,13 @@ export interface Session {
     status: SessionStatus;
     isSigned?: boolean;
     campaignId?: string;
+    curriculumModule?: {
+        id: string;
+        name: string;
+        durationHours?: number;
+        sequence: number;
+    } | null;
+    isFinalModuleSession?: boolean;
     retakeOf?: string;
     attemptNumber?: number;
     instructor?: {
@@ -101,7 +108,7 @@ export interface SessionEnrolRequest {
     userIds: string[];
 }
 
-export type AttendanceStatus = 'planned' | 'present' | 'absent';
+export type AttendanceStatus = 'planned' | 'present' | 'absent' | 'late' | 'excused';
 export type AssessmentMethod = 'none' | 'written' | 'oral' | 'computer' | 'practical';
 export type SessionResultStatus = 'not_assessed' | 'pass' | 'fail';
 
@@ -154,6 +161,8 @@ export interface ProficiencyProfile {
     intervalMonths: number;
     requiredAssessors: number;
     requiredElements?: Record<string, any>;
+    hasTheory?: boolean;
+    hasPractical?: boolean;
 }
 
 export interface ProficiencyProfileCreate {
@@ -228,11 +237,13 @@ export interface Employee {
     fullName: string;
     email?: string;
     organisationId: string;
-    role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly';
+    role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly' | 'auditor';
     areaOfActivity?: string | null;
     departmentTag?: string | null;
     employmentStart?: string;
     employmentEnd?: string | null;
+    isActive?: boolean;
+    accountType?: 'internal' | 'external';
     mustChangePassword?: boolean;
     organisation?: {
         id: string;
@@ -317,9 +328,11 @@ export interface GradingElement {
 }
 
 export interface PassCriteria {
-    passThreshold: number;
-    failThreshold: number;
-    mandatoryAllPass: boolean;
+    passThreshold?: number;
+    failThreshold?: number;
+    mandatoryAllPass?: boolean;
+    theoryPassScore?: number;
+    practicalPassScore?: number;
 }
 
 export interface CurriculumModule {
@@ -336,6 +349,7 @@ export interface CurriculumModule {
     gradingElements?: GradingElement[];
     passCriteria?: PassCriteria;
     requiredAssessors?: number;
+    requiresFinalAssessment?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -350,6 +364,14 @@ export interface CurriculumModuleCreate {
     gradingElements?: GradingElement[];
     passCriteria?: PassCriteria;
     requiredAssessors?: number;
+    // Explicit grading configuration
+    requiresTheory?: boolean;
+    requiresPractical?: boolean;
+    allowsNotScored?: boolean;
+    theoryPassScore?: number;
+    practicalPassScore?: number;
+    requiresFinalAssessment?: boolean;
+    skipAssessment?: boolean;
 }
 
 export interface Curriculum {
@@ -408,6 +430,16 @@ export interface CampaignEnrollment {
     enrolledAt: string;
     completedAt?: string;
     notes?: string;
+    // Absence tracking
+    absenceCount?: number;
+    attendedCount?: number;
+    totalSessions?: number;
+    // Module failure tracking
+    hasFailedModules?: boolean;
+    failedModuleCount?: number;
+    passedModuleCount?: number;
+    totalModules?: number;
+    allModulesPassed?: boolean;
     user?: {
         id: string;
         fullName: string;
@@ -473,6 +505,7 @@ export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'
 
 export interface GenerateScheduleRequest {
     instructorId?: string;
+    moduleInstructors?: Record<string, string>; // { [moduleId]: instructorId } - per-module instructor mapping
     location?: string;
     sessionDurationHours?: number;
     preferredDays?: WeekDay[];

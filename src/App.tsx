@@ -21,6 +21,7 @@ const ChecksPage = lazy(() => import("@/pages/checks/page"))
 const CheckDetailPage = lazy(() => import("@/pages/checks/CheckDetailPage"))
 const ExpiringReport = lazy(() => import("@/pages/reports/ExpiringReport"))
 const SettingsPage = lazy(() => import("@/pages/settings/page"))
+const AutomationCenter = lazy(() => import("@/pages/settings/AutomationCenter"))
 const StandardsPage = lazy(() => import("@/pages/standards/page"))
 const StandardDetailPage = lazy(() => import("@/pages/standards/StandardDetailPage"))
 const ProceduresPage = lazy(() => import("@/pages/procedures/page"))
@@ -30,10 +31,12 @@ const EmployeeHistoryPage = lazy(() => import("@/pages/competence/EmployeeHistor
 const ChangePasswordPage = lazy(() => import("@/pages/auth/ChangePasswordPage"))
 const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage"))
 const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
+const AuditLogsPage = lazy(() => import("@/pages/audit-logs/page"))
 
 // Curriculum and Campaign routes
 const CurriculumsPage = lazy(() => import("@/pages/curriculums/page"))
 const CurriculumBuilder = lazy(() => import("@/pages/curriculums/CurriculumBuilder"))
+const CurriculumDetailPage = lazy(() => import("@/pages/curriculums/CurriculumDetailPage"))
 const CampaignsPage = lazy(() => import("@/pages/campaigns/page"))
 const CampaignDetailPage = lazy(() => import("@/pages/campaigns/CampaignDetailPage"))
 
@@ -100,13 +103,16 @@ function App() {
                         <Route path="/procedures" element={<ProceduresPage />} />
                         <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
                         <Route path="/competence" element={<CompetenceDashboard />} />
-                        <Route path="/employees/:id/history" element={<EmployeeHistoryPage />} />
+                        <Route path="/personnel/:id/history" element={<EmployeeHistoryPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/settings/automation" element={<AutomationCenter />} />
+                        <Route path="/audit-logs" element={<AuditLogsPage />} />
                         
                         {/* Curriculum Routes */}
                         <Route path="/curriculums" element={<CurriculumsPage />} />
                         <Route path="/curriculums/new" element={<CurriculumBuilder />} />
-                        <Route path="/curriculums/:id" element={<CurriculumBuilder />} />
+                        <Route path="/curriculums/:id" element={<CurriculumDetailPage />} />
+                        <Route path="/curriculums/:id/edit" element={<CurriculumBuilder />} />
                         
                         {/* Campaign Routes */}
                         <Route path="/campaigns" element={<CampaignsPage />} />

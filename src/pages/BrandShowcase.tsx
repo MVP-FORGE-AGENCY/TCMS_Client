@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrafficLightCard } from "@/components/ui/traffic-light-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -15,24 +16,26 @@ import { CheckCircle, AlertTriangle, XCircle, Info } from "lucide-react"
  * This component demonstrates all brand-compliant UI components.
  * Reference: docs/BRAND_IDENTITY_SYSTEM.md
  */
-export default function BrandShowcase() {
+const BrandShowcase = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="container mx-auto p-8 space-y-12 max-w-7xl">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-h1">TCMS Brand Identity Showcase</h1>
+        <h1 className="text-h1">{t('brand.title')}</h1>
         <p className="text-slate-500 text-body">
-          Comprehensive demonstration of brand-compliant UI components
+            {t('brand.subtitle')}
         </p>
       </div>
 
       {/* Color Palette */}
       <section className="space-y-4">
-        <h2 className="text-h2">Color Palette</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.colors')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <div className="w-full h-24 bg-tcms-blue rounded-lg"></div>
-            <p className="text-sm font-medium">TCMS Blue</p>
+            <p className="text-sm font-medium">CertifyCloud Blue</p>
             <p className="text-xs text-slate-500">#0066FF</p>
           </div>
           <div className="space-y-2">
@@ -55,8 +58,8 @@ export default function BrandShowcase() {
 
       {/* Typography */}
       <section className="space-y-4">
-        <h2 className="text-h2">Typography Scale</h2>
-        <div className="space-y-3">
+        <h2 className="text-h2 border-b pb-2">{t('brand.typography')}</h2>
+        <div className="space-y-8">
           <h1 className="text-h1">Heading 1 - 36px Bold</h1>
           <h2 className="text-h2">Heading 2 - 30px Bold</h2>
           <h3 className="text-h3">Heading 3 - 24px Bold</h3>
@@ -70,9 +73,9 @@ export default function BrandShowcase() {
 
       {/* Traffic Light Dashboard */}
       <section className="space-y-4">
-        <h2 className="text-h2">Traffic Light Dashboard</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.trafficLightDashboard')}</h2>
         <p className="text-slate-500">
-          Purpose-built cards for competence status visualization
+          {t('brand.trafficLightDashboardDescription')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <TrafficLightCard
@@ -98,11 +101,11 @@ export default function BrandShowcase() {
 
       {/* Buttons */}
       <section className="space-y-4">
-        <h2 className="text-h2">Buttons</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.buttons')}</h2>
         
         <div className="space-y-6">
           <div>
-            <h3 className="text-h4 mb-3">Primary Actions</h3>
+            <h3 className="text-h4 mb-3">{t('brand.primaryActions')}</h3>
             <div className="flex flex-wrap gap-3">
               <Button variant="default">Primary Button</Button>
               <Button variant="secondary">Secondary Button</Button>
@@ -113,7 +116,7 @@ export default function BrandShowcase() {
           </div>
 
           <div>
-            <h3 className="text-h4 mb-3">Status Actions (Use Sparingly)</h3>
+            <h3 className="text-h4 mb-3">{t('brand.statusActions')}</h3>
             <div className="flex flex-wrap gap-3">
               <Button variant="success">
                 <CheckCircle className="mr-2" />
@@ -131,7 +134,7 @@ export default function BrandShowcase() {
           </div>
 
           <div>
-            <h3 className="text-h4 mb-3">Sizes</h3>
+            <h3 className="text-h4 mb-3">{t('brand.sizes')}</h3>
             <div className="flex flex-wrap items-center gap-3">
               <Button size="sm">Small</Button>
               <Button size="default">Default</Button>
@@ -143,7 +146,7 @@ export default function BrandShowcase() {
           </div>
 
           <div>
-            <h3 className="text-h4 mb-3">States</h3>
+            <h3 className="text-h4 mb-3">{t('brand.states')}</h3>
             <div className="flex flex-wrap gap-3">
               <Button>Normal</Button>
               <Button disabled>Disabled</Button>
@@ -154,11 +157,11 @@ export default function BrandShowcase() {
 
       {/* Badges */}
       <section className="space-y-4">
-        <h2 className="text-h2">Badges</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.badges')}</h2>
         
         <div className="space-y-6">
           <div>
-            <h3 className="text-h4 mb-3">Traffic Light Status Badges</h3>
+            <h3 className="text-h4 mb-3">{t('brand.trafficLightStatusBadges')}</h3>
             <div className="flex flex-wrap gap-3">
               <Badge variant="valid" showIcon>Valid</Badge>
               <Badge variant="expiring" showIcon>Expiring Soon</Badge>
@@ -168,7 +171,7 @@ export default function BrandShowcase() {
           </div>
 
           <div>
-            <h3 className="text-h4 mb-3">Standard Badges</h3>
+            <h3 className="text-h4 mb-3">{t('brand.standardBadges')}</h3>
             <div className="flex flex-wrap gap-3">
               <Badge variant="default">Default</Badge>
               <Badge variant="secondary">Secondary</Badge>
@@ -181,7 +184,7 @@ export default function BrandShowcase() {
 
       {/* Alerts */}
       <section className="space-y-4">
-        <h2 className="text-h2">Alerts</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.alerts')}</h2>
         
         <div className="space-y-4">
           <Alert variant="success">
@@ -220,7 +223,7 @@ export default function BrandShowcase() {
 
       {/* Cards */}
       <section className="space-y-4">
-        <h2 className="text-h2">Cards</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.cards')}</h2>
         
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
@@ -255,7 +258,7 @@ export default function BrandShowcase() {
 
       {/* Form Elements */}
       <section className="space-y-4">
-        <h2 className="text-h2">Form Elements</h2>
+        <h2 className="text-h2 border-b pb-2">{t('brand.formElements')}</h2>
         
         <Card>
           <CardHeader>
@@ -329,12 +332,13 @@ export default function BrandShowcase() {
       {/* Footer */}
       <footer className="pt-8 border-t border-slate-200">
         <p className="text-sm text-slate-500">
-          TCMS Brand Identity System v1.0 • Last Updated: January 15, 2026
+          {t('brand.footer')}
         </p>
         <p className="text-xs text-slate-400 mt-2">
-          Reference: <code className="bg-slate-100 px-2 py-1 rounded">docs/BRAND_IDENTITY_SYSTEM.md</code>
+            {t('brand.reference')}: <code className="bg-slate-100 px-2 py-1 rounded">docs/BRAND_IDENTITY_SYSTEM.md</code>
         </p>
       </footer>
     </div>
   )
 }
+export default BrandShowcase;

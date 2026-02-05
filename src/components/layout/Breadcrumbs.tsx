@@ -1,4 +1,4 @@
-import { useLocation, Link } from "react-router-dom"
+import { useLocation, Link, useSearchParams } from "react-router-dom"
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -7,16 +7,22 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { Fragment } from "react"
+import { Fragment, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useBreadcrumb } from "@/context/BreadcrumbContext"
 
 export function Breadcrumbs() {
     const location = useLocation()
+    const [searchParams] = useSearchParams()
     const { t } = useTranslation()
     const { labels } = useBreadcrumb()
     const pathnames = location.pathname.split("/").filter((x) => x)
+
+    // Check for campaign context in URL params
+    const campaignId = searchParams.get('campaignId')
+    const campaignName = searchParams.get('campaignName')
+    const isFromCampaign = !!(campaignId && campaignName)
 
     // Map of path segments to translation keys
     const pathTranslations: Record<string, string> = {
@@ -29,6 +35,8 @@ export function Breadcrumbs() {
         settings: "nav.settings",
         standards: "nav.standards",
         procedures: "nav.procedures",
+        campaigns: "nav.campaigns",
+        curriculums: "nav.curriculums",
     }
 
     const getTitle = (segment: string): string => {
@@ -47,6 +55,27 @@ export function Breadcrumbs() {
         return segment.charAt(0).toUpperCase() + segment.slice(1)
     }
 
+    // Build breadcrumb items - override when coming from campaign
+    const breadcrumbItems = useMemo(() => {
+        if (isFromCampaign && pathnames[0] === 'sessions') {
+            // Override: Show Campaigns > Campaign Name > Session
+            const sessionId = pathnames[1]
+            const sessionLabel = labels[sessionId] || 'Session'
+            return [
+                { to: '/campaigns', title: t('nav.campaigns', 'Campaigns'), isLast: false },
+                { to: `/campaigns/${campaignId}`, title: decodeURIComponent(campaignName!), isLast: false },
+                { to: location.pathname + location.search, title: sessionLabel, isLast: true }
+            ]
+        }
+
+        // Default path-based breadcrumbs
+        return pathnames.map((value, index) => ({
+            to: `/${pathnames.slice(0, index + 1).join("/")}`,
+            title: getTitle(value),
+            isLast: index === pathnames.length - 1
+        }))
+    }, [pathnames, isFromCampaign, campaignId, campaignName, labels, location])
+
     return (
         <Breadcrumb>
             <BreadcrumbList>
@@ -55,26 +84,20 @@ export function Breadcrumbs() {
                         <Link to="/">{t("common.home")}</Link>
                     </BreadcrumbLink>
                 </BreadcrumbItem>
-                {pathnames.map((value, index) => {
-                    const to = `/${pathnames.slice(0, index + 1).join("/")}`
-                    const isLast = index === pathnames.length - 1
-                    const title = getTitle(value)
-
-                    return (
-                        <Fragment key={to}>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                {isLast ? (
-                                    <BreadcrumbPage>{title}</BreadcrumbPage>
-                                ) : (
-                                    <BreadcrumbLink asChild>
-                                        <Link to={to}>{title}</Link>
-                                    </BreadcrumbLink>
-                                )}
-                            </BreadcrumbItem>
-                        </Fragment>
-                    )
-                })}
+                {breadcrumbItems.map((item) => (
+                    <Fragment key={item.to}>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            {item.isLast ? (
+                                <BreadcrumbPage>{item.title}</BreadcrumbPage>
+                            ) : (
+                                <BreadcrumbLink asChild>
+                                    <Link to={item.to}>{item.title}</Link>
+                                </BreadcrumbLink>
+                            )}
+                        </BreadcrumbItem>
+                    </Fragment>
+                ))}
             </BreadcrumbList>
         </Breadcrumb>
     )

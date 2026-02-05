@@ -39,6 +39,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
         practicalPassScore: standard.practicalPassScore || 70,
         allowedMethods: standard.allowedMethods || ["written"],
         departmentTag: standard.departmentTag || "",
+        isActive: standard.isActive,
     })
 
     const [showMajorWarning, setShowMajorWarning] = useState(false)
@@ -56,6 +57,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                 practicalPassScore: standard.practicalPassScore || 70,
                 allowedMethods: standard.allowedMethods || ["written"],
                 departmentTag: standard.departmentTag || "",
+                isActive: standard.isActive
             })
             setShowMajorWarning(false)
         }
@@ -143,6 +145,19 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                 ) : (
                     <>
                         <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="isActive" className="text-right">Status</Label>
+                                <div className="col-span-3 flex items-center gap-2">
+                                    <Switch
+                                        id="isActive"
+                                        checked={formData.isActive}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                                    />
+                                    <Label htmlFor="isActive" className="font-normal text-muted-foreground">
+                                        {formData.isActive ? "Active" : "Inactive"}
+                                    </Label>
+                                </div>
+                            </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">Name</Label>
                                 <Input

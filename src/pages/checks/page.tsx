@@ -1,159 +1,133 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, List, Calendar } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 
 import EligibleTraineesTable from '@/components/checks/EligibleTraineesTable';
 import ScheduledChecksTable from '@/components/checks/ScheduledChecksTable';
 import ScheduleCheckModal from '@/components/checks/ScheduleCheckModal';
-import { ProficiencyProfilesTable } from '@/components/tables/ProficiencyProfilesTable';
-import { ProfileForm } from '@/components/forms/ProfileForm';
 
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/context/AuthContext';
 
 const ChecksPage = () => {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState('allocated');
-    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [scheduleInitialProfileId, setScheduleInitialProfileId] = useState<string | undefined>();
-    const [scheduleInitialTraineeId, setScheduleInitialTraineeId] = useState<string | undefined>();
-    const [scheduleInitialTraineeName, setScheduleInitialTraineeName] = useState<string | undefined>();
-
-    const openScheduleGroupCheck = () => {
-        setScheduleInitialProfileId(undefined);
-        setScheduleInitialTraineeId(undefined);
-        setScheduleInitialTraineeName(undefined);
-        setIsScheduleModalOpen(true);
-    };
-
-    const openScheduleSingleCheck = (profileId: string, traineeId: string, traineeName: string) => {
-        setScheduleInitialProfileId(profileId);
-        setScheduleInitialTraineeId(traineeId);
-        setScheduleInitialTraineeName(traineeName);
-        setIsScheduleModalOpen(true);
-    };
+    const { user } = useAuth();
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly';
+    const queryClient = useQueryClient();
     
-    // Profile Management State
-    const [profiles, setProfiles] = useState<any[]>([]);
-    const [standards, setStandards] = useState<any[]>([]);
-    const [isProfileFormOpen, setIsProfileFormOpen] = useState(false);
-    const [selectedProfile, setSelectedProfile] = useState<any>(null);
-    const [loadingProfiles, setLoadingProfiles] = useState(false);
+    // New modal state for group check support
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [preselectedCandidates, setPreselectedCandidates] = useState<string[]>([]);
+    const [preselectedStandardId, setPreselectedStandardId] = useState<string | undefined>();
+
+    // View Mode & Calendar State
+    const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
+    const [calendarDate, setCalendarDate] = useState(new Date());
+    const [calendarChecks, setCalendarChecks] = useState<any[]>([]);
 
     // To refresh lists after scheduling
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const handleRefresh = () => setRefreshTrigger(prev => prev + 1);
-
-    // Initial Data Fetch (Profiles & Standards)
+    
     useEffect(() => {
-        fetchProfiles();
-        fetchStandards();
-    }, [refreshTrigger]);
+        if (viewMode === 'calendar') {
+            fetchCalendarChecks();
+        }
+    }, [viewMode, calendarDate, refreshTrigger]);
 
-    const fetchProfiles = async () => {
-        setLoadingProfiles(true);
+    const handleRefresh = () => {
+        setRefreshTrigger(prev => prev + 1);
+        queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] });
+        queryClient.invalidateQueries({ queryKey: ['eligible-by-standard'] });
+    };
+
+    const fetchCalendarChecks = async () => {
         try {
-            const res = await api.get('/proficiency-profiles');
-            setProfiles(res.data.data || []);
+            const start = startOfMonth(calendarDate);
+            const end = endOfMonth(calendarDate);
+            const res = await api.get('/checks', {
+                params: {
+                    fromDate: start.toISOString(),
+                    toDate: end.toISOString(),
+                    limit: 100
+                }
+            });
+            setCalendarChecks(Array.isArray(res.data) ? res.data : res.data.data || []);
         } catch (error) {
-            console.error("Failed to fetch profiles", error);
-            toast.error(t("checks.toast.loadError", "Failed to load proficiency profiles"));
-        } finally {
-            setLoadingProfiles(false);
+            console.error("Failed to fetch calendar checks", error);
         }
     };
 
-    const fetchStandards = async () => {
-        try {
-            const res = await api.get('/standards'); // Assuming this endpoint exists and returns list
-            setStandards(res.data.data || res.data || []); 
-        } catch (error) {
-            console.error("Failed to fetch standards", error);
-            // Don't block UI if standards fail, but form wont work well
+    const calendarDays = eachDayOfInterval({
+        start: startOfMonth(calendarDate),
+        end: endOfMonth(calendarDate)
+    });
+
+    const getChecksForDay = (day: Date) => {
+        return calendarChecks.filter(c => isSameDay(new Date(c.dateStart), day));
+    };
+
+    // Handler for EligibleTraineesTable - new signature
+    const handleScheduleClick = (traineeId: string, traineeIds?: string[], standardId?: string) => {
+        if (traineeIds && traineeIds.length > 0) {
+            // Bulk scheduling
+            setPreselectedCandidates(traineeIds);
+        } else if (traineeId) {
+            // Single trainee
+            setPreselectedCandidates([traineeId]);
+        } else {
+            setPreselectedCandidates([]);
         }
+        setPreselectedStandardId(standardId);
+        setIsScheduleModalOpen(true);
     };
 
-    // Profile Handlers
-    const handleCreateProfile = async (values: any) => {
-        try {
-            await api.post('/proficiency-profiles', values);
-            toast.success(t("checks.toast.profileCreated", "Profile created successfully"));
-            setIsProfileFormOpen(false);
-            handleRefresh(); // Refresh other tabs too
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error.response?.data?.error?.message || t("checks.toast.createError", "Failed to create profile"));
-        }
+    const openScheduleGroupCheck = () => {
+        setPreselectedCandidates([]);
+        setPreselectedStandardId(undefined);
+        setIsScheduleModalOpen(true);
     };
 
-    const handleUpdateProfile = async (values: any) => {
-        if (!selectedProfile) return;
-        try {
-            await api.put(`/proficiency-profiles/${selectedProfile.id}`, values);
-            toast.success(t("checks.toast.profileUpdated", "Profile updated successfully"));
-            setIsProfileFormOpen(false);
-            setSelectedProfile(null);
-            fetchProfiles();
-            handleRefresh();
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error.response?.data?.error?.message || t("checks.toast.updateError", "Failed to update profile"));
-        }
+    const handleModalClose = () => {
+        setIsScheduleModalOpen(false);
+        setPreselectedCandidates([]);
+        setPreselectedStandardId(undefined);
+        handleRefresh();
     };
 
-    const handleDeleteProfile = async (profile: any) => {
-        if (!window.confirm(t("checks.confirmDeleteProfile", { code: profile.code }))) return;
-        try {
-            await api.delete(`/proficiency-profiles/${profile.id}`);
-            toast.success(t("checks.toast.profileDeleted", "Profile deleted successfully"));
-            fetchProfiles();
-            handleRefresh();
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error.response?.data?.error?.message || t("checks.toast.deleteError", "Failed to delete profile"));
-        }
-    };
 
-    const openCreateProfile = () => {
-        setSelectedProfile(null);
-        setIsProfileFormOpen(true);
-    };
-
-    const openEditProfile = (profile: any) => {
-        setSelectedProfile(profile);
-        setIsProfileFormOpen(true);
-    };
 
     return (
         <div className="container mx-auto py-6 space-y-8">
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
                 <div>
-                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("checks.title")}</h1>
+                     <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">{t("checks.title")}</h1>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                            {t("nav.checking")}
+                        </span>
+                    </div>
                     <p className="text-muted-foreground text-sm">{t("checks.subtitle")}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {activeTab === 'profiles' ? (
-                        <Button onClick={openCreateProfile} className="w-full sm:w-auto">
-                            <Plus className="mr-2 h-4 w-4" /> {t("checks.createProfile")}
-                        </Button>
-                    ) : (
-                        <Button onClick={openScheduleGroupCheck} className="w-full sm:w-auto">
-                            <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck")}
-                        </Button>
+                    {!isAuditor && (
+                    <Button onClick={openScheduleGroupCheck} className="w-full sm:w-auto">
+                        <Calendar className="mr-2 h-4 w-4" /> {t("checks.scheduleGroupCheck", "Schedule Check")}
+                    </Button>
                     )}
                 </div>
             </div>
 
-            <Tabs defaultValue="allocated" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[600px]">
+            <Tabs defaultValue="eligible" className="w-full">
+            <TabsList className="flex flex-wrap h-auto sm:grid sm:w-full sm:grid-cols-3 lg:w-[600px] mb-6">
                     <TabsTrigger value="eligible">{t("checks.eligibleTrainees")}</TabsTrigger>
                     <TabsTrigger value="allocated">{t("checks.scheduledChecks")}</TabsTrigger>
                     <TabsTrigger value="my_assessments">{t("checks.myAssessments")}</TabsTrigger>
-                    <TabsTrigger value="profiles">{t("checks.profiles")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="eligible" className="mt-6">
@@ -161,35 +135,127 @@ const ChecksPage = () => {
                         <CardHeader>
                             <CardTitle>{t("checks.eligibleTrainees")}</CardTitle>
                             <CardDescription>
-                                {t("checks.eligibleDescription")}
+                                {t("checks.eligibleDescription", "Trainees who have completed training and require proficiency checks")}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <EligibleTraineesTable 
-                                onScheduleClick={openScheduleSingleCheck}
-                                refreshTrigger={refreshTrigger}
+                                onScheduleClick={handleScheduleClick}
                             />
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* ... existing tabs content ... */}
-                
                 <TabsContent value="allocated" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t("checks.scheduledChecks")}</CardTitle>
-                            <CardDescription>
-                                {t("checks.scheduledDescription")}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ScheduledChecksTable 
-                                filter="all"
-                                refreshTrigger={refreshTrigger} 
-                            />
-                        </CardContent>
-                    </Card>
+                    <div className="flex justify-end mb-4">
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+                            <Button
+                                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('table')}
+                                className="h-8"
+                            >
+                                <List className="h-4 w-4 mr-2" />
+                                {t("checks.tableView", "Table View")}
+                            </Button>
+                            <Button
+                                variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('calendar')}
+                                className="h-8"
+                            >
+                                <LayoutGrid className="h-4 w-4 mr-2" />
+                                {t("checks.calendarView", "Calendar View")}
+                            </Button>
+                        </div>
+                    </div>
+
+                    {viewMode === 'table' ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t("checks.scheduledChecks")}</CardTitle>
+                                <CardDescription>
+                                    {t("checks.scheduledDescription")}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ScheduledChecksTable 
+                                    filter="all"
+                                    refreshTrigger={refreshTrigger} 
+                                />
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-lg font-medium">
+                                    {format(calendarDate, 'MMMM yyyy')}
+                                </CardTitle>
+                                <div className="flex items-center space-x-1">
+                                    <Button variant="outline" size="icon" onClick={() => setCalendarDate(subMonths(calendarDate, 1))}>
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={() => setCalendarDate(new Date())}>
+                                        <CalendarIcon className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={() => setCalendarDate(addMonths(calendarDate, 1))}>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden border">
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                        <div key={day} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">
+                                            {day}
+                                        </div>
+                                    ))}
+                                    {calendarDays.map((day, _dayIdx) => {
+                                        const dayChecks = getChecksForDay(day);
+                                        return (
+                                            <div
+                                                key={day.toString()}
+                                                className={cn(
+                                                    "bg-background p-2 min-h-[100px] hover:bg-muted/50 transition-colors cursor-pointer group relative",
+                                                    !isSameMonth(day, calendarDate) && "text-muted-foreground bg-muted/10",
+                                                    isToday(day) && "bg-blue-50/50 dark:bg-blue-900/10"
+                                                )}
+                                                onClick={() => {
+                                                    // Optional: Open day view or add check for this day
+                                                }}
+                                            >
+                                                <time dateTime={format(day, 'yyyy-MM-dd')} className={cn(
+                                                    "text-xs font-medium flex h-6 w-6 items-center justify-center rounded-full mb-1",
+                                                    isToday(day) && "bg-primary text-primary-foreground",
+                                                )}>
+                                                    {format(day, 'd')}
+                                                </time>
+                                                <div className="space-y-1">
+                                                    {dayChecks.map(check => (
+                                                        <div 
+                                                            key={check.id} 
+                                                            className="text-[10px] p-1 rounded border bg-card shadow-sm truncate hover:z-10 relative"
+                                                            title={`${check.checkType || 'Check'} - ${check.trainee?.full_name || 'Trainee'}`}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                <span className={cn(
+                                                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                                                    check.finalDecision === 'pass' ? "bg-green-500" :
+                                                                    check.finalDecision === 'fail' ? "bg-red-500" :
+                                                                    "bg-amber-500"
+                                                                )} />
+                                                                <span className="truncate font-medium">{check.trainee?.full_name || 'Trainee'}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="my_assessments" className="mt-6">
@@ -209,51 +275,18 @@ const ChecksPage = () => {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="profiles" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t("checks.profiles")}</CardTitle>
-                            <CardDescription>
-                                {t("checks.profilesDescription")}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {loadingProfiles ? (
-                                <div className="text-center py-4">{t("checks.loadingProfiles")}</div>
-                            ) : (
-                                <ProficiencyProfilesTable 
-                                    data={profiles}
-                                    onEdit={openEditProfile}
-                                    onDelete={handleDeleteProfile}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+
             </Tabs>
 
+            {/* New Schedule Check Modal with group support */}
             <ScheduleCheckModal 
-                open={isScheduleModalOpen} 
-                onOpenChange={setIsScheduleModalOpen}
-                onSuccess={handleRefresh}
-                initialProfileId={scheduleInitialProfileId}
-                initialTraineeId={scheduleInitialTraineeId}
-                initialTraineeName={scheduleInitialTraineeName}
+                isOpen={isScheduleModalOpen} 
+                onClose={handleModalClose}
+                preselectedCandidates={preselectedCandidates}
+                preselectedStandardId={preselectedStandardId}
             />
 
-            <Dialog open={isProfileFormOpen} onOpenChange={setIsProfileFormOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{selectedProfile ? t("checks.editProfile") : t("checks.createProfile")}</DialogTitle>
-                    </DialogHeader>
-                    <ProfileForm 
-                        initialData={selectedProfile}
-                        standards={standards}
-                        onSubmit={selectedProfile ? handleUpdateProfile : handleCreateProfile}
-                        onCancel={() => setIsProfileFormOpen(false)}
-                    />
-                </DialogContent>
-            </Dialog>
+
         </div>
     );
 };

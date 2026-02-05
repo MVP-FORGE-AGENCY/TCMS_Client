@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, BookOpen, Search } from 'lucide-react'
+import { Plus, BookOpen, Search, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,15 +16,22 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import type { Curriculum, CurriculumType } from '@/types'
 import { cn } from '@/lib/utils'
+import { CurriculumHistoryModal } from '@/components/curriculums/CurriculumHistoryModal'
+import { useAuth } from '@/context/AuthContext'
+
 
 export default function CurriculumsPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
     const navigate = useNavigate()
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [typeFilter, setTypeFilter] = useState<string>('all')
     const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [historyModalOpen, setHistoryModalOpen] = useState(false)
+    const [selectedCurriculumId, setSelectedCurriculumId] = useState<string | null>(null)
 
     useEffect(() => {
         loadCurriculums()
@@ -73,15 +80,20 @@ export default function CurriculumsPage() {
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t('curriculums.title', 'Curriculums')}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('curriculums.title')}</h1>
                     <p className="text-muted-foreground">
-                        {t('curriculums.subtitle', 'Define training and assessment modules for your organization.')}
+                        {t('curriculums.subtitle')}
                     </p>
                 </div>
+            </div>
+            {/* Header Actions */}
+            <div className="flex justify-end">
+                {!isAuditor && (
                 <Button onClick={() => navigate('/curriculums/new')}>
                     <Plus className="mr-2 h-4 w-4" />
-                    {t('curriculums.createCurriculum', 'Create Curriculum')}
+                    {t('curriculums.createCurriculum')}
                 </Button>
+                )}
             </div>
 
             {/* Filters */}
@@ -168,14 +180,29 @@ export default function CurriculumsPage() {
                                             {curriculum.code}
                                         </CardDescription>
                                     </div>
-                                    <Badge 
-                                        variant={curriculum.isActive ? 'default' : 'secondary'}
-                                        className={cn(
-                                            curriculum.isActive ? getTypeColor(curriculum.type) : ''
-                                        )}
-                                    >
-                                        {curriculum.type}
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedCurriculumId(curriculum.id)
+                                                setHistoryModalOpen(true)
+                                            }}
+                                            title="View version history"
+                                        >
+                                            <History className="h-4 w-4" />
+                                        </Button>
+                                        <Badge 
+                                            variant={curriculum.isActive ? 'default' : 'secondary'}
+                                            className={cn(
+                                                curriculum.isActive ? getTypeColor(curriculum.type) : ''
+                                            )}
+                                        >
+                                            {curriculum.type}
+                                        </Badge>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -229,6 +256,13 @@ export default function CurriculumsPage() {
                     ))}
                 </div>
             )}
+
+            {/* History Modal */}
+            <CurriculumHistoryModal
+                open={historyModalOpen}
+                onOpenChange={setHistoryModalOpen}
+                curriculumId={selectedCurriculumId}
+            />
         </div>
     )
 }

@@ -33,7 +33,10 @@ import type { Organization } from "@/types"
 import { Loader2, Plus, Search } from "lucide-react"
 import { toast } from "sonner"
 
+import { useTranslation } from "react-i18next"
+
 export default function OrganizationsPage() {
+    const { t } = useTranslation()
     const [isLoading, setIsLoading] = useState(true)
     const [orgs, setOrgs] = useState<Organization[]>([])
     const [search, setSearch] = useState("")
@@ -57,7 +60,7 @@ export default function OrganizationsPage() {
             }
         } catch (error) {
             console.error("Failed to fetch organizations", error)
-            toast.error("Failed to load organizations")
+            toast.error(t("nav.superAdmin.organizations.createModal.errorMessage"))
             setOrgs([])
         } finally {
             setIsLoading(false)
@@ -71,7 +74,7 @@ export default function OrganizationsPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{t("nav.superAdmin.organizations.title")}</h1>
                 <CreateOrgModal 
                     open={isCreateOpen} 
                     onOpenChange={setIsCreateOpen} 
@@ -85,7 +88,7 @@ export default function OrganizationsPage() {
             <div className="flex items-center space-x-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search organizations..."
+                    placeholder={t("nav.superAdmin.organizations.searchPlaceholder")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="max-w-sm"
@@ -96,13 +99,13 @@ export default function OrganizationsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Code</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Country</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>License</TableHead>
-                            <TableHead>Admins</TableHead>
-                            <TableHead>Users</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.code")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.name")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.country")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.status")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.license")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.admins")}</TableHead>
+                            <TableHead>{t("nav.superAdmin.organizations.table.users")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -115,7 +118,7 @@ export default function OrganizationsPage() {
                         ) : orgs.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-24 text-center">
-                                    No organizations found.
+                                    {t("nav.superAdmin.organizations.table.empty")}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -146,6 +149,7 @@ export default function OrganizationsPage() {
 }
 
 function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOpenChange: (open: boolean) => void; onSuccess: () => void }) {
+    const { t } = useTranslation()
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -162,13 +166,19 @@ function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOp
     const onSubmit = async (data: any) => {
         setIsSubmitting(true)
         try {
+            // Set default department for the initial admin
+            if (data.adminUser) {
+                data.adminUser.areaOfActivity = "admin"
+                data.adminUser.departmentTag = "ADMIN"
+            }
+
             await superAdmin.createOrganization(data)
-            toast.success("Organization created successfully")
+            toast.success(t("nav.superAdmin.organizations.createModal.successMessage"))
             reset()
             onSuccess()
         } catch (error: any) {
             console.error("Failed to create org", error)
-            toast.error(error.response?.data?.error?.message || "Failed to create organization")
+            toast.error(error.response?.data?.error?.message || t("nav.superAdmin.organizations.createModal.errorMessage"))
         } finally {
             setIsSubmitting(false)
         }
@@ -179,37 +189,37 @@ function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOp
             <DialogTrigger asChild>
                 <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Organization
+                    {t("nav.superAdmin.organizations.createButton")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Create New Organization</DialogTitle>
+                    <DialogTitle>{t("nav.superAdmin.organizations.createModal.title")}</DialogTitle>
                     <DialogDescription>
-                        Set up a new tenant and provision the first admin user.
+                        {t("nav.superAdmin.organizations.createModal.description")}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Organization Name</Label>
-                            <Input {...register("name", { required: true })} placeholder="Acme Aviation" />
-                            {errors.name && <span className="text-red-500 text-xs">Required</span>}
+                            <Label>{t("nav.superAdmin.organizations.createModal.nameLabel")}</Label>
+                            <Input {...register("name", { required: true })} placeholder={t("nav.superAdmin.organizations.createModal.namePlaceholder")} />
+                            {errors.name && <span className="text-red-500 text-xs">{t("nav.superAdmin.organizations.createModal.validation.required")}</span>}
                         </div>
                         <div className="space-y-2">
-                            <Label>Code (2-6 Uppercase)</Label>
-                            <Input {...register("code", { required: true, pattern: /^[A-Z]{2,6}$/ })} placeholder="ACME" />
-                            {errors.code && <span className="text-red-500 text-xs">Invalid code format</span>}
+                            <Label>{t("nav.superAdmin.organizations.createModal.codeLabel")}</Label>
+                            <Input {...register("code", { required: true, pattern: /^[A-Z]{2,6}$/ })} placeholder={t("nav.superAdmin.organizations.createModal.codePlaceholder")} />
+                            {errors.code && <span className="text-red-500 text-xs">{t("nav.superAdmin.organizations.createModal.validation.invalidCode")}</span>}
                         </div>
                         <div className="space-y-2">
-                            <Label>Country (ISO 2-char)</Label>
-                            <Input {...register("country", { required: true, maxLength: 2 })} placeholder="US" />
+                            <Label>{t("nav.superAdmin.organizations.createModal.countryLabel")}</Label>
+                            <Input {...register("country", { required: true, maxLength: 2 })} placeholder={t("nav.superAdmin.organizations.createModal.countryPlaceholder")} />
                         </div>
                          <div className="space-y-2">
-                            <Label>License Type</Label>
+                            <Label>{t("nav.superAdmin.organizations.createModal.licenseLabel")}</Label>
                             <Select onValueChange={(val) => setValue("licenseType", val)} defaultValue="trial">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select license" />
+                                    <SelectValue placeholder={t("nav.superAdmin.organizations.createModal.selectLicense")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="trial">Trial</SelectItem>
@@ -222,42 +232,42 @@ function CreateOrgModal({ open, onOpenChange, onSuccess }: { open: boolean; onOp
                     </div>
 
                     <div className="border-t pt-4">
-                        <h3 className="text-sm font-medium mb-4">Initial Admin Administrator</h3>
+                        <h3 className="text-sm font-medium mb-4">{t("nav.superAdmin.organizations.createModal.adminSectionTitle")}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Full Name</Label>
-                                <Input {...register("adminUser.fullName", { required: true })} placeholder="John Doe" />
+                                <Label>{t("nav.superAdmin.organizations.createModal.fullNameLabel")}</Label>
+                                <Input {...register("adminUser.fullName", { required: true })} placeholder={t("nav.superAdmin.organizations.createModal.fullNamePlaceholder")} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Email</Label>
+                                <Label>{t("nav.superAdmin.organizations.createModal.emailLabel")}</Label>
                                 <Input 
                                     type="text" 
                                     {...register("adminUser.email", { 
-                                        required: "Email is required",
+                                        required: t("nav.superAdmin.organizations.createModal.validation.required"),
                                         pattern: {
                                             value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                                            message: "Invalid email format"
+                                            message: t("nav.superAdmin.organizations.createModal.validation.invalidEmail")
                                         }
                                     })} 
-                                    placeholder="admin@acme.com" 
+                                    placeholder={t("nav.superAdmin.organizations.createModal.emailPlaceholder")} 
                                 />
-                                {errors.adminUser?.email && <span className="text-red-500 text-xs">{errors.adminUser.email.message as string}</span>}
+                                {errors.adminUser && (errors.adminUser as any).email && <span className="text-red-500 text-xs">{(errors.adminUser as any).email.message as string}</span>}
                             </div>
                             <div className="space-y-2 col-span-2">
-                                <Label>Temporary Password</Label>
+                                <Label>{t("nav.superAdmin.organizations.createModal.tempPasswordLabel")}</Label>
                                 <div className="flex gap-2">
                                     <Input {...register("adminUser.temporaryPassword", { required: true, minLength: 8 })} />
-                                    <Button type="button" variant="outline" onClick={generatePassword}>Generate</Button>
+                                    <Button type="button" variant="outline" onClick={generatePassword}>{t("nav.superAdmin.organizations.createModal.generateButton")}</Button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("nav.superAdmin.organizations.createModal.cancelButton")}</Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Create Organization
+                            {t("nav.superAdmin.organizations.createModal.submitButton")}
                         </Button>
                     </DialogFooter>
                 </form>

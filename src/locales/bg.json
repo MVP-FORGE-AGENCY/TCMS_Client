@@ -52,14 +52,31 @@
         "support": "Поддръжка",
         "home": "Начало",
         "day": "ден",
-        "days": "дни"
+        "days": "дни",
+        "showingOf": "Показване на {{from}} до {{to}} от {{total}}",
+        "previous": "Предишна",
+        "next": "Следваща",
+        "table": "Таблица",
+        "calendar": "Календар",
+        "months": "месеца",
+        "month": "месец",
+        "ongoing": "Текущ",
+        "attendance": "Присъствие",
+        "result": "Резултат",
+        "enrolledAt": "Записан на",
+        "statusFailed": "Неуспешен",
+        "passed": "Успешен",
+        "of": "от",
+        "hour": "час",
+        "hours": "часа",
+        "fullDay": "цял ден"
     },
     "nav": {
         "dashboard": "Табло",
         "personnel": "Персонал",
         "programmes": "Програми",
-        "sessions": "Сесии",
-        "checks": "Проверки",
+        "sessions": "График",
+        "checks": "График",
         "competence": "Компетентност",
         "reports": "Доклади",
         "settings": "Настройки",
@@ -85,11 +102,73 @@
         "checkProfiles": "Профили за проверки",
         "regulatoryLibrary": "Регулаторна библиотека",
         "trainingCalendar": "Календар за обучения",
-        "checkCalendar": "Календар за проверки"
+        "checkCalendar": "Календар за проверки",
+        "training": "Обучение",
+        "checking": "Проверки",
+        "superAdmin": {
+            "title": "Администратор",
+            "dashboard": {
+                "navLabel": "Табло",
+                "title": "Административно табло",
+                "loading": "Зареждане на таблото...",
+                "totalOrgs": "Общо организации",
+                "activeTrial": "{{active}} активни, {{trial}} пробни",
+                "trialOrgs": "Пробни организации",
+                "potentialConversions": "Потенциални реализации",
+                "totalUsers": "Общо потребители",
+                "acrossTenants": "Във всички организации"
+            },
+            "organizations": {
+                "navLabel": "Организации",
+                "title": "Организации",
+                "createButton": "Създай организация",
+                "searchPlaceholder": "Търсене на организации...",
+                "table": {
+                    "code": "Код",
+                    "name": "Име",
+                    "country": "Държава",
+                    "status": "Статус",
+                    "license": "Лиценз",
+                    "admins": "Администратори",
+                    "users": "Потребители",
+                    "empty": "Няма намерени организации."
+                },
+                "createModal": {
+                    "title": "Създаване на нова организация",
+                    "description": "Настройване на нов клиент и създаване на първия администратор.",
+                    "nameLabel": "Име на организацията",
+                    "namePlaceholder": "Авиоотряд 28",
+                    "codeLabel": "Код (2-6 Главни букви)",
+                    "codePlaceholder": "AVIO",
+                    "countryLabel": "Държава (ISO 2 знака)",
+                    "countryPlaceholder": "BG",
+                    "licenseLabel": "Тип лиценз",
+                    "selectLicense": "Изберете лиценз",
+                    "adminSectionTitle": "Първоначален администратор",
+                    "fullNameLabel": "Име и фамилия",
+                    "fullNamePlaceholder": "Иван Иванов",
+                    "emailLabel": "Имейл",
+                    "emailPlaceholder": "admin@example.com",
+                    "tempPasswordLabel": "Временна парола",
+                    "generateButton": "Генерирай",
+                    "cancelButton": "Отказ",
+                    "submitButton": "Създай организация",
+                    "successMessage": "Организацията е създадена успешно",
+                    "errorMessage": "Грешка при създаване на организация",
+                    "validation": {
+                        "required": "Задължително поле",
+                        "invalidCode": "Невалиден формат на кода",
+                        "invalidEmail": "Невалиден имейл формат"
+                    }
+                }
+            },
+            "dashboard_legacy": "Табло",
+            "organizations_legacy": "Организации"
+        }
     },
     "auth": {
         "welcomeBack": "Добре дошли отново",
-        "enterCredentials": "Въведете вашите данни за достъп до TCMS",
+        "enterCredentials": "Въведете вашите данни за достъп до CertifyCloud",
         "signIn": "Вход",
         "signingIn": "Влизане...",
         "welcomeBackToast": "Добре дошли отново!",
@@ -97,6 +176,42 @@
         "invalidCredentials": "Невалидни данни",
         "logout": "Изход",
         "sessionExpired": "Сесията изтече. Моля, влезте отново."
+    },
+    "auditLogs": {
+        "title": "Одитни записи",
+        "subtitle": "Наблюдение на системната активност и промени.",
+        "header": "Дневник на дейността",
+        "filterAction": "Филтър действие",
+        "allActions": "Всички действия",
+        "date": "Дата и час",
+        "user": "Потребител",
+        "action": "Действие",
+        "entity": "Обект",
+        "details": "Детайли",
+        "ipAddress": "IP адрес",
+        "viewDetails": "Виж детайли",
+        "changeDetails": "Детайли за промяната",
+        "noLogs": "Няма намерени одитни записи.",
+        "entities": {
+            "User": "Потребител",
+            "Organization": "Организация",
+            "Campaign": "Кампания",
+            "Session": "Сесия",
+            "Check": "Проверка",
+            "Standard": "Стандарт",
+            "Programme": "Програма",
+            "Procedure": "Процедура",
+            "Employee": "Служител",
+            "Report": "Доклад"
+        },
+        "actions": {
+            "CREATE": "Създаване",
+            "UPDATE": "Обновяване",
+            "DELETE": "Изтриване",
+            "READ": "Четене",
+            "GENERATE_REPORT": "Генериране на отчет",
+            "LOGIN": "Вход"
+        }
     },
     "dashboard": {
         "title": "Табло",
@@ -150,7 +265,11 @@
         "history": "История",
         "notAcquired": "Непридобит",
         "loading": "Зареждане...",
-        "noRecords": "Няма намерени записи"
+        "noRecords": "Няма намерени записи",
+        "searchPlaceholder": "Търсене по име или имейл...",
+        "filterExpiresWithin": "Филтриране по изтичане",
+        "expiresWithin": "Изтича в рамките на",
+        "showingAll": "Показване на всички компетентности, независимо от датата на изтичане."
     },
     "standards": {
         "title": "Стандарти за обучение",
@@ -189,7 +308,20 @@
         "hasPractical": "Има практика",
         "passScore": "Мин. резултат",
         "allowedMethods": "Позволени методи",
-        "department": "Отдел"
+        "department": "Отдел",
+        "theoryPassScore": "Праг преминаване теория (%)",
+        "practicalPassScore": "Праг преминаване практика (%)",
+        "placeholders": {
+            "code": "напр., SMS-INIT",
+            "name": "напр., СУБ Първоначално",
+            "description": "Въведете описание на стандарта...",
+            "objectives": "Въведете по една цел на ред...",
+            "department": "напр., OPS, MAINT"
+        },
+        "objectivesHelp": "Разделете всяка цел с нов ред.",
+        "validation": {
+            "atLeastOneMethod": "Трябва да бъде избран поне един метод"
+        }
     },
     "programmes": {
         "title": "Обучителни програми",
@@ -218,8 +350,8 @@
             "recurrent": "Периодично",
             "refresher": "Опреснително",
             "specialized": "Специализирано",
-            "conversion": "Conversion",
-            "differences": "Differences"
+            "conversion": "Преквалификация",
+            "differences": "Различия"
         },
         "toast": {
             "created": "Програмата е създадена успешно",
@@ -244,18 +376,28 @@
         "organisation": "Организация",
         "department": "Отдел",
         "startDate": "Начална дата",
+
         "status": "Статус",
+        "type": "Тип",
         "actions": "Действия",
+        "pagination": {
+            "selectedRows": "{{selected}} от {{total}} ред(а) избрани."
+        },
         "edit": "Редактирай",
-        "history": "История",
+        "historyLabel": "История",
         "delete": "Изтрий",
         "confirmDelete": "Сигурни ли сте, че искате да изтриете този служител?",
+        "createLoginAccount": "Създай акаунт за вход",
+        "grantAccess": "Дай достъп на този потребител до таблото",
+        "updateEmployee": "Обнови служител",
+        "createEmployee": "Създай служител",
+        "selectRole": "Изберете роля",
         "roles": {
              "admin": "Администратор",
              "training_manager": "Мениджър Обучение",
              "instructor": "Инструктор",
              "employee": "Служител",
-             "auditor": "Одитор"
+             "auditor": "Вътрешен Одитор"
         },
         "toast": {
              "created": "Служителят е създаден успешно",
@@ -264,6 +406,57 @@
              "createError": "Грешка при създаване на служител",
              "updateError": "Грешка при обновяване на служител",
              "deleteError": "Грешка при изтриване на служител"
+        },
+        "tabs": {
+            "employees": "Служители",
+            "auditors": "Одитори"
+        },
+        "auditors": {
+            "noAuditorsTitle": "Няма намерени одитори",
+            "noAuditorsDesc": "Поканете външен или вътрешен одитор, за да започнете.",
+            "inviteButton": "Покани одитор",
+            "addAuditor": "Добави одитор"
+        },
+        "history": {
+            "downloadFile": "Изтегли лично досие",
+            "generating": "Генериране...",
+            "activeCompetences": "Активни компетенции",
+            "expired": "Изтекли",
+            "totalTrainings": "Общо обучения",
+            "noDept": "Няма отдел",
+            "tabs": {
+                "competence": "Статус на компетентност",
+                "training": "История на обучение",
+                "checks": "Проверки за умения",
+                "certificates": "Сертификати",
+                "documents": "Подписани протоколи",
+                "absences": "Отсъствия",
+                "remedial": "Корективни планове"
+            },
+            "suspendedAlert": {
+                "title": "Компетентността е отнета",
+                "description": "Този служител има {{count}} отнета/и компетентност/и. Необходимо е допълнително обучение преди възстановяване."
+            },
+            "competenceOverview": "Преглед на компетентности",
+            "filterStatus": "Филтър по статус",
+            "allStatuses": "Всички статуси",
+            "noCompetences": {
+                "title": "Няма намерени компетентности",
+                "description": "Този потребител няма записани компетентности."
+            },
+             "fields": {
+                "status": "Статус",
+                "validUntil": "Валидна до",
+                "acquired": "Придобита на",
+                "source": "Източник"
+            },
+            "status": {
+                "valid": "Валидна",
+                "expiring_soon": "Изтича скоро",
+                "expired": "Изтекла",
+                "suspended": "Отнета",
+                "not_acquired": "Непридобита"
+            }
         }
     },
     "checks": {
@@ -288,6 +481,8 @@
          "progress": "Прогрес",
          "actions": "Действия",
          "view": "Преглед",
+         "tableView": "Табличен изглед",
+         "calendarView": "Календар",
          "pending": "В изчакване",
          "assessing": "Оценяване",
          "completed": "Завършен",
@@ -322,14 +517,18 @@
         "fromDate": "От дата",
         "toDate": "До дата",
         "clearFilters": "Изчисти филтрите",
+        "searchPlaceholder": "Търсене по кампания, модул, инструктор или локация...",
+        "curriculum": "Кампания",
         "date": "Дата",
         "instructor": "Инструктор",
         "location": "Локация",
         "type": "Тип",
+        "campaign": "Кампания",
+        "module": "Модул",
         "capacity": "Капацитет",
         "actions": "Действия",
         "view": "Преглед",
-        "results": "Резултати",
+        "resultsLabel": "Резултати",
         "cancel": "Отмени",
         "confirmCancel": "Сигурни ли сте, че искате да отмените тази сесия?",
         "types": {
@@ -343,6 +542,22 @@
              "completed": "Завършена",
              "cancelled": "Отменена"
         },
+        "attendanceStatus": {
+             "planned": "Планирана",
+             "present": "Присъствал",
+             "late": "Закъснял",
+             "absent": "Отсъствал",
+             "excused": "Извинен"
+        },
+        "legend": {
+            "planned": "Планирана",
+            "inProgress": "В прогрес",
+            "completed": "Завършена",
+            "cancelled": "Отменена"
+        },
+        "rowsPerPage": "Редове на страница",
+        "showAll": "Покажи всички (Безкрайно)",
+        "loadingMore": "Зареждане на още...",
         "results": {
             "attendance": "Присъствие",
             "present": "Присъствал",
@@ -365,7 +580,16 @@
             "cancelError": "Грешка при отмяна на сесия",
             "resultsError": "Грешка при запис на резултати",
             "loadError": "Грешка при зареждане на сесии"
-        }
+        },
+        "tabs": {
+            "details": "Детайли за сесията",
+            "grading": "Оценяване на модул"
+        },
+        "assessmentCriteria": "Критерии за оценяване",
+        "retakeTitle": "Планиране на поправка",
+        "retakeDesc": "Планиране на поправка за {{name}}",
+        "retakeDate": "Дата на поправка *",
+        "retakeInfo": "Това ще създаде нова сесия, свързана с първоначалния опит. Обучаемият ще бъде записан автоматично."
     },
     "absences": {
         "title": "Отсъствия",
@@ -467,10 +691,14 @@
         "nextReview": "Следващ преглед",
         "version": "Версия",
         "contents": "Съдържание",
-        "noProcedures": "Няма намерени процедури"
+        "noProcedures": "Няма намерени процедури",
+        "create": "Създай процедура",
+        "createSuccess": "Процедурата е създадена успешно"
     },
     "validation": {
         "required": "Това поле е задължително",
+        "standardRequired": "Трябва да изберете поне един стандарт",
+        "assessmentRequired": "Поне един модул трябва да включва оценяване",
         "invalidEmail": "Невалиден имейл адрес",
         "invalidGuid": "Невалиден идентификатор",
         "minLength": "Минималната дължина е {{min}} символа",
@@ -514,6 +742,28 @@
             "compliance": "Съответствие",
             "notifications": "Известия",
             "library": "Регулаторна библиотека"
+        },
+        "automation": {
+            "title": "Център за автоматизация",
+            "subtitle": "Конфигуриране на автоматизирани задачи, известия и работни потоци.",
+            "refresh": "Обнови",
+            "save": "Запази промените",
+            "saving": "Запазване...",
+            "runTest": "Тестов пуск",
+            "scheduledJobs": "Планирани задачи",
+            "runHistory": "История на изпълнение",
+            "noLogs": "Няма намерени записи.",
+            "status": "Статус",
+            "jobName": "Име на задача",
+            "started": "Стартирано",
+            "duration": "Продължителност",
+            "metrics": "Метрики",
+            "initiatedBy": "Инициирано от",
+            "success": "Успех",
+            "failed": "Неуспех",
+            "partial": "Частично",
+            "manual": "Ръчно",
+            "system": "Система"
         }
     },
     "command": {
@@ -529,6 +779,10 @@
         "expiringSubtitle": "Елементи, изтичащи в рамките на следващите {{days}} дни.",
         "exportPdf": "Експорт PDF",
         "generatedOn": "Генерирано на {{date}}",
+        "showAll": "Покажи ВСИЧКИ компетентности",
+        "showingAll": "Показване на всички записи",
+        "exportCsv": "Експорт CSV",
+        "dateCompleted": "Дата на завършване",
         "withinDays": "В рамките на {{days}} дни",
         "daysRemaining": "Оставащи дни",
         "noExpiringItems": "Няма намерени изтичащи елементи в този диапазон.",
@@ -549,9 +803,15 @@
         "name": "Име",
         "type": "Тип",
         "validity": "Валидност",
+        "placeholderCode": "напр., A320-REC-2024",
+        "placeholderName": "напр., A320 Периодично обучение",
         "basicInfo": "Основна информация",
         "description": "Описание",
         "standardTags": "Регулаторни тагове",
+        "selectStandard": "Изберете стандарт...",
+        "searchStandards": "Търсене или нов...",
+        "createStandard": "Създай \"{{val}}\"",
+        "noStandardsFound": "Въведете текст за търсене или създаване.",
         "standardTagsDesc": "Връзка към регулаторни стандарти (напр. EASA-LVO)",
         "modules": "Модули",
         "modulesDesc": "Плъзнете за пренареждане. Синьо = Обучение, Лилаво = Оценяване.",
@@ -560,6 +820,7 @@
         "noModules": "Няма модули. Добавете първия си модул.",
         "moduleType": "Тип модул",
         "moduleName": "Име на модул",
+        "placeholderModuleName": "напр., Наземна теория",
         "moduleDescription": "Описание (опционално)",
         "duration": "Продължителност (часове)",
         "deliveryMethod": "Метод на провеждане",
@@ -568,6 +829,7 @@
         "assessment": "Проверки",
         "totalHours": "общо",
         "totalModules": "Общо модули",
+        "assessmentsCount": "Оценявания",
         "summary": "Обобщение",
         "builderSubtitle": "Дефиниране на модули за обучение и оценяване.",
         "selectValidity": "Изберете валидност",
@@ -584,6 +846,72 @@
             "practical": "Практическо",
             "simulator": "Симулатор",
             "selfStudy": "Самостоятелно"
+        },
+        "assessmentStrategy": "Стратегия за оценяване",
+        "integratedGrading": "Интегрирано оценяване",
+        "integratedGradingDesc": "Оценяването се извършва по време на последната сесия. Подходящо за по-кратки модули.",
+        "dedicatedAssessment": "Специализирано оценяване",
+        "dedicatedAssessmentDesc": "Добавя допълнителна сесия специално за оценяване. Подходящо за дълги модули.",
+        "noAssessment": "Без оценяване",
+        "noAssessmentDesc": "Модул само с лекции. Оценяването се случва в следващ модул.",
+        "gradingCriteria": "Критерии за оценяване",
+        "gradingType": "Тип оценяване",
+        "placeholderPassScore": "напр., 70",
+        "grading": {
+             "none": "Без оценка (Само обучение)",
+             "theory": "Само теория",
+             "practical": "Само практика",
+             "both": "Теория и Практика"
+        },
+        "theoryPassScore": "Праг за преминаване - Теория (%)",
+        "practicalPassScore": "Праг за преминаване - Практика (%)",
+        "validityLabel": "Валидност",
+        "statusLabel": "Статус",
+        "noTags": "Няма дефинирани регулаторни тагове",
+        "noTrainees": "Няма обучаеми, готови за проверка на професионалната компетентност.",
+        "noMaterials": "Все още няма качени материали",
+        "tabs": {
+            "overview": "Преглед",
+            "modules": "Модули",
+            "materials": "Материали",
+            "trainees": "Обучаеми"
+        },
+        "sections": {
+            "validityStatus": "Валидност и Статус",
+            "regulatoryTags": "Регулаторни тагове",
+            "trainingModules": "Обучителни модули",
+            "readyForCheck": "Готови за проверка",
+            "moduleResults": "Резултати от модули",
+            "description": "Описание"
+        },
+        "table": {
+            "trainee": "Обучаем",
+            "campaign": "Кампания",
+            "eligibleStandards": "Допустими стандарти",
+            "status": "Статус",
+            "actions": "Действия",
+            "title": "Заглавие",
+            "module": "Модул",
+            "type": "Тип",
+            "version": "Версия",
+            "uploadedBy": "Качено от"
+        },
+        "materials": {
+            "upload": "Качване на материал",
+            "uploadTitle": "Качване на обучителен материал",
+            "uploadDesc": "Качете нова версия на обучителен материал",
+            "title": "Заглавие",
+            "type": "Тип",
+            "module": "Модул",
+            "file": "Файл",
+            "allModules": "(Всички модули / Общи)",
+            "uploading": "Качване..."
+        },
+        "trainees": {
+            "scheduleCheck": "Насрочване на проверка",
+            "ready": "Готов",
+            "scheduled": "Насрочен",
+            "completed": "Завършен"
         }
     },
     "campaigns": {
@@ -591,20 +919,36 @@
         "subtitle": "Управление на обучителни кампании и масово планиране.",
         "createCampaign": "Създай кампания",
         "noCampaigns": "Няма намерени кампании",
+        "noCurriculums": "Няма намерени учебни планове",
+        "createCurriculumFirst": "Трябва да създадете учебен план преди да започнете кампания.",
+        "goToCurriculums": "Към учебни планове",
+        "statusLabel": "Статус",
         "getStarted": "Започнете, като създадете първата си кампания.",
         "name": "Име на кампания",
         "curriculum": "Учебен план",
         "selectCurriculum": "Изберете учебен план",
         "startDate": "Начална дата",
-        "endDate": "Крайна дата",
+        "endDate": "Крайна дата (Опционално)",
         "maxPerSession": "Макс. обучаеми на сесия",
-        "trainees": "обучаеми",
+        "trainees": "Обучаеми",
+        "modules": "Модули",
+        "materials": "Материали",
         "description": "Описание (опционално)",
         "createDesc": "Създаване на нова обучителна кампания за масово планиране.",
         "progress": "Прогрес",
         "dateRange": "Период",
-        "enrolled": "записани",
+        "enrolled": "Записани",
+        "absences": "Отсъствия",
         "completed": "завършили",
+        "curriculumModules": "Учебни модули",
+        "noModules": "Няма намерени модули за този учебен план.",
+        "moduleTrainees": "Обучаеми в модула",
+        "moduleTraineesDesc": "Присъствие и резултати на обучаемите за този модул.",
+        "failedModulesCount": "({{count}} неуспешни)",
+        "noTraineesForModule": "Няма намерени обучаеми за този модул.",
+        "theoryScore": "Теория",
+        "practicalScore": "Практика",
+        "absentCount": "({{count}} отсъствия)",
         "enrollments": "Записвания",
         "enrolledTrainees": "Записани обучаеми",
         "addTrainees": "Добави обучаеми",
@@ -615,13 +959,24 @@
         "autoScheduler": "Автоматичен планировчик",
         "autoSchedulerDesc": "Автоматично генериране на сесии за всички записани обучаеми.",
         "instructor": "Инструктор по подразбиране",
+        "instructorByModule": "Инструктор по модул",
+        "instructorByModuleDesc": "Опционално назначаване на различни инструктори за всеки модул. Оставете празно за използване на подразбиращия се.",
         "selectInstructor": "Изберете инструктор",
+        "defaultLocation": "Място по подразбиране",
+        "locationPlaceholder": "напр. Учебен център А",
         "location": "Място",
         "sessionDuration": "Продължителност на сесия (часове)",
         "willGenerate": "Това ще генерира приблизително",
-        "sessions": "сесии",
+        "sessions": "Сесии",
         "perSession": "на сесия",
         "generate": "Генерирай график",
+        "groups": "групи",
+        "sessionsPerGroup": "сесии/група",
+        "moduleStatus": "Статус на модулите",
+        "moduleComplete": "Завършен",
+        "scheduledHours": "планирани",
+        "remainingHours": "оставащи",
+        "exceedsRemaining": "Надвишава оставащите часове за този модул",
         "generating": "Генериране...",
         "scheduleGenerated": "{{count}} сесии създадени",
         "schedule": "График",
@@ -630,6 +985,22 @@
         "activate": "Активирай",
         "pause": "Пауза",
         "cancelCampaign": "Отмени кампания",
+        "scheduleSession": "Планирай сесия",
+        "scheduleSessionDesc": "Ръчно планирайте сесия за конкретен модул.",
+        "selectModule": "Изберете модул",
+        "scheduleAllForModule": "Планирайте всички оставащи сесии за този модул",
+        "selectTrainees": "Изберете обучаеми",
+        "noTraineesForModule": "Няма записани обучаеми за тази кампания",
+        "noSession": "Няма сесия",
+        "scheduling": "Планиране...",
+        "trainingMaterials": "Учебни материали",
+        "materialsFromCurriculum": "Материали от учебен план: {name}",
+        "noMaterials": "Няма налични одобрени материали за този учебен план.",
+        "traineeDetails": "Резултати от модули",
+        "traineeDetailsDesc": "Прегледайте резултатите от модулите и планирайте повторни явявания за неуспешни модули.",
+        "noSessions": "Няма генерирани сесии все още. Използвайте автоматичния планировчик.",
+        "dangerZone": "Опасна зона",
+        "generatedSessions": "Генерирани сесии",
         "noEnrollments": "Все още няма записани обучаеми.",
         "status": {
             "draft": "Чернова",
@@ -652,5 +1023,33 @@
     "actions": {
         "overdue": "Просрочено",
         "due": "Краен срок"
+    },
+    "brand": {
+        "title": "CertifyCloud Представяне на бранда",
+        "subtitle": "Цялостна демонстрация на UI компоненти, съобразени с бранда",
+        "colors": "Бранд цветове",
+        "typography": "Типография",
+        "components": "Компоненти",
+        "buttons": "Бутони",
+        "badges": "Значки",
+        "cards": "Карти",
+        "footer": "CertifyCloud Система за идентичност на бранда v1.0 • Последна актуализация: 15 януари 2026",
+        "reference": "Референция"
+    },
+    "sessions": {
+        "title": "Сесии",
+        "date": "Дата",
+        "time": "Час",
+        "module": "Модул",
+        "instructor": "Инструктор",
+        "location": "Място",
+        "finalExam": "Сесията включва оценяване",
+        "dateTime": "Дата и час"
+    },
+    "materials": {
+        "title": "Заглавие",
+        "module": "Модул",
+        "type": "Тип",
+        "version": "Версия"
     }
 }

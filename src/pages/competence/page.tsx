@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TrafficLightCard } from "@/components/ui/traffic-light-card"
-import { Filter, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Filter, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 // Define types locally if not yet in global types
@@ -46,6 +47,11 @@ interface CompetenceSummary {
     notAcquired: number
 }
 
+interface EmployeeOption {
+    id: string
+    fullName: string
+}
+
 export default function CompetenceDashboard() {
     const { t } = useTranslation()
     const navigate = useNavigate()
@@ -53,25 +59,45 @@ export default function CompetenceDashboard() {
     
     const [data, setData] = useState<CompetenceItem[]>([])
     const [summary, setSummary] = useState<CompetenceSummary>({ valid: 0, expiringSoon: 0, expired: 0, notAcquired: 0 })
+    const [employees, setEmployees] = useState<EmployeeOption[]>([])
     const [isLoading, setIsLoading] = useState(true)
     
     // Filters
     const status = searchParams.get("status") || "all"
     const search = searchParams.get("search") || ""
+    const userId = searchParams.get("userId") || "all"
     const page = parseInt(searchParams.get("page") || "1")
+
+    // Local state for expiry switch - default to false unless param explicitly present and significant?
+    // User requested "slider should load as toggled off"
+    const [expiryFilterEnabled, setExpiryFilterEnabled] = useState(false)
+
+    const fetchEmployees = async () => {
+        try {
+            const res = await api.get('/employees?limit=1000') // increased limit for dropdown
+            const emps = res.data.data.map((e: any) => ({
+                id: e.id,
+                fullName: e.fullName
+            }))
+            setEmployees(emps)
+        } catch (e) {
+            console.error("Failed to fetch employees", e)
+        }
+    }
 
     const fetchData = async () => {
         setIsLoading(true)
         try {
             const params = new URLSearchParams()
             if (status !== 'all') params.append("status", status)
-            if (status !== 'all') params.append("status", status)
             if (search) params.append("search", search)
+            if (userId && userId !== 'all') params.append("userId", userId)
             
-            const expiresWithin = searchParams.get("expiresWithin")
-            if (expiresWithin) params.append("expiresWithin", expiresWithin)
-
-            // The exact backend params: status, competenceCode, userId, expiresWithin.
+            // Only append expiry if switch is explicitly ENABLED
+            if (expiryFilterEnabled) {
+                const expiresWithin = searchParams.get("expiresWithin") || "90"
+                params.append("expiresWithin", expiresWithin)
+            }
             
             const res = await api.get(`/competence?${params.toString()}`)
             setData(res.data.data || [])
@@ -84,8 +110,12 @@ export default function CompetenceDashboard() {
     }
 
     useEffect(() => {
+        fetchEmployees()
+    }, [])
+
+    useEffect(() => {
         fetchData()
-    }, [status, search, page, searchParams])
+    }, [status, search, page, userId, expiryFilterEnabled, searchParams.get("expiresWithin")])
 
 
 
@@ -160,8 +190,6 @@ export default function CompetenceDashboard() {
                         defaultValue={search}
                         onChange={(e) => {
                             const val = e.target.value;
-                            // Debounce could be good, but for now direct update or simple timeout
-                            // Using timeout to avoid too many redirects
                             const timeoutId = setTimeout(() => {
                                 setSearchParams(prev => {
                                     if (val) prev.set("search", val);
@@ -173,6 +201,27 @@ export default function CompetenceDashboard() {
                         }} 
                     />
                 </div>
+                
+                {/* Employee Filter */}
+                <Select value={userId} onValueChange={(val) => {
+                    setSearchParams(prev => {
+                        if (val === 'all') prev.delete("userId")
+                        else prev.set("userId", val)
+                        return prev
+                    })
+                }}>
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                        <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder="All Employees" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Employees</SelectItem>
+                        {employees.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id}>{emp.fullName}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
                 <Select value={status} onValueChange={handleStatusFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder={t("competence.allStatuses")} />
@@ -185,17 +234,39 @@ export default function CompetenceDashboard() {
                         <SelectItem value="not_acquired">{t("competence.notAcquired")}</SelectItem>
                     </SelectContent>
                 </Select>
-                
             </div>
 
             {/* Expiring Competences Slider (Full Width) */}
-            {(status === 'expiring_soon' || status === 'all') && (
-                <Card className="bg-slate-50 border-dashed">
-                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-                        <div className="flex-1">
+            <Card className={`border-dashed transition-colors ${expiryFilterEnabled ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50'}`}>
+                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                    <div className="flex items-center gap-4 min-w-[200px]">
+                         <div className="flex items-center space-x-2">
+                            <Switch 
+                                id="expiry-mode" 
+                                checked={expiryFilterEnabled}
+                                onCheckedChange={(checked) => {
+                                    setExpiryFilterEnabled(checked)
+                                    // If enabling, ensure param exists
+                                    if (checked && !searchParams.has("expiresWithin")) {
+                                        setSearchParams(prev => {
+                                            prev.set("expiresWithin", "90")
+                                            return prev
+                                        })
+                                    }
+                                    // Logic handled by useEffect mostly, but param cleanup could be here
+                                }}
+                            />
+                            <label htmlFor="expiry-mode" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                {t("competence.filterExpiresWithin") || "Filter by Expiry"}
+                            </label>
+                        </div>
+                    </div>
+
+                    {expiryFilterEnabled && (
+                        <div className="flex-1 animate-in fade-in slide-in-from-left-2 duration-300">
                             <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">{t("competence.expiresWithin") || "Expires within"}</span>
-                                <span className="text-sm font-bold text-primary">{searchParams.get("expiresWithin") || 90} {t("common.days") || "days"}</span>
+                                <span className="text-sm font-medium">{t("competence.expiresWithin")}</span>
+                                <span className="text-sm font-bold text-primary">{searchParams.get("expiresWithin") || 90} {t("common.days")}</span>
                             </div>
                             <Slider
                                 value={[parseInt(searchParams.get("expiresWithin") || "90")]}
@@ -206,17 +277,19 @@ export default function CompetenceDashboard() {
                                         return prev;
                                     });
                                 }}
-                                max={365}
-                                step={1}
-                                className="w-full"
+                                max={730} // Increased to 2 years as requested (ish)
+                                step={30}
                             />
                         </div>
-                        <div className="text-xs text-muted-foreground md:w-48">
-                            {t("competence.sliderHint") || "Adjust to see competences expiring within the selected timeframe."}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                    )}
+                    
+                    {!expiryFilterEnabled && (
+                         <div className="text-sm text-muted-foreground italic flex-1">
+                            {t("competence.showingAll")}
+                         </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Table */}
             <Card>
@@ -226,7 +299,7 @@ export default function CompetenceDashboard() {
                             <TableRow>
                                 <TableHead>{t("competence.employee")}</TableHead>
                                 <TableHead>{t("common.name")}</TableHead>
-                                <TableHead>{t("competence.type")}</TableHead>
+                                {/* Removed Type Column */}
                                 <TableHead>{t("competence.validUntil")}</TableHead>
                                 <TableHead>{t("competence.status")}</TableHead>
                                 <TableHead>{t("competence.action")}</TableHead>
@@ -235,11 +308,11 @@ export default function CompetenceDashboard() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10">{t("competence.loading")}</TableCell>
+                                    <TableCell colSpan={5} className="text-center py-10">{t("competence.loading")}</TableCell>
                                 </TableRow>
                             ) : data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10">{t("competence.noRecords")}</TableCell>
+                                    <TableCell colSpan={5} className="text-center py-10">{t("competence.noRecords")}</TableCell>
                                 </TableRow>
                             ) : (
                                 data.map((item, idx) => (
@@ -252,9 +325,7 @@ export default function CompetenceDashboard() {
                                             <div className="font-medium">{item.competenceCode}</div>
                                             <div className="text-xs text-muted-foreground max-w-[200px] truncate" title={item.competenceName}>{item.competenceName}</div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="text-xs">{item.competenceType}</Badge>
-                                        </TableCell>
+                                        {/* Removed Type Cell */}
                                         <TableCell>
                                             {item.validUntil ? new Date(item.validUntil).toLocaleDateString() : 'Permanent'}
                                         </TableCell>

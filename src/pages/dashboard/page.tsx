@@ -1,4 +1,7 @@
+
+
 import { useState, useEffect, useMemo } from "react"
+import { ComplianceDetails } from "@/components/dashboard/ComplianceDetails"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,6 +62,17 @@ export default function DashboardPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { isLoading: authLoading, isAuthenticated } = useAuth()
+    
+    // Modal State
+    const [showComplianceDetails, setShowComplianceDetails] = useState(false)
+    const [complianceStats, setComplianceStats] = useState({
+        totalCompetences: 0,
+        validCount: 0,
+        expiredCount: 0,
+        expiringCount: 0,
+        complianceRate: 0
+    })
+
     const [stats, setStats] = useState({
         totalPersonnel: 0,
         activeProgrammes: 0,
@@ -83,10 +97,11 @@ export default function DashboardPage() {
                 setIsLoading(true)
                 
                 // Fetch all data in parallel with allSettled for resilience
+                // Fetch all data in parallel with allSettled for resilience
                 // Note: API max limit is 100, so we use that
                 const results = await Promise.allSettled([
-                    api.get("/employees?limit=100"),
-                    api.get("/programmes?isActive=true&limit=100"),
+                    api.get("/employees?limit=100&excludeExternal=true"),
+                    api.get("/campaigns?status=active&limit=100"), // Switched to active
                     api.get("/reports/expiring?withinDays=90"),
                     api.get("/competence?limit=100"),
                     api.get("/sessions?status=completed&limit=100")
@@ -94,7 +109,7 @@ export default function DashboardPage() {
 
                 // Extract results safely
                 const employeesRes = results[0].status === 'fulfilled' ? results[0].value : null
-                const programmesRes = results[1].status === 'fulfilled' ? results[1].value : null
+                const campaignsRes = results[1].status === 'fulfilled' ? results[1].value : null
                 const expiringRes = results[2].status === 'fulfilled' ? results[2].value : null
                 const competenceRes = results[3].status === 'fulfilled' ? results[3].value : null
                 const sessionsRes = results[4].status === 'fulfilled' ? results[4].value : null
@@ -102,7 +117,7 @@ export default function DashboardPage() {
                 // Log for debugging
                 console.log('Dashboard API responses:', {
                     employees: employeesRes?.data,
-                    programmes: programmesRes?.data,
+                    campaigns: campaignsRes?.data,
                     expiring: expiringRes?.data,
                     competence: competenceRes?.data,
                     sessions: sessionsRes?.data
@@ -121,32 +136,44 @@ export default function DashboardPage() {
                 const employees = getDataArray(employeesRes) as EmployeeItem[]
                 const competences = getDataArray(competenceRes) as CompetenceItem[]
                 const sessions = getDataArray(sessionsRes) as SessionItem[]
-                const programmesData = getDataArray(programmesRes)
+                const campaignsData = getDataArray(campaignsRes)
                 const expiringData = getDataArray(expiringRes)
 
                 console.log('Parsed data:', { 
                     employeesCount: employees.length, 
                     competencesCount: competences.length,
                     sessionsCount: sessions.length,
-                    programmesCount: programmesData.length
+                    campaignsCount: campaignsData.length
                 })
 
                 // === Calculate Stats ===
                 const totalPersonnel = employeesRes?.data?.pagination?.total ?? employees.length
-                const activeProgrammes = programmesRes?.data?.pagination?.total ?? programmesData.length
+                const activeProgrammes = campaignsRes?.data?.pagination?.total ?? campaignsData.length
                 const expiringCompetences = expiringData.length
 
                 // Calculate compliance rate (valid + expiring_soon / total competences * 100)
                 // Expiring competences are still valid until they actually expire
-                const validCount = competences.filter(c => c.status === 'valid' || c.status === 'expiring_soon').length
-                const complianceRate = competences.length > 0 
-                    ? Math.round((validCount / competences.length) * 100 * 10) / 10 
+                const validOnlyCount = competences.filter(c => c.status === 'valid').length
+                const expiringCount = competences.filter(c => c.status === 'expiring_soon').length
+                const effectiveValidCount = validOnlyCount + expiringCount
+                const totalCompetences = competences.length
+
+                const complianceRate = totalCompetences > 0 
+                    ? Math.round((effectiveValidCount / totalCompetences) * 100 * 10) / 10 
                     : 0
 
                 setStats({
                     totalPersonnel,
                     activeProgrammes,
                     expiringCompetences,
+                    complianceRate
+                })
+
+                setComplianceStats({
+                    totalCompetences,
+                    validCount: effectiveValidCount,
+                    expiringCount,
+                    expiredCount: totalCompetences - effectiveValidCount,
                     complianceRate
                 })
 
@@ -297,10 +324,10 @@ export default function DashboardPage() {
                 </Card>
                 <Card 
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => navigate('/programmes')}
+                    onClick={() => navigate('/campaigns')}
                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("dashboard.activeProgrammes")}</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("dashboard.activeCampaigns", "Active Campaigns")}</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -321,7 +348,10 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">{t("dashboard.within90Days")}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setShowComplianceDetails(true)}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t("dashboard.complianceRate")}</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -332,6 +362,12 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <ComplianceDetails 
+                open={showComplianceDetails} 
+                onOpenChange={setShowComplianceDetails}
+                stats={complianceStats}
+            />
 
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
                 <Card className="lg:col-span-4">

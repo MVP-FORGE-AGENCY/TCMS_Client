@@ -29,7 +29,7 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                 }
                 
                 const res = await api.get('/checks', { params });
-                setChecks(Array.isArray(res.data) ? res.data : res.data.checks || []);
+                setChecks(Array.isArray(res.data) ? res.data : res.data.data || res.data.checks || []);
             } catch (error) {
                 console.error("Failed to fetch checks", error);
                 toast.error("Failed to load checks");
@@ -63,8 +63,7 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>Trainee</TableHead>
-                        <TableHead>Profile</TableHead>
+                        <TableHead>Candidate</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Assessors</TableHead>
                         <TableHead>Status</TableHead>
@@ -98,24 +97,47 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                                         </span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="font-medium">{check.trainee?.full_name}</TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm">{check.profile?.code}</span>
-                                        <span className="text-xs text-muted-foreground">{check.profile?.name}</span>
-                                    </div>
+                                <TableCell className="font-medium">
+                                    {(check.candidates?.length > 1 || check.checkCandidates?.length > 1) ? (
+                                        <div className="flex flex-col">
+                                            <span>Multiple Candidates</span>
+                                            <span className="text-xs text-muted-foreground">{(check.candidates || check.checkCandidates).length} candidates</span>
+                                        </div>
+                                    ) : (
+                                        // Try candidates array first, then trainee object
+                                        (check.candidates?.[0]?.candidate?.fullName || check.candidates?.[0]?.candidate?.full_name) ||
+                                        (check.checkCandidates?.[0]?.candidate?.fullName || check.checkCandidates?.[0]?.candidate?.full_name) ||
+                                        (check.trainee?.full_name || check.trainee?.fullName) || 
+                                        '-'
+                                    )}
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="capitalize">{check.check_type || 'Combined'}</Badge>
+                                    <Badge variant="outline" className="capitalize">
+                                        {check.check_type === 'full_renewal' ? 'Full Renewal' : 
+                                         check.check_type === 'partial' ? 'Partial' : 
+                                         check.checkType || 'Standard'}
+                                    </Badge>
                                 </TableCell>
-
                                 <TableCell>
                                     <div className="flex flex-col gap-1">
-                                        {check.assessors?.map((a: any) => (
-                                            <span key={a.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full w-fit">
-                                                {a.full_name}
+                                        {/* Handle both single assessor (legacy) and check_assessors (new) */}
+                                        {check.assessors && check.assessors.length > 0 ? (
+                                            check.assessors.map((a: any) => (
+                                                <span key={a.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full w-fit">
+                                                    {a.user?.full_name || a.user?.fullName || a.full_name || a.fullName || 'Assessor'}
+                                                </span>
+                                            ))
+                                        ) : check.checkAssessors && check.checkAssessors.length > 0 ? (
+                                            check.checkAssessors.map((ca: any) => (
+                                                <span key={ca.assessor?.id || ca.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full w-fit">
+                                                    {ca.assessor?.full_name || ca.assessor?.fullName || 'Assessor'}
+                                                </span>
+                                            ))
+                                        ) : check.assessor ? (
+                                            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full w-fit">
+                                                {check.assessor.full_name || check.assessor.fullName}
                                             </span>
-                                        ))}
+                                        ) : '-'}
                                     </div>
                                 </TableCell>
                                 <TableCell>

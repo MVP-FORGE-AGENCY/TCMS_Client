@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Calendar, Users, TrendingUp } from 'lucide-react'
+import { Plus, Calendar, Users, TrendingUp, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,9 +21,12 @@ import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type { Campaign, CampaignCreate, Curriculum } from '@/types'
 import { format } from 'date-fns'
+import { useAuth } from '@/context/AuthContext'
 
 export default function CampaignsPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
     const navigate = useNavigate()
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
@@ -66,14 +69,18 @@ export default function CampaignsPage() {
     }
 
     const handleCreateCampaign = async () => {
-        if (!newCampaign.name || !newCampaign.curriculumId || !newCampaign.dateRangeStart || !newCampaign.dateRangeEnd) {
+        if (!newCampaign.name || !newCampaign.curriculumId || !newCampaign.dateRangeStart) {
             toast.error(t('validation.required', 'All fields are required'))
             return
         }
 
         try {
             setCreating(true)
-            const response = await api.post('/campaigns', newCampaign)
+            const payload = {
+                ...newCampaign,
+                dateRangeEnd: newCampaign.dateRangeEnd || null
+            }
+            const response = await api.post('/campaigns', payload)
             toast.success(t('campaigns.created', 'Campaign created'))
             setDialogOpen(false)
             setNewCampaign({
@@ -114,6 +121,7 @@ export default function CampaignsPage() {
                         {t('campaigns.subtitle', 'Manage training campaigns and bulk scheduling.')}
                     </p>
                 </div>
+                {!isAuditor && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>
@@ -197,7 +205,7 @@ export default function CampaignsPage() {
                                     <Input 
                                         value={newCampaign.defaultLocation || ''}
                                         onChange={(e) => setNewCampaign({ ...newCampaign, defaultLocation: e.target.value })}
-                                        placeholder="e.g., Training Center A"
+                                        placeholder={t('campaigns.locationPlaceholder', 'e.g., Training Center A')}
                                     />
                                 </div>
                             </div>
@@ -220,6 +228,7 @@ export default function CampaignsPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                )}
             </div>
 
             {/* Filters */}
@@ -253,6 +262,19 @@ export default function CampaignsPage() {
                         </Card>
                     ))}
                 </div>
+            ) : curriculums.length === 0 ? (
+                <Card className="p-12 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                        <BookOpen className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{t('campaigns.noCurriculums', 'No curriculums found')}</h3>
+                    <p className="text-muted-foreground mb-4">
+                        {t('campaigns.createCurriculumFirst', 'You need to create a curriculum before starting a campaign.')}
+                    </p>
+                    <Button onClick={() => navigate('/curriculums')}>
+                        {t('campaigns.goToCurriculums', 'Go to Curriculums')}
+                    </Button>
+                </Card>
             ) : campaigns.length === 0 ? (
                 <Card className="p-12 text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -303,7 +325,7 @@ export default function CampaignsPage() {
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Calendar className="h-4 w-4" />
                                         <span>
-                                            {format(new Date(campaign.dateRangeStart), 'MMM d')} - {format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
+                                            {format(new Date(campaign.dateRangeStart), 'MMM d')} - {new Date(campaign.dateRangeEnd).getFullYear() >= 2099 ? t('common.ongoing', 'Ongoing') : format(new Date(campaign.dateRangeEnd), 'MMM d, yyyy')}
                                         </span>
                                     </div>
 
