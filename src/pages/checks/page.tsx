@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, List, Calendar } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 
 import EligibleTraineesTable from '@/components/checks/EligibleTraineesTable';
@@ -18,6 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 const ChecksPage = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const isAuditor = user?.role === 'auditor' || user?.role === 'readonly';
     const queryClient = useQueryClient();
     
@@ -234,17 +236,31 @@ const ChecksPage = () => {
                                                     {dayChecks.map(check => (
                                                         <div 
                                                             key={check.id} 
-                                                            className="text-[10px] p-1 rounded border bg-card shadow-sm truncate hover:z-10 relative"
-                                                            title={`${check.checkType || 'Check'} - ${check.trainee?.full_name || 'Trainee'}`}
+                                                            className="text-[10px] p-1 rounded border bg-card shadow-sm truncate hover:z-10 relative cursor-pointer hover:bg-accent transition-colors"
+                                                            title={`${check.trainingStandards?.code || 'Check'} - ${check.trainee?.full_name || t('checks.check')}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/checks/${check.id}`);
+                                                            }}
                                                         >
-                                                            <div className="flex items-center gap-1">
-                                                                <span className={cn(
-                                                                    "w-1.5 h-1.5 rounded-full shrink-0",
-                                                                    check.finalDecision === 'pass' ? "bg-green-500" :
-                                                                    check.finalDecision === 'fail' ? "bg-red-500" :
-                                                                    "bg-amber-500"
-                                                                )} />
-                                                                <span className="truncate font-medium">{check.trainee?.full_name || 'Trainee'}</span>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <div className="font-semibold truncate">
+                                                                    {check.trainingStandards?.code || check.checkType || 'Standard'}
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className={cn(
+                                                                        "w-1.5 h-1.5 rounded-full shrink-0",
+                                                                        check.finalDecision === 'pass' ? "bg-green-500" :
+                                                                        check.finalDecision === 'fail' ? "bg-red-500" :
+                                                                        "bg-amber-500"
+                                                                    )} />
+                                                                    <span className="truncate text-muted-foreground">
+                                                                        {(check.candidates?.length > 1 || check.checkCandidates?.length > 1) 
+                                                                            ? `${(check.candidates || check.checkCandidates).length} Candidates`
+                                                                            : (check.trainee?.full_name || check.candidates?.[0]?.candidate?.fullName || t('checks.check'))
+                                                                        }
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ interface ScheduledChecksTableProps {
 }
 
 const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'all', refreshTrigger }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [checks, setChecks] = useState<any[]>([]);
@@ -43,15 +45,15 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
     const getStatusBadge = (decision: string) => {
         switch (decision) {
             case 'pass':
-                return <Badge className="bg-green-500 hover:bg-green-600">Pass</Badge>;
+                return <Badge className="bg-green-500 hover:bg-green-600">{t('common.passed')}</Badge>;
             case 'fail':
-                return <Badge variant="destructive">Fail</Badge>;
+                return <Badge variant="destructive">{t('common.statusFailed')}</Badge>;
             case 'pending':
-                return <Badge variant="outline" className="text-amber-500 border-amber-500">Pending</Badge>;
+                return <Badge variant="outline" className="text-amber-500 border-amber-500">{t('checks.pending')}</Badge>;
             case 'in_progress':
-                return <Badge variant="outline" className="text-blue-500 border-blue-500 animate-pulse">Assessing</Badge>;
+                return <Badge variant="outline" className="text-blue-500 border-blue-500">{t('checks.assessing')}</Badge>;
             case 'cancelled':
-                return <Badge variant="secondary">Cancelled</Badge>;
+                return <Badge variant="secondary">{t('common.cancelled')}</Badge>;
             default:
                 return <Badge variant="outline">{decision}</Badge>;
         }
@@ -62,26 +64,27 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
             <Table className="min-w-[800px]">
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Candidate</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Assessors</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Progress</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>{t('checks.date')}</TableHead>
+                        <TableHead>{t('checks.candidate')}</TableHead>
+                        <TableHead>{t('checks.standard')}</TableHead>
+                        <TableHead>{t('checks.type')}</TableHead>
+                        <TableHead>{t('checks.assessors')}</TableHead>
+                        <TableHead>{t('checks.status')}</TableHead>
+                        <TableHead>{t('checks.progress')}</TableHead>
+                        <TableHead>{t('checks.actions')}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {loading ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                Loading checks...
+                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                {t('common.loading')}
                             </TableCell>
                         </TableRow>
                     ) : checks.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                No scheduled checks found.
+                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                {t('checks.noChecksFound')}
                             </TableCell>
                         </TableRow>
                     ) : (
@@ -100,8 +103,8 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                                 <TableCell className="font-medium">
                                     {(check.candidates?.length > 1 || check.checkCandidates?.length > 1) ? (
                                         <div className="flex flex-col">
-                                            <span>Multiple Candidates</span>
-                                            <span className="text-xs text-muted-foreground">{(check.candidates || check.checkCandidates).length} candidates</span>
+                                            <span>{t('checks.candidates')}</span>
+                                            <span className="text-xs text-muted-foreground">{t('checks.multipleCandidates', { count: (check.candidates || check.checkCandidates).length })}</span>
                                         </div>
                                     ) : (
                                         // Try candidates array first, then trainee object
@@ -112,10 +115,20 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                                     )}
                                 </TableCell>
                                 <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">
+                                            {check.trainingStandards?.code || '-'}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={check.trainingStandards?.name}>
+                                            {check.trainingStandards?.name}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
                                     <Badge variant="outline" className="capitalize">
-                                        {check.check_type === 'full_renewal' ? 'Full Renewal' : 
-                                         check.check_type === 'partial' ? 'Partial' : 
-                                         check.checkType || 'Standard'}
+                                        {check.check_type === 'full_renewal' ? t('checks.fullRenewal') : 
+                                         check.check_type === 'partial' ? t('checks.partial') : 
+                                         check.checkType || t('checks.standard')}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
@@ -145,12 +158,12 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                                 </TableCell>
                                 <TableCell>
                                     <div className="text-xs">
-                                        {check.evaluationsSubmitted} / {check.assessors?.length} Evaluated
+                                        {check.evaluationsSubmitted} / {check.assessors?.length} {t('checks.evaluated')}
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="sm" onClick={() => navigate(`/checks/${check.id}`)}>
-                                        <FileText className="h-4 w-4 mr-1" /> View
+                                        <FileText className="h-4 w-4 mr-1" /> {t('checks.view')}
                                     </Button>
                                 </TableCell>
                             </TableRow>

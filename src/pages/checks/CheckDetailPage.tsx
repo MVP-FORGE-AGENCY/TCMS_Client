@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,6 +33,7 @@ const CheckDetailPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { setLabel } = useBreadcrumb();
+    const { t } = useTranslation();
     
     const [check, setCheck] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -43,10 +45,15 @@ const CheckDetailPage = () => {
 
     useEffect(() => {
         if (check && id) {
-            const code = check.profile?.code || (check.checkType ? check.checkType.toUpperCase() : 'CHECK');
+            const code = check.profile?.code || (check.checkType ? (
+                check.checkType === 'full_renewal' ? t('checks.fullRenewal') : 
+                check.checkType === 'partial' ? t('checks.partial') : 
+                check.checkType.toUpperCase()
+            ) : 'CHECK');
+            
             const name = check.candidates?.length > 1 
-                ? `${check.candidates.length} Candidates` 
-                : (check.trainee?.fullName || check.candidates?.[0]?.candidate?.fullName || 'Trainee');
+                ? t('checks.multipleCandidates', { count: check.candidates.length })
+                : (check.trainee?.fullName || check.candidates?.[0]?.candidate?.fullName || t('checks.trainee'));
             
             const label = `${code} - ${name}`;
             setLabel(id, label);
@@ -86,6 +93,12 @@ const CheckDetailPage = () => {
 
     const startStatus = canStartCheck();
 
+    const getDerivedDecision = () => {
+        if (!check?.assessors) return 'fail';
+        const allPass = check.assessors.every((a: any) => a.evaluation?.result === 'pass');
+        return allPass ? 'pass' : 'fail';
+    };
+
 
     const handleFinalize = async () => {
         try {
@@ -97,7 +110,7 @@ const CheckDetailPage = () => {
                 finalDecision: decision,
                 comments: comments
             });
-            toast.success('Check finalised successfully');
+            toast.success(t('checks.checkFinalized', 'Check finalised successfully'));
             setIsFinalizeOpen(false);
             fetchCheck();
         } catch (error: any) {
@@ -134,7 +147,17 @@ const CheckDetailPage = () => {
                         const link = document.createElement('a');
                         link.href = url;
                         // Content-Disposition header usually handles filename, but fallback here
-                        link.setAttribute('download', `Protocol.pdf`);
+                        // Use a more descriptive filename
+                        // Filename: Protocol_CandidateName_Date.pdf
+                        // We need candidate name here. It's passed as arg? No, just ID.
+                        // We can get it from the candidates list in the component scope
+                        const candidate = check.candidates?.find((c: any) => c.candidateId === candidateId);
+                        const candidateName = candidate?.candidate?.fullName || candidate?.candidate?.full_name || 'Candidate';
+                        // Sanitize filename
+                        const safeName = candidateName.replace(/[^a-z0-9а-я ]/gi, '_').trim();
+                        const dateStr = new Date().toISOString().split('T')[0];
+                        
+                        link.setAttribute('download', `Protocol_${safeName}_${dateStr}.pdf`);
                         document.body.appendChild(link);
                         link.click();
                         link.remove();
@@ -148,29 +171,7 @@ const CheckDetailPage = () => {
         }
     };
 
-    const handleDownloadCertificate = async (candidateId: string) => {
-        try {
-            toast.promise(
-                api.get(`/checks/${id}/certificate?candidateId=${candidateId}`, { responseType: 'blob' }),
-                {
-                    loading: 'Generating Certificate PDF...',
-                    success: (response) => {
-                        const url = window.URL.createObjectURL(new Blob([response.data]));
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.setAttribute('download', `Certificate.pdf`);
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                        return 'Certificate downloaded';
-                    },
-                    error: 'Failed to download certificate'
-                }
-            );
-        } catch (error) {
-            console.error(error);
-        }
-    };
+
 
     const handleStartCheck = async () => {
         try {
@@ -194,11 +195,7 @@ const CheckDetailPage = () => {
         }
     };
 
-    const getDerivedDecision = () => {
-        if (!check?.assessors) return 'fail';
-        const allPass = check.assessors.every((a: any) => a.evaluation?.result === 'pass');
-        return allPass ? 'pass' : 'fail';
-    };
+
 
     const getDerivedComments = () => {
         if (!check?.assessors) return '';
@@ -221,13 +218,13 @@ const CheckDetailPage = () => {
          return 'pending';
     };
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground">Loading check details...</div>;
-    if (!check) return <div className="p-8 text-center text-red-500">Check not found</div>;
+    if (loading) return <div className="p-8 text-center text-muted-foreground">{t('common.loading', 'Loading check details...')}</div>;
+    if (!check) return <div className="p-8 text-center text-red-500">{t('checks.noChecksFound', 'Check not found')}</div>;
 
     return (
         <div className="container mx-auto py-6 space-y-6">
             <Button variant="ghost" onClick={() => navigate('/checks')} className="mb-4">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to List
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t('checks.backToList')}
             </Button>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -236,13 +233,17 @@ const CheckDetailPage = () => {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-2xl">{check.profile?.name}</CardTitle>
-                            <CardDescription>Code: {check.profile?.code} | Type: <span className="capitalize">{check.check_type || 'combined'}</span></CardDescription>
+                            <CardDescription>{t('standards.code')}: {check.profile?.code} | {t('checks.type')}: <span className="capitalize">
+                                {check.check_type === 'full_renewal' ? t('checks.fullRenewal') : 
+                                 check.check_type === 'partial' ? t('checks.partial') : 
+                                 check.check_type || 'Combined'}
+                            </span></CardDescription>
                         </div>
                         <div className="text-right flex items-center gap-2">
-                            {check.finalDecision === 'pending' && <Badge variant="outline" className="text-amber-500 border-amber-500">Pending</Badge>}
-                            {check.finalDecision === 'in_progress' && <Badge variant="outline" className="text-blue-500 border-blue-500">In Progress</Badge>}
-                            {check.finalDecision === 'pass' && <Badge className="bg-green-500">Passed</Badge>}
-                            {check.finalDecision === 'fail' && <Badge variant="destructive">Failed</Badge>}
+                            {check.finalDecision === 'pending' && <Badge variant="outline" className="text-amber-500 border-amber-500">{t('checks.pending')}</Badge>}
+                            {check.finalDecision === 'in_progress' && <Badge variant="outline" className="text-blue-500 border-blue-500">{t('checks.assessing')}</Badge>}
+                            {check.finalDecision === 'pass' && <Badge className="bg-green-500">{t('common.passed')}</Badge>}
+                            {check.finalDecision === 'fail' && <Badge variant="destructive">{t('common.statusFailed')}</Badge>}
 
                             {/* Start Check Action (Global for Admin/Manager) */}
                             {user?.role && ['admin', 'training_manager', 'instructor'].includes(user.role) && check.finalDecision === 'pending' && (
@@ -256,7 +257,7 @@ const CheckDetailPage = () => {
                                                     onClick={handleStartCheck}
                                                     disabled={!startStatus.allowed}
                                                 >
-                                                    <Play className="w-4 h-4" /> Start Check
+                                                    <Play className="w-4 h-4" /> {t('checks.startCheck')}
                                                 </Button>
                                             </span>
                                         </TooltipTrigger>
@@ -271,7 +272,7 @@ const CheckDetailPage = () => {
                             
                             {/* Delete Action - Pending checks ONLY (Admin/Manager) */}
                             {(check.finalDecision === 'pending' && user?.role && ['admin', 'training_manager'].includes(user.role)) && (
-                                <Button size="sm" variant="destructive" onClick={() => setIsDeleteAlertOpen(true)} title="Delete Check">
+                                <Button size="sm" variant="destructive" onClick={() => setIsDeleteAlertOpen(true)} title={t('checks.deleteCheck')}>
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             )}
@@ -279,7 +280,7 @@ const CheckDetailPage = () => {
                             {/* Generate Official Protocol - Only for finalized checks */}
                             {(check.finalDecision === 'pass' || check.finalDecision === 'fail') && (
                                 <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={() => handleDownloadProtocol()}>
-                                    <FileText className="w-4 h-4" /> Generate Official Protocol
+                                    <FileText className="w-4 h-4" /> {t('checks.generateProtocol')}
                                 </Button>
                             )}
                         </div>
@@ -290,7 +291,7 @@ const CheckDetailPage = () => {
                             <div className="flex items-center space-x-2 text-sm">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="font-medium">Trainee</p>
+                                    <p className="font-medium">{t('checks.trainee')}</p>
                                     <p className="text-muted-foreground">{check.trainee?.fullName}</p>
                                 </div>
                             </div>
@@ -298,16 +299,16 @@ const CheckDetailPage = () => {
                             <div className="flex items-center space-x-2 text-sm">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="font-medium">Date & Time</p>
+                                    <p className="font-medium">{t('common.dateTime')}</p>
                                     <p className="text-muted-foreground">
-                                        {new Date(check.dateStart).toLocaleDateString()} at {new Date(check.dateStart).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                        {new Date(check.dateStart).toLocaleDateString()} {t('common.at', 'at')} {new Date(check.dateStart).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                                     </p>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2 text-sm">
                                 <MapPin className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                    <p className="font-medium">Location</p>
+                                    <p className="font-medium">{t('common.location')}</p>
                                     <p className="text-muted-foreground">{check.location || 'N/A'}</p>
                                 </div>
                             </div>
@@ -318,12 +319,12 @@ const CheckDetailPage = () => {
                         {/* Candidates List (Group & Single) */}
                         <div>
                             <h3 className="text-lg font-semibold mb-3">
-                                {check.isGroupCheck ? 'Candidates' : 'Evaluation Status'}
+                                {check.isGroupCheck ? t('checks.candidates') : t('checks.evaluationStatus')}
                             </h3>
                             <div className="flex flex-col gap-3">
                                 {check.candidates?.length === 0 && (
                                     <div className="p-4 text-center border rounded-lg bg-muted/20 text-muted-foreground">
-                                        No candidates assigned to this check.
+                                        {t('checks.noCandidates')}
                                     </div>
                                 )}
                                 {check.candidates?.map((candidate: any) => {
@@ -346,21 +347,14 @@ const CheckDetailPage = () => {
 
                                         <div className="flex items-center gap-3 mt-3 md:mt-0">
                                             {/* Status Badge */}
-                                            {status === 'pending' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Pending</Badge>}
-                                            {status === 'pass' && <Badge className="bg-green-500 hover:bg-green-600">Passed</Badge>}
-                                            {status === 'fail' && <Badge variant="destructive">Failed</Badge>}
+                                            {status === 'pending' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">{t('checks.pending')}</Badge>}
+                                            {status === 'pass' && <Badge className="bg-green-500 hover:bg-green-600">{t('common.passed')}</Badge>}
+                                            {status === 'fail' && <Badge variant="destructive">{t('common.statusFailed')}</Badge>}
 
-                                            {/* Protocol Download */}
+                                            {/* Protocol/Certificate Download (Combined) */}
                                             {status !== 'pending' && (
                                                 <Button size="sm" variant="ghost" onClick={() => handleDownloadProtocol(candidate.candidateId)}>
-                                                    <FileText className="w-4 h-4 mr-1" /> Protocol
-                                                </Button>
-                                            )}
-
-                                            {/* Certificate Download */}
-                                            {candidate.outcome === 'pass' && (
-                                                <Button size="sm" variant="ghost" onClick={() => handleDownloadCertificate(candidate.candidateId)}>
-                                                    <Award className="w-4 h-4 mr-1 text-yellow-600" /> Certificate
+                                                    <Award className="w-4 h-4 mr-1 text-yellow-600" /> {t('checks.protocol')}
                                                 </Button>
                                             )}
 
@@ -368,7 +362,7 @@ const CheckDetailPage = () => {
                                             {isAssessor && check.finalDecision === 'in_progress' && (
                                                 myEvaluation ? (
                                                     <Badge variant="outline" className="text-green-600 border-green-200">
-                                                        <CheckCircle className="w-3 h-3 mr-1" /> Submitted
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> {t('checks.submitted')}
                                                     </Badge>
                                                 ) : (
                                                     <Button size="sm" onClick={() => {
@@ -376,7 +370,7 @@ const CheckDetailPage = () => {
                                                         setSelectedCandidate({ id: candidate.candidateId, name });
                                                         setIsSubmitModalOpen(true);
                                                     }}>
-                                                        <PenTool className="w-3 h-3 mr-1" /> Evaluate
+                                                        <PenTool className="w-3 h-3 mr-1" /> {t('checks.evaluate')}
                                                     </Button>
                                                 )
                                             )}
@@ -390,7 +384,7 @@ const CheckDetailPage = () => {
                         <Separator className="my-6" />
 
                         <div>
-                            <h3 className="text-lg font-semibold mb-3">Assessors</h3>
+                            <h3 className="text-lg font-semibold mb-3">{t('checks.assessors')}</h3>
                             <div className="flex flex-col gap-3">
                                 {check.assessors?.map((assessor: any) => (
                                     <div key={assessor.id} className="flex flex-col md:flex-row items-start md:items-center justify-between border rounded-lg p-4 bg-card hover:bg-muted/10 transition-colors">
@@ -407,16 +401,16 @@ const CheckDetailPage = () => {
                                             {assessor.evaluationSubmitted ? (
                                                 assessor.evaluation ? (
                                                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 px-3 py-1">
-                                                        <CheckCircle className="w-3 h-3 mr-1" /> Submitted
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> {t('checks.submitted')}
                                                     </Badge>
                                                 ) : (
-                                                     <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 px-3 py-1" title="Evaluation hidden until all assessors submit">
-                                                        <CheckCircle className="w-3 h-3 mr-1" /> Submitted (Hidden)
+                                                     <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 px-3 py-1" title={t('checks.submittedHidden')}>
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> {t('checks.submittedHidden')}
                                                     </Badge>
                                                 )
                                             ) : (
                                                 <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 px-3 py-1">
-                                                    <AlertCircle className="w-3 h-3 mr-1" /> Pending
+                                                    <AlertCircle className="w-3 h-3 mr-1" /> {t('checks.pending')}
                                                 </Badge>
                                             )}
                                             
@@ -434,7 +428,8 @@ const CheckDetailPage = () => {
                                                                         onClick={handleStartCheck}
                                                                         disabled={!startStatus.allowed}
                                                                     >
-                                                                        <Play className="w-3 h-3 mr-1" /> Start
+
+                                                                        <Play className="w-3 h-3 mr-1" /> {t('checks.start')}
                                                                     </Button>
                                                                 </span>
                                                             </TooltipTrigger>
@@ -453,7 +448,7 @@ const CheckDetailPage = () => {
                                                         // If single candidate, auto-select
                                                         if (check.candidates && check.candidates.length === 1) {
                                                            const c = check.candidates[0];
-                                                           const name = c.candidate?.fullName || c.candidate?.full_name || 'Candidate';
+                                                           const name = c.candidate?.fullName || c.candidate?.full_name || t('checks.candidate');
                                                            setSelectedCandidate({ id: c.candidateId, name });
                                                            setIsSubmitModalOpen(true);
                                                         } else if (check.candidates && check.candidates.length > 1) {
@@ -466,14 +461,14 @@ const CheckDetailPage = () => {
                                                             setIsSubmitModalOpen(true);
                                                         }
                                                     }}>
-                                                        <PenTool className="w-3 h-3 mr-1" /> Evaluate
+                                                        <PenTool className="w-3 h-3 mr-1" /> {t('checks.evaluate')}
                                                     </Button>
                                                 )}
                                                 
                                                 {/* Finished Evaluating / Signed Status for Me */}
                                                 {(user?.id === assessor.user?.id && (assessor.evaluationSubmitted || assessor.signatureReceived)) && (
                                                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 px-3 py-1 ml-2">
-                                                        <CheckCircle className="w-3 h-3 mr-1" /> Evaluation Completed
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> {t('checks.evaluationCompleted')}
                                                     </Badge>
                                                 )}
                                                 
@@ -482,7 +477,7 @@ const CheckDetailPage = () => {
                                                 {/* Signature Status Badge */}
                                                 {assessor.signatureReceived && (
                                                     <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50 px-3 py-1 ml-2">
-                                                        <PenTool className="w-3 h-3 mr-1" /> Signed
+                                                        <PenTool className="w-3 h-3 mr-1" /> {t('checks.signed')}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -498,17 +493,17 @@ const CheckDetailPage = () => {
                 {check.profile?.required_elements && Object.keys(check.profile.required_elements).length > 0 && (
                 <Card className="md:col-span-2">
                     <CardHeader>
-                        <CardTitle>Assessment Criteria</CardTitle>
+                        <CardTitle>{t('checks.assessmentCriteria')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {/* Pass Criteria Display */}
                         {check.pass_criteria && (
                             <div className="mb-6 pb-6 border-b">
-                                <h4 className="font-semibold text-sm mb-3">Passing Standards</h4>
+                                <h4 className="font-semibold text-sm mb-3">{t('checks.passingStandards')}</h4>
                                 <div className="grid grid-cols-2 gap-4">
                                     {check.pass_criteria.required?.includes('theory') && (
                                         <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
-                                            <span className="text-xs text-muted-foreground uppercase font-medium">Theory</span>
+                                            <span className="text-xs text-muted-foreground uppercase font-medium">{t('standards.theory')}</span>
                                             <span className="font-semibold text-lg">
                                                 Min {check.pass_criteria.theory}%
                                             </span>
@@ -516,7 +511,7 @@ const CheckDetailPage = () => {
                                     )}
                                     {check.pass_criteria.required?.includes('practical') && (
                                         <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
-                                            <span className="text-xs text-muted-foreground uppercase font-medium">Practical</span>
+                                            <span className="text-xs text-muted-foreground uppercase font-medium">{t('standards.practical')}</span>
                                             <span className="font-semibold text-lg capitalize">
                                                 {check.pass_criteria.practical === 'pass' ? 'Pass / Fail' : check.pass_criteria.practical}
                                             </span>
@@ -527,11 +522,11 @@ const CheckDetailPage = () => {
                         )}
 
                         <div className="space-y-2">
-                            <h4 className="font-semibold text-sm mb-2">Required Elements</h4>
+                            <h4 className="font-semibold text-sm mb-2">{t('checks.requiredElements')}</h4>
                             {Object.values(check.profile.required_elements).map((elem: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0 hover:bg-muted/50 px-2 py-1 rounded">
                                     <span className="font-medium">{elem.name}</span>
-                                    {elem.mandatory && <Badge variant="secondary" className="text-xs">Mandatory</Badge>}
+                                    {elem.mandatory && <Badge variant="secondary" className="text-xs">{t('common.required', 'Mandatory')}</Badge>}
                                 </div>
                             ))}
                         </div>
@@ -571,7 +566,7 @@ const CheckDetailPage = () => {
                                     onClick={() => setIsSignModalOpen(true)}
                                 >
                                     <PenTool className="mr-2 h-5 w-5" />
-                                    Sign Protocol ({check.candidates.length} Candidates)
+                                    {t('checks.signProtocol')} ({check.candidates.length} {t('checks.candidates')})
                                 </Button>
                             </div>
                          );
@@ -650,7 +645,7 @@ const CheckDetailPage = () => {
                                     <div className="flex justify-between items-center mb-3">
                                         <h4 className="font-semibold">{candidate.fullName}</h4>
                                         <Badge className={outcome === 'pass' ? 'bg-green-600' : 'bg-red-600'}>
-                                            PROPOSED: {outcome.toUpperCase()}
+                                            {t('checks.proposed')}: {outcome.toUpperCase()}
                                         </Badge>
                                     </div>
                                     

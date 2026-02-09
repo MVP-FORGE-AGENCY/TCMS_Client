@@ -176,8 +176,31 @@ export function MyActions() {
                 }
             }
 
-            // For managers - get expiring competences
+            // For managers - get expired and expiring competences
             if (['admin', 'training_manager'].includes(user.role || '')) {
+                // Fetch EXPIRED competences (critical items first)
+                try {
+                    const competenceRes = await api.get('/competence', { params: { limit: 100 } })
+                    const resAny = competenceRes as any
+                    const expiredCount = resAny?.data?.summary?.expired || resAny?.summary?.expired || 0
+
+                    if (expiredCount > 0) {
+                        generatedActions.push({
+                            id: 'expired-competences',
+                            type: 'expiry_warning',
+                            title: t('actions.expiredCompetences', '{{count}} competence(s) have EXPIRED', { count: expiredCount }),
+                            description: t('actions.expiredCompetencesDesc', 'Immediate action required - schedule training or reassessment'),
+                            priority: 'critical',
+                            targetUrl: '/competence?status=expired',
+                            entityType: 'competence',
+                            createdAt: now.toISOString()
+                        })
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch expired competences:', e)
+                }
+
+                // Fetch EXPIRING competences (next 30 days)
                 try {
                     const expiringRes = await api.get('/reports/expiring?withinDays=30&limit=5')
                     const expiring = expiringRes.data || []

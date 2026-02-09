@@ -9,6 +9,8 @@ import { api, checks } from '@/lib/api';
 import { toast } from 'sonner';
 import SignatureCanvas from 'react-signature-canvas';
 
+import { useTranslation } from 'react-i18next';
+
 interface SubmitEvaluationModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -30,6 +32,7 @@ interface SubmitEvaluationModalProps {
 const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({ 
     open, onOpenChange, checkId, profile, checkType = 'combined', passCriteria, standard, traineeName, candidateId, skipSignature, onSuccess 
 }) => {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     
     // State
@@ -47,7 +50,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
     const handleScoreSubmit = async () => {
          // Validate Step 1
          if (!overallResult) {
-            toast.error('Overall result is required');
+            toast.error(t('checks.evalModal.resultRequired'));
             return;
         }
 
@@ -55,18 +58,18 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
         const isPracticalRequired = passCriteria ? passCriteria.required?.includes('practical') : (checkType === 'practical' || checkType === 'combined');
 
         if (isTheoryRequired && !theoryScore) {
-             toast.error('Theory score is required');
+             toast.error(t('checks.evalModal.theoryRequired'));
              return;
         }
         if (isPracticalRequired && !practicalScore) {
-             toast.error('Practical score is required');
+             toast.error(t('checks.evalModal.practicalRequired'));
              return;
         }
 
         if (profile?.requiredElements) {
              for (const [key, elem] of Object.entries(profile.requiredElements) as any) {
                  if (elem.mandatory && !elementsResults[key]) {
-                     toast.error(`Mandatory element "${elem.name}" must be evaluated`);
+                     toast.error(t('checks.evalModal.mandatoryElementError', { name: elem.name }));
                      return;
                  }
               }
@@ -90,7 +93,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             } as any);
             
             if (skipSignature) {
-                toast.success('Evaluation submitted.');
+                toast.success(t('checks.evalModal.evaluationSubmitted'));
                 onSuccess();
                 onOpenChange(false);
             } else {
@@ -98,7 +101,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             }
         } catch (error: any) {
              console.error(error);
-             toast.error(error.response?.data?.error?.message || 'Failed to submit evaluation');
+             toast.error(error.response?.data?.error?.message || t('checks.evalModal.submitError'));
         } finally {
              setLoading(false);
         }
@@ -107,7 +110,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
     const handleSignSubmit = async () => {
         // Validate Signature
         if (sigCanvas.current?.isEmpty()) {
-            toast.error('Signature is required');
+            toast.error(t('checks.evalModal.signatureRequired'));
             return;
         }
 
@@ -119,12 +122,12 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                 signatureData
             });
             
-            toast.success('Protocol signed and check completed.');
+            toast.success(t('checks.evalModal.protocolSigned'));
             onSuccess();
             onOpenChange(false);
         } catch (error: any) {
             console.error(error);
-            toast.error(error.response?.data?.error?.message || 'Failed to submit signature');
+            toast.error(error.response?.data?.error?.message || t('checks.evalModal.signError'));
         } finally {
             setLoading(false);
         }
@@ -135,12 +138,15 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
-                        {step === 1 ? 'Submit Evaluation (Step 1/2)' : 'Sign Protocol (Step 2/2)'}
+                        {step === 1 ? t('checks.evalModal.titleStep1') : t('checks.evalModal.titleStep2')}
                     </DialogTitle>
                     <DialogDescription>
                         {step === 1 
-                            ? `Evaluate proficiency for ${traineeName || 'Candidate'} against ${standard?.code || profile?.code || 'Check Standard'}.` 
-                            : 'Please sign below to certify this evaluation protocol.'}
+                            ? t('checks.evalModal.descStep1', { 
+                                trainee: traineeName || t('checks.candidate'), 
+                                standard: standard?.code || profile?.code || 'Standard' 
+                              })
+                            : t('checks.evalModal.descStep2')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -153,11 +159,11 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                 {(passCriteria ? passCriteria.required?.includes('theory') : (checkType === 'theory' || checkType === 'combined' || checkType === 'full_renewal')) && (
                                     <div className="space-y-2">
                                         <Label className="flex justify-between">
-                                            Theory Score (0-100)
+                                            {t('checks.evalModal.theoryScore')}
                                             {passCriteria?.theory ? (
-                                                <span className="text-xs text-muted-foreground">Min Pass: {passCriteria.theory}%</span>
+                                                <span className="text-xs text-muted-foreground">{t('checks.evalModal.minPass')} {passCriteria.theory}%</span>
                                             ) : (standard?.theoryPassScore || standard?.theory_pass_score) ? (
-                                                <span className="text-xs text-muted-foreground">Pass: {standard.theoryPassScore || standard.theory_pass_score}%</span>
+                                                <span className="text-xs text-muted-foreground">{t('checks.evalModal.passScore')} {standard.theoryPassScore || standard.theory_pass_score}%</span>
                                             ) : null}
                                         </Label>
                                         <Input 
@@ -172,9 +178,9 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                 {(passCriteria ? passCriteria.required?.includes('practical') : (checkType === 'practical' || checkType === 'combined' || checkType === 'full_renewal')) && (
                                     <div className="space-y-2">
                                         <Label className="flex justify-between">
-                                            Practical Score (0-100)
+                                            {t('checks.evalModal.practicalScore')}
                                             {(standard?.practicalPassScore || standard?.practical_pass_score) && (
-                                                <span className="text-xs text-muted-foreground">Pass: {standard.practicalPassScore || standard.practical_pass_score}%</span>
+                                                <span className="text-xs text-muted-foreground">{t('checks.evalModal.passScore')} {standard.practicalPassScore || standard.practical_pass_score}%</span>
                                             )}
                                         </Label>
                                         <Input 
@@ -190,13 +196,13 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
 
                             {/* Elements */}
                             <div className="space-y-4">
-                                <h4 className="font-medium text-sm text-muted-foreground border-b pb-2">Assessment Elements</h4>
+                                <h4 className="font-medium text-sm text-muted-foreground border-b pb-2">{t('checks.evalModal.assessmentElements')}</h4>
                                 {profile?.requiredElements && Object.entries(profile.requiredElements).map(([key, elem]: [string, any]) => (
                                     <div key={key} className="flex flex-col space-y-2 p-3 border rounded-md bg-muted/20">
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <Label className="text-base font-semibold">{elem.name}</Label>
-                                                {elem.mandatory && <span className="ml-2 text-xs text-red-500 font-medium">(Mandatory)</span>}
+                                                {elem.mandatory && <span className="ml-2 text-xs text-red-500 font-medium">{t('checks.evalModal.mandatory')}</span>}
                                             </div>
                                             <RadioGroup 
                                                 className="flex gap-4" 
@@ -205,11 +211,11 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                             >
                                                 <div className="flex items-center space-x-1">
                                                     <RadioGroupItem value="pass" id={`${key}-pass`} />
-                                                    <Label htmlFor={`${key}-pass`} className="cursor-pointer text-green-600">Pass</Label>
+                                                    <Label htmlFor={`${key}-pass`} className="cursor-pointer text-green-600">{t('checks.evalModal.pass')}</Label>
                                                 </div>
                                                 <div className="flex items-center space-x-1">
                                                     <RadioGroupItem value="fail" id={`${key}-fail`} />
-                                                    <Label htmlFor={`${key}-fail`} className="cursor-pointer text-red-600">Fail</Label>
+                                                    <Label htmlFor={`${key}-fail`} className="cursor-pointer text-red-600">{t('checks.evalModal.fail')}</Label>
                                                 </div>
                                             </RadioGroup>
                                         </div>
@@ -219,22 +225,22 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
 
                             {/* Overall Result */}
                             <div className="space-y-2">
-                                <Label>Overall Assessor Result</Label>
+                                <Label>{t('checks.evalModal.overallResult')}</Label>
                                 <RadioGroup value={overallResult} onValueChange={(v: any) => setOverallResult(v)} className="flex gap-4">
                                      <div className="flex items-center space-x-2 border p-3 rounded-md w-full hover:bg-green-50/50 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-50">
                                         <RadioGroupItem value="pass" id="res-pass" />
-                                        <Label htmlFor="res-pass" className="flex-1 cursor-pointer font-semibold text-green-700">Pass</Label>
+                                        <Label htmlFor="res-pass" className="flex-1 cursor-pointer font-semibold text-green-700">{t('checks.evalModal.pass')}</Label>
                                     </div>
                                     <div className="flex items-center space-x-2 border p-3 rounded-md w-full hover:bg-red-50/50 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-50">
                                         <RadioGroupItem value="fail" id="res-fail" />
-                                        <Label htmlFor="res-fail" className="flex-1 cursor-pointer font-semibold text-red-700">Fail</Label>
+                                        <Label htmlFor="res-fail" className="flex-1 cursor-pointer font-semibold text-red-700">{t('checks.evalModal.fail')}</Label>
                                     </div>
                                 </RadioGroup>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Comments</Label>
-                                <Textarea value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Enter observations..." />
+                                <Label>{t('checks.evalModal.comments')}</Label>
+                                <Textarea value={comments} onChange={(e) => setComments(e.target.value)} placeholder={t('checks.evalModal.enterObservations')} />
                             </div>
                         </>
                     )}
@@ -243,10 +249,10 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                         /* Signature Step */
                         <div className="space-y-4">
                             <div className="bg-muted p-4 rounded-md text-sm text-muted-foreground">
-                                I confirm that I have evaluated the trainee according to the standards and the results recorded are accurate and final.
+                                {t('checks.evalModal.confirmationText')}
                             </div>
                             <div className="space-y-2">
-                                <Label>Assessor Signature</Label>
+                                <Label>{t('checks.evalModal.assessorSignature')}</Label>
                                 <div className="border-2 border-dashed rounded-md bg-white border-muted-foreground/30">
                                     <SignatureCanvas 
                                         ref={sigCanvas}
@@ -257,8 +263,8 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                     />
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-xs text-muted-foreground">Sign above using your mouse or touch screen.</span>
-                                    <Button variant="ghost" size="sm" onClick={clearSignature} className="text-xs text-destructive h-6">Clear Signature</Button>
+                                    <span className="text-xs text-muted-foreground">{t('checks.evalModal.signInstruction')}</span>
+                                    <Button variant="ghost" size="sm" onClick={clearSignature} className="text-xs text-destructive h-6">{t('checks.evalModal.clearSignature')}</Button>
                                 </div>
                             </div>
                         </div>
@@ -271,16 +277,16 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                         if (step === 2) setStep(1);
                         else onOpenChange(false);
                     }} disabled={loading}>
-                        {step === 1 ? 'Cancel' : 'Back'}
+                        {step === 1 ? t('checks.evalModal.cancel') : t('checks.evalModal.back')}
                     </Button>
                     
                     {step === 1 ? (
                          <Button onClick={handleScoreSubmit}>
-                             {skipSignature ? 'Submit Evaluation' : 'Next: Sign Protocol'}
+                             {skipSignature ? t('checks.evalModal.submitEvaluation') : t('checks.evalModal.nextSign')}
                          </Button>
                     ) : (
                          <Button onClick={handleSignSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                             {loading ? 'Submitting...' : 'Sign & Complete Evaluation'}
+                             {loading ? t('checks.evalModal.submitting') : t('checks.evalModal.signAndComplete')}
                          </Button>
                     )}
                 </DialogFooter>

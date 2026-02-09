@@ -1,10 +1,10 @@
 
-
 import { useState, useEffect, useMemo } from "react"
 import { ComplianceDetails } from "@/components/dashboard/ComplianceDetails"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
     Select,
     SelectContent,
@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Users, BookOpen, AlertTriangle, CheckCircle } from "lucide-react"
+import { Users, BookOpen, AlertTriangle, CheckCircle, AlertCircle, ShieldAlert, ChevronRight } from "lucide-react"
 import {
     BarChart,
     Bar,
@@ -61,7 +61,8 @@ interface SessionItem {
 export default function DashboardPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { isLoading: authLoading, isAuthenticated } = useAuth()
+    const { isLoading: authLoading, isAuthenticated, user } = useAuth()
+    const isManagerOrAdmin = ['admin', 'training_manager'].includes(user?.role || '')
     
     // Modal State
     const [showComplianceDetails, setShowComplianceDetails] = useState(false)
@@ -97,14 +98,13 @@ export default function DashboardPage() {
                 setIsLoading(true)
                 
                 // Fetch all data in parallel with allSettled for resilience
-                // Fetch all data in parallel with allSettled for resilience
                 // Note: API max limit is 100, so we use that
                 const results = await Promise.allSettled([
-                    api.get("/employees?limit=100&excludeExternal=true"),
-                    api.get("/campaigns?status=active&limit=100"), // Switched to active
-                    api.get("/reports/expiring?withinDays=90"),
-                    api.get("/competence?limit=100"),
-                    api.get("/sessions?status=completed&limit=100")
+                    api.get("/employees", { params: { limit: 100, excludeExternal: true } }),
+                    api.get("/campaigns", { params: { status: 'active' } }),
+                    api.get("/reports/expiring", { params: { withinDays: 90 } }),
+                    api.get("/competence", { params: { limit: 100 } }),
+                    api.get("/sessions", { params: { status: 'completed', limit: 100 } })
                 ])
 
                 // Extract results safely
@@ -113,15 +113,6 @@ export default function DashboardPage() {
                 const expiringRes = results[2].status === 'fulfilled' ? results[2].value : null
                 const competenceRes = results[3].status === 'fulfilled' ? results[3].value : null
                 const sessionsRes = results[4].status === 'fulfilled' ? results[4].value : null
-
-                // Log for debugging
-                console.log('Dashboard API responses:', {
-                    employees: employeesRes?.data,
-                    campaigns: campaignsRes?.data,
-                    expiring: expiringRes?.data,
-                    competence: competenceRes?.data,
-                    sessions: sessionsRes?.data
-                })
 
                 // Parse responses - handle both { data: [...] } and direct array formats
                 const getDataArray = (res: { data: { data?: unknown[] } | unknown[] } | null): unknown[] => {
@@ -139,27 +130,26 @@ export default function DashboardPage() {
                 const campaignsData = getDataArray(campaignsRes)
                 const expiringData = getDataArray(expiringRes)
 
-                console.log('Parsed data:', { 
-                    employeesCount: employees.length, 
-                    competencesCount: competences.length,
-                    sessionsCount: sessions.length,
-                    campaignsCount: campaignsData.length
-                })
-
                 // === Calculate Stats ===
+                // Use explicit summary from API if available, otherwise fallback
+                // Cast to any to avoid TS errors with inferred types
+                const resAny = competenceRes as any
+                const summary = resAny?.summary || { valid: 0, expiringSoon: 0, expired: 0 }
+                
                 const totalPersonnel = employeesRes?.data?.pagination?.total ?? employees.length
                 const activeProgrammes = campaignsRes?.data?.pagination?.total ?? campaignsData.length
+                
+                const validCount = summary.valid
+                const expiringStatusCount = summary.expiringSoon
+                const expiredCount = summary.expired
+                const totalCompetences = resAny?.pagination?.total ?? competences.length
+
+                // For the card display:
+                // If we have expired items, we want to highlight them.
                 const expiringCompetences = expiringData.length
 
-                // Calculate compliance rate (valid + expiring_soon / total competences * 100)
-                // Expiring competences are still valid until they actually expire
-                const validOnlyCount = competences.filter(c => c.status === 'valid').length
-                const expiringCount = competences.filter(c => c.status === 'expiring_soon').length
-                const effectiveValidCount = validOnlyCount + expiringCount
-                const totalCompetences = competences.length
-
                 const complianceRate = totalCompetences > 0 
-                    ? Math.round((effectiveValidCount / totalCompetences) * 100 * 10) / 10 
+                    ? Math.round(((validCount + expiringStatusCount) / totalCompetences) * 100 * 10) / 10 
                     : 0
 
                 setStats({
@@ -171,9 +161,9 @@ export default function DashboardPage() {
 
                 setComplianceStats({
                     totalCompetences,
-                    validCount: effectiveValidCount,
-                    expiringCount,
-                    expiredCount: totalCompetences - effectiveValidCount,
+                    validCount: validCount + expiringStatusCount,
+                    expiringCount: expiringStatusCount,
+                    expiredCount: expiredCount,
                     complianceRate
                 })
 
@@ -308,6 +298,40 @@ export default function DashboardPage() {
             {/* My Actions - Priority Task List */}
             <MyActions />
 
+            {/* Expired Competences Alert Banner */}
+            {isManagerOrAdmin && complianceStats.expiredCount > 0 && (
+                <div className="relative overflow-hidden rounded-xl border border-red-300 dark:border-red-800 bg-gradient-to-r from-red-50 via-red-50 to-orange-50 dark:from-red-950/40 dark:via-red-950/30 dark:to-orange-950/20 p-4 animate-fade-in">
+                    {/* Animated background pulse */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent animate-pulse" />
+                    <div className="relative flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50 ring-4 ring-red-200/50 dark:ring-red-800/30">
+                            <ShieldAlert className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-red-800 dark:text-red-300">
+                                    {t('dashboard.expiredAlert', '⚠️ Expired Competences Detected')}
+                                </h3>
+                                <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/60 px-2.5 py-0.5 text-xs font-bold text-red-700 dark:text-red-300 ring-1 ring-red-300 dark:ring-red-700">
+                                    {complianceStats.expiredCount}
+                                </span>
+                            </div>
+                            <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-0.5">
+                                {t('dashboard.expiredAlertDesc', 'There are competences that have expired and require immediate attention. Schedule training or reassessment to restore compliance.')}
+                            </p>
+                        </div>
+                        <Button
+                            size="sm"
+                            className="shrink-0 bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-600 shadow-lg shadow-red-500/25"
+                            onClick={() => navigate('/competence?status=expired')}
+                        >
+                            {t('dashboard.reviewExpired', 'Review Now')}
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card 
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -336,29 +360,75 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
                 <Card 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                        complianceStats.expiredCount > 0 
+                            ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
+                            : ""
+                    }`}
                     onClick={() => navigate('/competence')}
                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("dashboard.expiringCompetences")}</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <CardTitle className={`text-sm font-medium ${
+                            complianceStats.expiredCount > 0 ? "text-red-700 dark:text-red-400" : ""
+                        }`}>
+                            {complianceStats.expiredCount > 0 ? t("dashboard.expiredCompetences") : t("dashboard.expiringCompetences")}
+                        </CardTitle>
+                        {complianceStats.expiredCount > 0 ? (
+                            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-500" />
+                        ) : (
+                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        )}
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.expiringCompetences}</div>
-                        <p className="text-xs text-muted-foreground">{t("dashboard.within90Days")}</p>
+                        <div className={`text-2xl font-bold ${
+                             complianceStats.expiredCount > 0 ? "text-red-700 dark:text-red-400" : ""
+                        }`}>
+                            {complianceStats.expiredCount > 0 ? complianceStats.expiredCount : stats.expiringCompetences}
+                        </div>
+                        <p className={`text-xs ${
+                            complianceStats.expiredCount > 0 
+                                ? "text-red-600/80 dark:text-red-400/80" 
+                                : "text-muted-foreground"
+                        }`}>
+                            {complianceStats.expiredCount > 0 
+                                ? t("competence.actionRequired", "Action Required") 
+                                : t("dashboard.within90Days")}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                        stats.complianceRate === 0 || stats.complianceRate < 50 
+                            ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
+                            : ""
+                    }`}
                     onClick={() => setShowComplianceDetails(true)}
                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t("dashboard.complianceRate")}</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CardTitle className={`text-sm font-medium ${
+                            stats.complianceRate === 0 || stats.complianceRate < 50 ? "text-red-700 dark:text-red-400" : ""
+                        }`}>
+                            {t("dashboard.complianceRate")}
+                        </CardTitle>
+                        <CheckCircle className={`h-4 w-4 ${
+                            stats.complianceRate === 0 || stats.complianceRate < 50 
+                                ? "text-red-600 dark:text-red-500" 
+                                : "text-green-500"
+                        }`} />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.complianceRate}%</div>
-                        <p className="text-xs text-muted-foreground">{t("dashboard.overallCompliance")}</p>
+                        <div className={`text-2xl font-bold ${
+                            stats.complianceRate === 0 || stats.complianceRate < 50 ? "text-red-700 dark:text-red-400" : ""
+                        }`}>
+                            {stats.complianceRate}%
+                        </div>
+                        <p className={`text-xs ${
+                            stats.complianceRate === 0 || stats.complianceRate < 50 
+                                ? "text-red-600/80 dark:text-red-400/80" 
+                                : "text-muted-foreground"
+                        }`}>
+                            {t("dashboard.overallCompliance")}
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -462,4 +532,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-

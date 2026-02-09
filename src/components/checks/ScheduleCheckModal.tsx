@@ -25,6 +25,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+} from '@/components/ui/command'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
 import { 
     X, 
     AlertTriangle, 
@@ -34,7 +46,8 @@ import {
     UserCheck,
     ChevronLeft,
     ChevronRight,
-    CheckCircle
+    CheckCircle,
+    Plus
 } from 'lucide-react'
 
 interface ScheduleCheckModalProps {
@@ -101,20 +114,37 @@ export function ScheduleCheckModal({
     const [location, setLocation] = useState('')
     const [selectedAssessorIds, setSelectedAssessorIds] = useState<string[]>([])
     const [conflicts, setConflicts] = useState<Conflict[]>([])
+    
+    // State for candidate selector
+    const [openCombobox, setOpenCombobox] = useState(false)
 
     // Fetch candidates when preselectedCandidates changes
     useEffect(() => {
         if (preselectedCandidates.length > 0) {
             loadCandidates(preselectedCandidates)
+        } else {
+            setCandidates([]) // Reset if no preselected
         }
-    }, [preselectedCandidates])
+    }, [preselectedCandidates, isOpen])
 
     // Auto-select standard if preselected
     useEffect(() => {
         if (preselectedStandardId) {
             setSelectedStandardId(preselectedStandardId)
+        } else {
+             setSelectedStandardId('')
         }
-    }, [preselectedStandardId])
+    }, [preselectedStandardId, isOpen])
+
+    // Fetch all eligible trainees for the picker
+    const { data: eligibleTrainees } = useQuery({
+        queryKey: ['eligible-trainees-modal'],
+        queryFn: async () => {
+             const res = await checks.getEligibleTrainees();
+             return res.data as any[];
+        },
+        enabled: isOpen && step === 1
+    })
 
     // Use passed-in eligible standards if provided, otherwise fetch suitable standards
     const { data: fetchedStandards } = useQuery({
@@ -150,7 +180,7 @@ export function ScheduleCheckModal({
         queryFn: async () => {
             const res = await api.get('/employees', { 
                 params: { 
-                    role: 'assessor,training_manager,admin',
+                    role: 'instructor,assessor,training_manager,admin',
                     isActive: true 
                 } 
             })
@@ -171,6 +201,17 @@ export function ScheduleCheckModal({
         } catch (error) {
             console.error('Failed to load candidates:', error)
         }
+    }
+
+    const addCandidate = (trainee: any) => {
+        if (!candidates.find(c => c.id === trainee.id)) {
+            setCandidates(prev => [...prev, {
+                id: trainee.id,
+                fullName: trainee.fullName,
+                email: trainee.email
+            }])
+        }
+        setOpenCombobox(false)
     }
 
     const createCheckMutation = useMutation({
@@ -195,7 +236,7 @@ export function ScheduleCheckModal({
             })
         },
         onSuccess: (data) => {
-            toast.success(t('checks.scheduled', 'Proficiency check scheduled'))
+            toast.success(t('checks.scheduled'))
             queryClient.invalidateQueries({ queryKey: ['proficiency-checks'] })
             queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
             queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
@@ -206,7 +247,7 @@ export function ScheduleCheckModal({
             }
 
             if (data.conflicts && data.conflicts.length > 0) {
-                toast.warning(t('checks.conflictsDetected', 'Some conflicts were detected'))
+                toast.warning(t('checks.conflictsDetected'))
             }
             
             handleClose()
@@ -226,6 +267,7 @@ export function ScheduleCheckModal({
         setLocation('')
         setSelectedAssessorIds([])
         setConflicts([])
+        setOpenCombobox(false)
         onClose()
     }
 
@@ -250,13 +292,26 @@ export function ScheduleCheckModal({
                     const res = await checks.checkConflict(candidate.id, assessorId, dateStart)
                     if (res.hasConflict) {
                         const assessor = assessors?.find(a => a.id === assessorId)
-                        newConflicts.push({
-                            assessorId,
-                            assessorName: assessor?.fullName || 'Unknown',
-                            candidateId: candidate.id,
-                            candidateName: candidate.fullName,
-                            message: res.message || `${assessor?.fullName} has a potential conflict with ${candidate.fullName}`
-                        })
+                        
+                        if (res.conflictSessions && res.conflictSessions.length > 0) {
+                            res.conflictSessions.forEach((cs: any) => {
+                                newConflicts.push({
+                                    assessorId,
+                                    assessorName: assessor?.fullName || 'Unknown',
+                                    candidateId: candidate.id,
+                                    candidateName: candidate.fullName,
+                                    message: `${cs.programmeName || cs.programmeCode || 'Training'} (${new Date(cs.date).toLocaleDateString()})`
+                                })
+                            })
+                        } else {
+                            newConflicts.push({
+                                assessorId,
+                                assessorName: assessor?.fullName || 'Unknown',
+                                candidateId: candidate.id,
+                                candidateName: candidate.fullName,
+                                message: t('checks.conflictDefaultMsg') || 'Recent training interaction detected'
+                            })
+                        }
                     }
                 } catch {
                     // Ignore conflict check errors
@@ -304,10 +359,10 @@ export function ScheduleCheckModal({
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        {t('checks.scheduleCheck', 'Schedule Proficiency Check')}
+                        {t('checks.scheduleCheck')}
                     </DialogTitle>
                     <DialogDescription>
-                        {t('checks.scheduleCheckDesc', 'Follow the steps to schedule a proficiency assessment')}
+                        {t('checks.scheduleCheckDesc')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -328,14 +383,45 @@ export function ScheduleCheckModal({
                     {/* Step 1: Confirm Candidates */}
                     {step === 1 && (
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-lg font-medium">
-                                <Users className="h-5 w-5" />
-                                {t('checks.step1', 'Step 1: Confirm Candidates')}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-lg font-medium">
+                                    <Users className="h-5 w-5" />
+                                    {t('checks.step1')}
+                                </div>
+                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="ml-auto">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            {t('common.add')}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="p-0" align="end">
+                                        <Command>
+                                            <CommandInput placeholder={t('common.search')} />
+                                            <CommandEmpty>{t('common.noData')}</CommandEmpty>
+                                            <CommandGroup>
+                                                {eligibleTrainees?.filter(t => !candidates.find(c => c.id === t.id))
+                                                    .map(trainee => (
+                                                        <CommandItem
+                                                            key={trainee.id}
+                                                            onSelect={() => addCandidate(trainee)}
+                                                        >
+                                                            <span>{trainee.fullName}</span>
+                                                        </CommandItem>
+                                                    ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                             
                             {candidates.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    {t('checks.noCandidatesSelected', 'No candidates selected')}
+                                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                    {t('checks.noCandidatesSelected')}
+                                    <p className="text-xs mt-1 text-muted-foreground/70">
+                                        Use the 'Add' button to select candidates
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -375,15 +461,15 @@ export function ScheduleCheckModal({
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <CheckCircle className="h-5 w-5" />
-                                {t('checks.step2', 'Step 2: Select Standard')}
+                                {t('checks.step2')}
                             </div>
                             
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label>{t('checks.standard', 'Training Standard')}</Label>
+                                    <Label>{t('checks.standard')}</Label>
                                     <Select value={selectedStandardId} onValueChange={setSelectedStandardId}>
                                         <SelectTrigger>
-                                            <SelectValue placeholder={t('checks.selectStandard', 'Select a standard...')} />
+                                            <SelectValue placeholder={t('checks.selectStandard')} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {filteredStandards?.map((std: Standard) => (
@@ -397,19 +483,19 @@ export function ScheduleCheckModal({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>{t('checks.checkType', 'Check Type')}</Label>
+                                    <Label>{t('checks.checkType')}</Label>
                                     <Select value={checkType} onValueChange={(v) => setCheckType(v as 'full_renewal' | 'partial')}>
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="full_renewal">
-                                                {t('checks.fullRenewal', 'Full Renewal')}
-                                                <span className="text-xs text-muted-foreground ml-2">- Extends validity</span>
+                                                {t('checks.fullRenewal')}
+                                                <span className="text-xs text-muted-foreground ml-2">{t('checks.extendsValidity')}</span>
                                             </SelectItem>
                                             <SelectItem value="partial">
-                                                {t('checks.partial', 'Partial / Custom')}
-                                                <span className="text-xs text-muted-foreground ml-2">- Does not extend validity</span>
+                                                {t('checks.partial')}
+                                                <span className="text-xs text-muted-foreground ml-2">{t('checks.noExtendsValidity')}</span>
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -423,50 +509,50 @@ export function ScheduleCheckModal({
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <Calendar className="h-5 w-5" />
-                                {t('checks.step3', 'Step 3: Schedule & Configuration')}
+                                {t('checks.step3')}
                             </div>
 
                             <div className="space-y-4 rounded-md border p-4 bg-muted/20">
                                 <h3 className="font-medium text-sm flex items-center gap-2">
                                     <CheckCircle className="h-4 w-4 text-primary" />
-                                    {t('checks.passCriteria', 'Pass Criteria')}
+                                    {t('checks.passCriteria')}
                                     <Badge variant="outline" className="ml-auto font-normal text-xs">
-                                        Defined by Standard
+                                        {t('checks.definedByStandard')}
                                     </Badge>
                                 </h3>
                                 
                                 {selectedStandard ? (
                                     <div className="space-y-3 text-sm">
                                         <div className="flex justify-between items-center p-2 rounded bg-background border">
-                                            <span className="text-muted-foreground">{t('checks.theoryAssessment', 'Theory Assessment')}</span>
+                                            <span className="text-muted-foreground">{t('checks.theoryAssessment')}</span>
                                             {selectedStandard.hasTheory ? (
                                                 <span className="font-medium text-green-600">
-                                                    Required ({selectedStandard.theoryPassScore || 70}%)
+                                                    {t('checks.required')} ({selectedStandard.theoryPassScore || 70}%)
                                                 </span>
                                             ) : (
-                                                <span className="text-muted-foreground italic">Not Required</span>
+                                                <span className="text-muted-foreground italic">{t('checks.notRequired')}</span>
                                             )}
                                         </div>
                                         <div className="flex justify-between items-center p-2 rounded bg-background border">
-                                            <span className="text-muted-foreground">{t('checks.practicalAssessment', 'Practical Assessment')}</span>
+                                            <span className="text-muted-foreground">{t('checks.practicalAssessment')}</span>
                                             {selectedStandard.hasPractical ? (
                                                 <span className="font-medium text-green-600">
-                                                    Required ({selectedStandard.practicalPassScore || 70}%)
+                                                    {t('checks.required')} ({selectedStandard.practicalPassScore || 70}%)
                                                 </span>
                                             ) : (
-                                                <span className="text-muted-foreground italic">Not Required</span>
+                                                <span className="text-muted-foreground italic">{t('checks.notRequired')}</span>
                                             )}
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="text-muted-foreground text-sm italic">
-                                        Please select a standard to view criteria.
+                                        {t('checks.selectStandardPrompt')}
                                     </div>
                                 )}
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="dateStart">{t('common.dateTime', 'Date & Time')}</Label>
+                                <Label htmlFor="dateStart">{t('common.dateTime')}</Label>
                                 <Input
                                     id="dateStart"
                                     type="datetime-local"
@@ -478,11 +564,11 @@ export function ScheduleCheckModal({
                             <div className="grid gap-2">
                                 <Label htmlFor="location" className="flex items-center gap-2">
                                     <MapPin className="h-4 w-4" />
-                                    {t('common.location', 'Location')}
+                                    {t('common.location')}
                                 </Label>
                                 <Input
                                     id="location"
-                                    placeholder={t('checks.locationPlaceholder', 'e.g., Sim Room 1, Training Center')}
+                                    placeholder={t('checks.locationPlaceholder')}
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                 />
@@ -495,7 +581,7 @@ export function ScheduleCheckModal({
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <UserCheck className="h-5 w-5" />
-                                {t('checks.step4', 'Step 4: Select Assessors')}
+                                {t('checks.step4')}
                             </div>
                             
                             <div className="space-y-2 max-h-[250px] overflow-y-auto">
@@ -531,7 +617,7 @@ export function ScheduleCheckModal({
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-lg font-medium">
                                 <CheckCircle className="h-5 w-5" />
-                                {t('checks.step5', 'Step 5: Review & Confirm')}
+                                {t('checks.step5')}
                             </div>
 
                             {/* Conflict warnings */}
@@ -540,21 +626,21 @@ export function ScheduleCheckModal({
                                 <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-3">
                                     <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold">
                                         <AlertTriangle className="h-5 w-5" />
-                                        {t('checks.conflictWarning', 'Conflict of Interest Detected')}
+                                        {t('checks.conflictWarning')}
                                     </div>
                                     <p className="text-sm text-muted-foreground bg-background/50 p-2 rounded">
-                                        The following assessor-candidate pairs violate the "No Self-Checking" rule (training conducted within restricted window).
+                                        {t('checks.conflictDescription')}
                                     </p>
                                     <div className="space-y-2 text-sm">
                                         {conflicts.map((conflict, i) => (
                                             <div key={i} className="flex flex-col gap-1 p-2 border border-red-200 dark:border-red-900/50 rounded bg-background/50">
                                                 <div className="font-semibold flex items-center gap-2">
-                                                    <span className="text-red-600">Assessor: {conflict.assessorName}</span>
+                                                    <span className="text-red-600">{t('checks.assessorLabel', { name: conflict.assessorName })}</span>
                                                     <span className="text-muted-foreground">→</span>
-                                                    <span>Candidate: {conflict.candidateName}</span>
+                                                    <span>{t('checks.candidateLabel', { name: conflict.candidateName })}</span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground ml-4">
-                                                    Reason: {conflict.message}
+                                                    {t('checks.conflictReason')}: {conflict.message}
                                                 </div>
                                             </div>
                                         ))}
@@ -564,34 +650,34 @@ export function ScheduleCheckModal({
                             
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('common.candidates', 'Candidates')}:</span>
-                                    <span className="font-medium">{candidates.length} selected</span>
+                                    <span className="text-muted-foreground">{t('checks.candidates')}:</span>
+                                    <span className="font-medium">{candidates.length} {t('checks.selected')}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('checks.standard', 'Standard')}:</span>
+                                    <span className="text-muted-foreground">{t('checks.standard')}:</span>
                                     <span className="font-medium">
                                         {availableStandards?.find(s => s.id === selectedStandardId)?.name || '-'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('checks.checkType', 'Check Type')}:</span>
+                                    <span className="text-muted-foreground">{t('checks.checkType')}:</span>
                                     <span className="font-medium">
-                                        {checkType === 'full_renewal' ? t('checks.fullRenewal', 'Full Renewal') : t('checks.partial', 'Partial')}
+                                        {checkType === 'full_renewal' ? t('checks.fullRenewal') : t('checks.partial')}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('common.dateTime', 'Date/Time')}:</span>
+                                    <span className="text-muted-foreground">{t('common.dateTime')}:</span>
                                     <span className="font-medium">
                                         {dateStart ? new Date(dateStart).toLocaleString() : '-'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('common.location', 'Location')}:</span>
+                                    <span className="text-muted-foreground">{t('common.location')}:</span>
                                     <span className="font-medium">{location || '-'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{t('common.assessors', 'Assessors')}:</span>
-                                    <span className="font-medium">{selectedAssessorIds.length} selected</span>
+                                    <span className="text-muted-foreground">{t('checks.assessors')}:</span>
+                                    <span className="font-medium">{selectedAssessorIds.length} {t('checks.selected')}</span>
                                 </div>
                             </div>
                         </div>
@@ -603,17 +689,17 @@ export function ScheduleCheckModal({
                         {step > 1 && (
                             <Button variant="outline" onClick={handleBack}>
                                 <ChevronLeft className="h-4 w-4 mr-1" />
-                                {t('common.back', 'Back')}
+                                {t('common.back')}
                             </Button>
                         )}
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handleClose}>
-                            {t('common.cancel', 'Cancel')}
+                            {t('common.cancel')}
                         </Button>
                         {step < 5 ? (
                             <Button onClick={handleNext} disabled={!canProceed()}>
-                                {t('common.next', 'Next')}
+                                {t('common.next')}
                                 <ChevronRight className="h-4 w-4 ml-1" />
                             </Button>
                         ) : (
@@ -622,8 +708,8 @@ export function ScheduleCheckModal({
                                 disabled={createCheckMutation.isPending}
                             >
                                 {createCheckMutation.isPending 
-                                    ? t('common.scheduling', 'Scheduling...')
-                                    : t('checks.scheduleCheck', 'Schedule Check')
+                                    ? t('common.scheduling')
+                                    : t('checks.scheduleCheck')
                                 }
                             </Button>
                         )}

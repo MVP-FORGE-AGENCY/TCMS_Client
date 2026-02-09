@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { bg } from "date-fns/locale";
 import { toast } from "sonner";
 
 interface Competence {
@@ -136,18 +137,18 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">{t("personnel.history.fields.validUntil")}:</span>
                                         <span className="font-medium">
-                                            {comp.validUntil ? format(new Date(comp.validUntil), "dd MMM yyyy") : '-'}
+                                            {comp.validUntil ? format(new Date(comp.validUntil), "dd MMM yyyy", { locale: bg }) : '-'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">{t("personnel.history.fields.acquired")}:</span>
                                         <span>
-                                            {comp.acquiredDate ? format(new Date(comp.acquiredDate), "dd MMM yyyy") : '-'}
+                                            {comp.acquiredDate ? format(new Date(comp.acquiredDate), "dd MMM yyyy", { locale: bg }) : '-'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">{t("personnel.history.fields.source")}:</span>
-                                        <span className="capitalize">{comp.source?.replace('_', ' ') || 'N/A'}</span>
+                                        <span className="capitalize">{t(`checks.${comp.source}`, comp.source?.replace('_', ' ') || 'N/A')}</span>
                                     </div>
                                 </div>
                             </CardContent>
