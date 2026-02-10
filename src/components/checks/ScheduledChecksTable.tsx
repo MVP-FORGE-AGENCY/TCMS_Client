@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,20 @@ import { useNavigate } from 'react-router-dom';
 interface ScheduledChecksTableProps {
     filter?: 'all' | 'my_assignments';
     refreshTrigger: number;
+    statusFilter?: string;
+    assessorFilter?: string;
+    standardFilter?: string;
+    candidateFilter?: string;
 }
 
-const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'all', refreshTrigger }) => {
+const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ 
+    filter = 'all', 
+    refreshTrigger,
+    statusFilter = 'all',
+    assessorFilter = 'all',
+    standardFilter = 'all',
+    candidateFilter = 'all'
+}) => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -26,8 +37,8 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
             setLoading(true);
             try {
                 const params: any = {};
-                if (filter === 'my_assignments' && user?.id) {
-                    params.assessorId = user.id;
+                if (filter === 'my_assignments') {
+                    params.view = 'assigned';
                 }
                 
                 const res = await api.get('/checks', { params });
@@ -41,6 +52,41 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
         };
         fetchChecks();
     }, [filter, refreshTrigger, user?.id]);
+
+    // Client-side filtering
+    const filteredChecks = useMemo(() => {
+        return checks.filter(check => {
+            // Status filter
+            if (statusFilter !== 'all') {
+                const status = check.finalDecision || 'pending';
+                if (status !== statusFilter) return false;
+            }
+
+            // Assessor filter
+            if (assessorFilter !== 'all') {
+                const assessorIds: string[] = [];
+                check.checkAssessors?.forEach((ca: any) => { if (ca.assessor?.id) assessorIds.push(ca.assessor.id); });
+                check.assessors?.forEach((a: any) => { const id = a.user?.id || a.id; if (id) assessorIds.push(id); });
+                if (!assessorIds.includes(assessorFilter)) return false;
+            }
+
+            // Standard filter
+            if (standardFilter !== 'all') {
+                if (check.trainingStandards?.code !== standardFilter) return false;
+            }
+
+            // Candidate filter
+            if (candidateFilter !== 'all') {
+                const candidateIds: string[] = [];
+                check.checkCandidates?.forEach((cc: any) => { if (cc.candidate?.id) candidateIds.push(cc.candidate.id); });
+                check.candidates?.forEach((cc: any) => { const c = cc.candidate || cc; if (c?.id) candidateIds.push(c.id); });
+                if (check.trainee?.id) candidateIds.push(check.trainee.id);
+                if (!candidateIds.includes(candidateFilter)) return false;
+            }
+
+            return true;
+        });
+    }, [checks, statusFilter, assessorFilter, standardFilter, candidateFilter]);
 
     const getStatusBadge = (decision: string) => {
         switch (decision) {
@@ -81,14 +127,14 @@ const ScheduledChecksTable: React.FC<ScheduledChecksTableProps> = ({ filter = 'a
                                 {t('common.loading')}
                             </TableCell>
                         </TableRow>
-                    ) : checks.length === 0 ? (
+                    ) : filteredChecks.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                                 {t('checks.noChecksFound')}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        checks.map((check) => (
+                        filteredChecks.map((check) => (
                             <TableRow key={check.id}>
                                 <TableCell>
                                     <div className="flex flex-col">

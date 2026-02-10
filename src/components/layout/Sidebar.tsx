@@ -21,6 +21,7 @@ import {
     Library,
     Target,
     Bot,
+    PanelLeftClose,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
@@ -30,9 +31,12 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     className?: string
+    isOpen?: boolean
+    onToggle?: () => void
 }
 
 interface NavGroup {
@@ -53,7 +57,7 @@ interface NavItem {
     variant?: "training" | "checking" | "default"
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, isOpen = true, onToggle }: SidebarProps) {
     const location = useLocation()
     const { t } = useTranslation()
     const { user } = useAuth()
@@ -127,6 +131,12 @@ export function Sidebar({ className }: SidebarProps) {
             roles: ["admin", "training_manager", "instructor", "assessor", "employee", "super_admin", "auditor"],
             defaultOpen: true,
             items: [
+                {
+                    title: t("nav.campaigns"),
+                    href: "/campaigns",
+                    icon: CalendarDays,
+                    roles: ["instructor", "assessor", "employee"],
+                },
                 {
                     title: t("nav.sessions"), // Both are named Schedule now
                     href: "/sessions",
@@ -311,8 +321,9 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <div className={cn(
-            "h-screen sticky top-0 border-r border-border bg-background flex flex-col transition-colors duration-300",
+            "h-screen sticky top-0 border-r border-border bg-background flex flex-col transition-all duration-300 ease-in-out",
             "dark:bg-slate-950 dark:border-slate-800",
+            !isOpen && "-translate-x-full",
             className
         )}>
             <div className="space-y-4 py-4 flex-1 overflow-y-auto">
@@ -397,6 +408,20 @@ export function Sidebar({ className }: SidebarProps) {
                     )}
                 </div>
             </div>
+
+            {/* Collapse Sidebar Button */}
+            {onToggle && (
+                <div className="px-3 py-2 border-t border-border hidden xl:block">
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground h-10"
+                        onClick={onToggle}
+                    >
+                        <PanelLeftClose className="h-4 w-4" />
+                        <span className="text-sm">{t("common.collapseSidebar", "Collapse sidebar")}</span>
+                    </Button>
+                </div>
+            )}
 
             {/* Legend for Training vs Checking */}
             <div className="px-4 py-3 border-t border-border">

@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { api, curriculums, materialActions } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
 import type { Campaign, Employee, GenerateScheduleRequest, Session, CurriculumModule } from '@/types'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -31,6 +32,8 @@ export default function CampaignDetailPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { id } = useParams<{ id: string }>()
+    const { user } = useAuth()
+    const isManager = user?.role && ['admin', 'training_manager'].includes(user.role)
 
     const [campaign, setCampaign] = useState<Campaign | null>(null)
 
@@ -599,7 +602,7 @@ export default function CampaignDetailPage() {
             setGeneratingCerts(true)
             const res = await api.post(`/reports/campaigns/${id}/certificate`, { userIds: eligibleTraineesIds, email: emailCertificates })
             const { generated, skipped } = res.data
-            toast.success(t('campaigns.certificatesGenerated', `Generated ${generated} certs. Skipped ${skipped}.`, { generated, skipped }))
+            toast.success(t('campaigns.certificatesGeneratedToast', { generated: Number(generated), skipped: Number(skipped) }))
             setCertConfirmOpen(false)
             loadCampaign() // Reload to update certificate status
         } catch (error: any) {
@@ -651,13 +654,13 @@ export default function CampaignDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    {campaign.status === 'draft' && (
+                    {isManager && campaign.status === 'draft' && (
                         <Button variant="outline" onClick={() => handleStatusChange('active')}>
                             <Play className="mr-2 h-4 w-4" />
                             {t('campaigns.activate', 'Activate')}
                         </Button>
                     )}
-                    {campaign.status === 'active' && (
+                    {isManager && campaign.status === 'active' && (
                         <Button variant="outline" onClick={() => handleStatusChange('paused')}>
                             <Pause className="mr-2 h-4 w-4" />
                             {t('campaigns.pause', 'Pause')}
@@ -671,7 +674,7 @@ export default function CampaignDetailPage() {
                                     <TooltipTrigger asChild>
                                         <Button variant="outline" disabled className="gap-2">
                                             <CheckCircle2 className="h-4 w-4" />
-                                            {t('campaigns.certificatesGenerated', 'Certificates Generated')}
+                                            {t('campaigns.generated', 'Certificates Generated')}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -800,7 +803,7 @@ export default function CampaignDetailPage() {
                     <TabsTrigger value="modules">{t('campaigns.modules', 'Modules')}</TabsTrigger>
                     <TabsTrigger value="schedule">{t('campaigns.schedule', 'Schedule')}</TabsTrigger>
                     <TabsTrigger value="materials">{t('campaigns.materials', 'Materials')}</TabsTrigger>
-                    <TabsTrigger value="settings">{t('campaigns.settings', 'Settings')}</TabsTrigger>
+                    {isManager && <TabsTrigger value="settings">{t('campaigns.settings', 'Settings')}</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="trainees" className="space-y-4">
@@ -808,7 +811,7 @@ export default function CampaignDetailPage() {
                         <h3 className="text-lg font-medium">{t('campaigns.enrolledTrainees', 'Enrolled Trainees')}</h3>
                         <div className="flex gap-2">
                             <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-                                <DialogTrigger asChild>
+                                {isManager && <DialogTrigger asChild>
                                     <Button onClick={() => {
                                         setSearchTerm('')
                                         setDepartmentFilter('all')
@@ -817,7 +820,7 @@ export default function CampaignDetailPage() {
                                         <UserPlus className="mr-2 h-4 w-4" />
                                         {t('campaigns.addTrainees', 'Add Trainees')}
                                     </Button>
-                                </DialogTrigger>
+                                </DialogTrigger>}
                                 <DialogContent className="max-w-lg">
                                     <DialogHeader>
                                         <DialogTitle>{t('campaigns.addTrainees', 'Add Trainees')}</DialogTitle>
@@ -1161,14 +1164,14 @@ export default function CampaignDetailPage() {
                                                     >
                                                         {t('common.viewDetails', 'View Details')}
                                                     </Button>
-                                                    <Button 
+                                                    {isManager && <Button 
                                                         variant="ghost" 
                                                         size="sm"
                                                         className="text-destructive hover:text-destructive"
                                                         onClick={() => handleUnenroll(enrollment.userId)}
                                                     >
                                                         <XCircle className="h-4 w-4" />
-                                                    </Button>
+                                                    </Button>}
                                                 </td>
                                             </tr>
                                         )
@@ -1345,7 +1348,7 @@ export default function CampaignDetailPage() {
                 <TabsContent value="schedule" className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium">{t('campaigns.generatedSessions', 'Generated Sessions')}</h3>
-                        <div className="flex gap-2">
+                        {isManager && <div className="flex gap-2">
                              <Button variant="outline" onClick={() => setSchedulerDialogOpen(true)}>
                                 <Wand2 className="mr-2 h-4 w-4" />
                                 {t('campaigns.autoSchedule', 'Auto-Schedule')}
@@ -1354,7 +1357,7 @@ export default function CampaignDetailPage() {
                                 <CalendarPlus className="mr-2 h-4 w-4" />
                                 {t('campaigns.scheduleSession', 'Schedule Session')}
                             </Button>
-                        </div>
+                        </div>}
                     </div>
 
                     {loadingSessions ? (
@@ -1367,10 +1370,10 @@ export default function CampaignDetailPage() {
                             <p className="mt-4 text-muted-foreground">
                                 {t('campaigns.noSessions', 'No sessions generated yet. Use the Auto-Scheduler to create sessions.')}
                             </p>
-                            <Button variant="outline" className="mt-4" onClick={() => setSchedulerDialogOpen(true)}>
+                            {isManager && <Button variant="outline" className="mt-4" onClick={() => setSchedulerDialogOpen(true)}>
                                 <Wand2 className="mr-2 h-4 w-4" />
                                 {t('campaigns.autoSchedule', 'Auto-Schedule')}
-                            </Button>
+                            </Button>}
                         </Card>
                     ) : (
                         <div className="rounded-lg border">
@@ -1446,7 +1449,7 @@ export default function CampaignDetailPage() {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3 text-right flex gap-1 justify-end">
-                                                    {session.status === 'planned' && (
+                                                    {isManager && session.status === 'planned' && (
                                                         <>
                                                             <Button 
                                                                 variant="ghost" 

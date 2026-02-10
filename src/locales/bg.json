@@ -2,6 +2,7 @@
     "common": {
         "welcome": "Добре дошли",
         "loading": "Зареждане...",
+        "scheduling": "Планиране...",
         "error": "Грешка",
         "save": "Запази",
         "cancel": "Отказ",
@@ -47,6 +48,8 @@
         "inactive": "Неактивен",
         "all": "Всички",
         "none": "Няма",
+        "selectAll": "Избери всички",
+        "deselectAll": "Отмаркирай всички",
         "success": "Успех",
         "failed": "Неуспех",
         "pending": "В изчакване",
@@ -80,7 +83,9 @@
         "category": "Категория",
         "saveChanges": "Запази промените",
         "saving": "Запазване...",
-        "changed": "Променен"
+        "changed": "Променен",
+        "collapseSidebar": "Свий лентата",
+        "expandSidebar": "Разгъни лентата"
     },
     "nav": {
         "dashboard": "Табло",
@@ -623,12 +628,20 @@
          "createProfile": "Създай профил",
          "eligibleTrainees": "Допустими обучаеми",
          "noEligibleTrainees": "В момента няма обучаеми, които се нуждаят от проверка за професионална пригодност",
-         "scheduledChecks": "Планирани проверки",
-         "myAssessments": "Моите оценки",
+         "scheduledChecks": "Всички проверки",
+         "myAssessments": "Моите проверки",
          "profiles": "Профили",
          "eligibleDescription": "Служители, които са завършили обучение и подлежат на проверка.",
          "scheduledDescription": "Текущи и предстоящи сесии за проверка.",
          "myAssessmentsDescription": "Проверки, в които сте назначен като оценител.",
+         "filterByStatus": "Статус",
+         "filterByAssessor": "Оценител",
+         "filterByStandard": "Стандарт",
+         "filterByCandidate": "Кандидат",
+         "allStatuses": "Всички статуси",
+         "allAssessors": "Всички оценители",
+         "allStandards": "Всички стандарти",
+         "allCandidates": "Всички кандидати",
          "profilesDescription": "Дефиниране на типове проверки, интервали и критерии.",
          "step1": "Стъпка 1: Потвърждаване на кандидатите",
          "step2": "Стъпка 2: Избор на стандарт",
@@ -642,6 +655,7 @@
          "fullRenewal": "Пълно подновяване",
          "partial": "Частична / Персонализирана",
          "passCriteria": "Критерии за преминаване",
+         "combined": "Комбиниран",
          "theoryAssessment": "Теоретична оценка",
          "practicalAssessment": "Практическа оценка",
          "locationPlaceholder": "напр. Симулатор 1, Учебен център",
@@ -1327,7 +1341,7 @@
         "generateCertificates": "Генериране на сертификати",
         "noEligibleTrainees": "Няма допустими обучаеми (трябва да са преминал всички модули).",
         "confirmGenerate": "Генериране на сертификати за {{count}} обучаеми?",
-        "certificatesGenerated": "Генерирани {{generated}} сертификати. Пропуснати {{skipped}}.",
+        "certificatesGeneratedToast": "Генерирани {{generated}} сертификати. Пропуснати {{skipped}}.",
         "certificateGeneration": "Генериране на сертификати",
         "emailCertificates": "Изпращане на сертификатите по имейл",
         "toBeImplemented": "(Предстои)",
@@ -1401,5 +1415,11 @@
             "instruction": "Обучение",
             "assessment": "Оценяване"
         }
+    },
+    "roles": {
+        "admin": "Администратор",
+        "training_manager": "Мениджър обучение",
+        "instructor": "Инструктор",
+        "assessor": "Оценител"
     }
 }

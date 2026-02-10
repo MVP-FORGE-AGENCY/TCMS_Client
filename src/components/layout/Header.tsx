@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react"
+import { Menu, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "./NotificationBell"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -21,7 +21,12 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 
-export function Header() {
+interface HeaderProps {
+    toggleSidebar?: () => void
+    isSidebarOpen?: boolean
+}
+
+export function Header({ toggleSidebar, isSidebarOpen = true }: HeaderProps) {
     const { t } = useTranslation()
     const { user, logout } = useAuth()
     const navigate = useNavigate()
@@ -40,6 +45,22 @@ export function Header() {
     
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            {/* Desktop Sidebar Toggle */}
+            <div className="hidden xl:block">
+                {!isSidebarOpen && toggleSidebar && (
+                     <Button 
+                        variant="secondary" 
+                        size="icon" 
+                        onClick={toggleSidebar}
+                        title={t("common.expandSidebar", "Expand sidebar")}
+                        className="mr-2 border shadow-sm hover:bg-slate-200 dark:hover:bg-slate-800 transition-all"
+                    >
+                        <PanelLeft className="h-5 w-5" />
+                        <span className="sr-only">Toggle Sidebar</span>
+                    </Button>
+                )}
+            </div>
+
             <Sheet>
                 <SheetTrigger asChild>
                     <Button size="icon" variant="outline" className="xl:hidden">

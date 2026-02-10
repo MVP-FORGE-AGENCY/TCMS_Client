@@ -2,6 +2,7 @@
     "common": {
         "welcome": "Welcome",
         "loading": "Loading...",
+        "scheduling": "Scheduling...",
         "error": "Error",
         "save": "Save",
         "cancel": "Cancel",
@@ -43,6 +44,8 @@
         "inactive": "Inactive",
         "all": "All",
         "none": "None",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
         "success": "Success",
         "failed": "Failed",
         "pending": "Pending",
@@ -69,7 +72,9 @@
         "of": "of",
         "hour": "hour",
         "hours": "hours",
-        "fullDay": "full day"
+        "fullDay": "full day",
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -552,12 +557,20 @@
         "scheduleGroupCheck": "Schedule Group Check",
         "createProfile": "Create Profile",
         "eligibleTrainees": "Eligible Trainees",
-        "scheduledChecks": "Scheduled Checks",
-        "myAssessments": "My Assessments",
+        "scheduledChecks": "All Checks",
+        "myAssessments": "My Checks",
         "profiles": "Profiles",
         "eligibleDescription": "Employees who have completed training and are eligible for checking.",
         "scheduledDescription": "Current and upcoming check sessions.",
         "myAssessmentsDescription": "Checks where you are assigned as assessor.",
+        "filterByStatus": "Status",
+        "filterByAssessor": "Assessor",
+        "filterByStandard": "Standard",
+        "filterByCandidate": "Candidate",
+        "allStatuses": "All Statuses",
+        "allAssessors": "All Assessors",
+        "allStandards": "All Standards",
+        "allCandidates": "All Candidates",
         "profilesDescription": "Define check types, intervals, and criteria.",
         "proficiencyProfiles": "Proficiency Profiles",
         "scheduleCheck": "Schedule Check",
@@ -1104,6 +1117,7 @@
         "schedule": "Schedule",
         "settings": "Settings",
         "campaignSettings": "Campaign Settings",
+        "certificatesGeneratedToast": "Generated {{generated}} certs. Skipped {{skipped}}.",
         "activate": "Activate",
         "pause": "Pause",
         "cancelCampaign": "Cancel Campaign",
@@ -1166,5 +1180,11 @@
         "cards": "Cards",
         "footer": "CertifyCloud Brand Identity System v1.0 • Last Updated: January 15, 2026",
         "reference": "Reference"
+    },
+    "roles": {
+        "admin": "Admin",
+        "training_manager": "Training Manager",
+        "instructor": "Instructor",
+        "assessor": "Assessor"
     }
 }

@@ -63,11 +63,11 @@ const CheckDetailPage = () => {
     const canStartCheck = () => {
         if (!check || check.finalDecision !== 'pending') return { allowed: false };
         
-        // 1. Role Check
+        // 1. Role Check - Only assigned assessors or admin/training_manager can start
         const isAssessor = check.assessors?.some((a: any) => a.user?.id === user?.id);
-        const isAdminOrManager = user?.role && ['admin', 'training_manager', 'instructor'].includes(user.role);
+        const isAdminOrManager = user?.role && ['admin', 'training_manager'].includes(user.role);
         
-        if (!isAssessor && !isAdminOrManager) return { allowed: false, reason: 'Not authorized' };
+        if (!isAssessor && !isAdminOrManager) return { allowed: false, reason: t('checks.notAuthorizedToStart', 'Only assigned assessors can start this check') };
 
         // 2. Date Check
         const today = new Date();
@@ -233,10 +233,10 @@ const CheckDetailPage = () => {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-2xl">{check.profile?.name}</CardTitle>
-                            <CardDescription>{t('standards.code')}: {check.profile?.code} | {t('checks.type')}: <span className="capitalize">
-                                {check.check_type === 'full_renewal' ? t('checks.fullRenewal') : 
-                                 check.check_type === 'partial' ? t('checks.partial') : 
-                                 check.check_type || 'Combined'}
+                            <CardDescription>{t('standards.code')}: {check.profile?.code || check.trainingStandards?.code || 'N/A'} | {t('checks.type')}: <span className="capitalize">
+                                {check.checkType === 'full_renewal' ? t('checks.fullRenewal') : 
+                                 check.checkType === 'partial' ? t('checks.partial') : 
+                                 ((!check.checkType || check.checkType?.toLowerCase() === 'combined') ? t('checks.combined') : check.checkType)}
                             </span></CardDescription>
                         </div>
                         <div className="text-right flex items-center gap-2">
@@ -245,8 +245,8 @@ const CheckDetailPage = () => {
                             {check.finalDecision === 'pass' && <Badge className="bg-green-500">{t('common.passed')}</Badge>}
                             {check.finalDecision === 'fail' && <Badge variant="destructive">{t('common.statusFailed')}</Badge>}
 
-                            {/* Start Check Action (Global for Admin/Manager) */}
-                            {user?.role && ['admin', 'training_manager', 'instructor'].includes(user.role) && check.finalDecision === 'pending' && (
+                            {/* Start Check Action - Only assigned assessors or admin/training_manager */}
+                            {(check.assessors?.some((a: any) => a.user?.id === user?.id) || (user?.role && ['admin', 'training_manager'].includes(user.role))) && check.finalDecision === 'pending' && (
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -270,8 +270,8 @@ const CheckDetailPage = () => {
                                 </TooltipProvider>
                             )}
                             
-                            {/* Delete Action - Pending checks ONLY (Admin/Manager) */}
-                            {(check.finalDecision === 'pending' && user?.role && ['admin', 'training_manager'].includes(user.role)) && (
+                            {/* Delete Action - Only unstarted (pending) checks, Admin/Manager only */}
+                            {(check.finalDecision === 'pending' && check.finalDecision !== 'in_progress' && user?.role && ['admin', 'training_manager'].includes(user.role)) && (
                                 <Button size="sm" variant="destructive" onClick={() => setIsDeleteAlertOpen(true)} title={t('checks.deleteCheck')}>
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -490,30 +490,30 @@ const CheckDetailPage = () => {
                 </Card>
 
                 {/* Requirements / Elements - Only show if defined */}
-                {check.profile?.required_elements && Object.keys(check.profile.required_elements).length > 0 && (
+                {check.profile?.requiredElements && Object.keys(check.profile.requiredElements).length > 0 && (
                 <Card className="md:col-span-2">
                     <CardHeader>
                         <CardTitle>{t('checks.assessmentCriteria')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {/* Pass Criteria Display */}
-                        {check.pass_criteria && (
+                        {check.passCriteria && (
                             <div className="mb-6 pb-6 border-b">
                                 <h4 className="font-semibold text-sm mb-3">{t('checks.passingStandards')}</h4>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {check.pass_criteria.required?.includes('theory') && (
+                                    {check.passCriteria.required?.includes('theory') && (
                                         <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
                                             <span className="text-xs text-muted-foreground uppercase font-medium">{t('standards.theory')}</span>
                                             <span className="font-semibold text-lg">
-                                                Min {check.pass_criteria.theory}%
+                                                Min {check.passCriteria.theory}%
                                             </span>
                                         </div>
                                     )}
-                                    {check.pass_criteria.required?.includes('practical') && (
+                                    {check.passCriteria.required?.includes('practical') && (
                                         <div className="flex flex-col p-3 bg-muted/30 rounded-md border">
                                             <span className="text-xs text-muted-foreground uppercase font-medium">{t('standards.practical')}</span>
                                             <span className="font-semibold text-lg capitalize">
-                                                {check.pass_criteria.practical === 'pass' ? 'Pass / Fail' : check.pass_criteria.practical}
+                                                {check.passCriteria.practical === 'pass' ? 'Pass / Fail' : check.passCriteria.practical}
                                             </span>
                                         </div>
                                     )}
@@ -523,7 +523,7 @@ const CheckDetailPage = () => {
 
                         <div className="space-y-2">
                             <h4 className="font-semibold text-sm mb-2">{t('checks.requiredElements')}</h4>
-                            {Object.values(check.profile.required_elements).map((elem: any, idx: number) => (
+                            {Object.values(check.profile.requiredElements).map((elem: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0 hover:bg-muted/50 px-2 py-1 rounded">
                                     <span className="font-medium">{elem.name}</span>
                                     {elem.mandatory && <Badge variant="secondary" className="text-xs">{t('common.required', 'Mandatory')}</Badge>}
@@ -580,8 +580,8 @@ const CheckDetailPage = () => {
                 onOpenChange={setIsSubmitModalOpen}
                 checkId={id!}
                 profile={check.profile}
-                checkType={check.check_type || 'combined'}
-                passCriteria={check.pass_criteria}
+                checkType={check.checkType || 'combined'}
+                passCriteria={check.passCriteria}
                 standard={check.trainingStandards || check.profile?.trainingStandards}
                 traineeName={selectedCandidate?.name || check.trainee?.full_name}
                 candidateId={selectedCandidate?.id}

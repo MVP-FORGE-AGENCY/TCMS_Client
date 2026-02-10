@@ -25,20 +25,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-} from '@/components/ui/command'
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover'
+
+
 import { 
-    X, 
     AlertTriangle, 
     Users, 
     Calendar, 
@@ -46,8 +35,7 @@ import {
     UserCheck,
     ChevronLeft,
     ChevronRight,
-    CheckCircle,
-    Plus
+    CheckCircle
 } from 'lucide-react'
 
 interface ScheduleCheckModalProps {
@@ -116,7 +104,7 @@ export function ScheduleCheckModal({
     const [conflicts, setConflicts] = useState<Conflict[]>([])
     
     // State for candidate selector
-    const [openCombobox, setOpenCombobox] = useState(false)
+    const [candidateSearch, setCandidateSearch] = useState('')
 
     // Fetch candidates when preselectedCandidates changes
     useEffect(() => {
@@ -203,15 +191,17 @@ export function ScheduleCheckModal({
         }
     }
 
-    const addCandidate = (trainee: any) => {
-        if (!candidates.find(c => c.id === trainee.id)) {
+    const toggleCandidate = (trainee: any) => {
+        const exists = candidates.find(c => c.id === trainee.id)
+        if (exists) {
+            setCandidates(prev => prev.filter(c => c.id !== trainee.id))
+        } else {
             setCandidates(prev => [...prev, {
                 id: trainee.id,
                 fullName: trainee.fullName,
                 email: trainee.email
             }])
         }
-        setOpenCombobox(false)
     }
 
     const createCheckMutation = useMutation({
@@ -267,12 +257,8 @@ export function ScheduleCheckModal({
         setLocation('')
         setSelectedAssessorIds([])
         setConflicts([])
-        setOpenCombobox(false)
+        setCandidateSearch('')
         onClose()
-    }
-
-    const removeCandidate = (candidateId: string) => {
-        setCandidates(prev => prev.filter(c => c.id !== candidateId))
     }
 
     const toggleAssessor = (assessorId: string) => {
@@ -352,7 +338,15 @@ export function ScheduleCheckModal({
         }
     }
 
-    // Removed duplicates
+    // Filter eligible trainees by search
+    const filteredTrainees = (eligibleTrainees || []).filter((trainee: any) => {
+        if (!candidateSearch) return true
+        const q = candidateSearch.toLowerCase()
+        return (
+            trainee.fullName?.toLowerCase().includes(q) ||
+            trainee.email?.toLowerCase().includes(q)
+        )
+    })
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -380,7 +374,7 @@ export function ScheduleCheckModal({
                 </div>
 
                 <div className="min-h-[300px] py-4">
-                    {/* Step 1: Confirm Candidates */}
+                    {/* Step 1: Select Candidates */}
                     {step === 1 && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -388,69 +382,86 @@ export function ScheduleCheckModal({
                                     <Users className="h-5 w-5" />
                                     {t('checks.step1')}
                                 </div>
-                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm" className="ml-auto">
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            {t('common.add')}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="p-0" align="end">
-                                        <Command>
-                                            <CommandInput placeholder={t('common.search')} />
-                                            <CommandEmpty>{t('common.noData')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {eligibleTrainees?.filter(t => !candidates.find(c => c.id === t.id))
-                                                    .map(trainee => (
-                                                        <CommandItem
-                                                            key={trainee.id}
-                                                            onSelect={() => addCandidate(trainee)}
-                                                        >
-                                                            <span>{trainee.fullName}</span>
-                                                        </CommandItem>
-                                                    ))}
-                                            </CommandGroup>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                {candidates.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                        {candidates.length} {t('checks.selected')}
+                                    </Badge>
+                                )}
                             </div>
-                            
-                            {candidates.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                    {t('checks.noCandidatesSelected')}
-                                    <p className="text-xs mt-1 text-muted-foreground/70">
-                                        Use the 'Add' button to select candidates
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {candidates.map(candidate => (
-                                        <div 
-                                            key={candidate.id}
-                                            className="flex items-center justify-between p-3 rounded-lg border"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8">
+
+                            {/* Search input */}
+                            <div className="relative">
+                                <Input
+                                    placeholder={t('checks.searchCandidates', 'Search candidates...')}
+                                    value={candidateSearch}
+                                    onChange={(e) => setCandidateSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            </div>
+
+                            {/* Candidate list with checkboxes */}
+                            <div className="space-y-1 max-h-[280px] overflow-y-auto border rounded-lg p-1">
+                                {filteredTrainees.length === 0 ? (
+                                    <div className="text-center py-6 text-muted-foreground text-sm">
+                                        {candidateSearch ? t('common.noResults', 'No results found') : t('checks.noCandidatesAvailable', 'No eligible candidates')}
+                                    </div>
+                                ) : (
+                                    filteredTrainees.map((trainee: any) => {
+                                        const isSelected = candidates.some(c => c.id === trainee.id)
+                                        return (
+                                            <div 
+                                                key={trainee.id}
+                                                className={`flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-colors ${
+                                                    isSelected 
+                                                        ? 'border border-primary bg-primary/5' 
+                                                        : 'hover:bg-muted/50 border border-transparent'
+                                                }`}
+                                                onClick={() => toggleCandidate(trainee)}
+                                            >
+                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                <Avatar className="h-7 w-7">
                                                     <AvatarFallback className="text-xs">
-                                                        {getInitials(candidate.fullName)}
+                                                        {getInitials(trainee.fullName || '')}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{candidate.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="font-medium text-sm truncate">{trainee.fullName}</div>
+                                                    <div className="text-xs text-muted-foreground truncate">{trainee.email}</div>
                                                 </div>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => removeCandidate(candidate.id)}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
+                                        )
+                                    })
+                                )}
+                            </div>
+
+                            {/* Select all / deselect all */}
+                            {filteredTrainees.length > 0 && (
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <button
+                                        type="button"
+                                        className="hover:text-primary underline transition-colors"
+                                        onClick={() => {
+                                            const allFilteredIds = filteredTrainees.map((tr: any) => tr.id)
+                                            const allSelected = allFilteredIds.every((id: string) => candidates.some(c => c.id === id))
+                                            if (allSelected) {
+                                                // Deselect all filtered
+                                                setCandidates(prev => prev.filter(c => !allFilteredIds.includes(c.id)))
+                                            } else {
+                                                // Select all filtered
+                                                const newCandidates = filteredTrainees
+                                                    .filter((tr: any) => !candidates.some(c => c.id === tr.id))
+                                                    .map((tr: any) => ({ id: tr.id, fullName: tr.fullName, email: tr.email }))
+                                                setCandidates(prev => [...prev, ...newCandidates])
+                                            }
+                                        }}
+                                    >
+                                        {filteredTrainees.every((tr: any) => candidates.some(c => c.id === tr.id))
+                                            ? t('common.deselectAll', 'Deselect all')
+                                            : t('common.selectAll', 'Select all')
+                                        }
+                                    </button>
+                                    <span>{filteredTrainees.length} {t('checks.candidatesAvailable', 'available')}</span>
                                 </div>
                             )}
                         </div>
@@ -605,7 +616,9 @@ export function ScheduleCheckModal({
                                             <div className="font-medium">{assessor.fullName}</div>
                                             <div className="text-xs text-muted-foreground">{assessor.email}</div>
                                         </div>
-                                        <Badge variant="outline" className="ml-auto">{assessor.role}</Badge>
+                                        <Badge variant="outline" className="ml-auto">
+                                            {t(`roles.${assessor.role}`, assessor.role)}
+                                        </Badge>
                                     </div>
                                 ))}
                             </div>
