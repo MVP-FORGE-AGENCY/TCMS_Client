@@ -101,7 +101,7 @@ export default function DashboardPage() {
                 // Note: API max limit is 100, so we use that
                 const results = await Promise.allSettled([
                     api.get("/employees", { params: { limit: 100, excludeExternal: true } }),
-                    api.get("/campaigns", { params: { status: 'active' } }),
+                    api.get("/campaigns"),
                     api.get("/reports/expiring", { params: { withinDays: 90 } }),
                     api.get("/competence", { params: { limit: 100 } }),
                     api.get("/sessions", { params: { status: 'completed', limit: 100 } })
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                 const summary = resAny?.summary || { valid: 0, expiringSoon: 0, expired: 0 }
                 
                 const totalPersonnel = employeesRes?.data?.pagination?.total ?? employees.length
-                const activeProgrammes = campaignsRes?.data?.pagination?.total ?? campaignsData.length
+                const activeProgrammes = (campaignsData as Array<{ status?: string }>).filter(c => c.status === 'active').length
                 
                 const validCount = summary.valid
                 const expiringStatusCount = summary.expiringSoon

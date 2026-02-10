@@ -19,7 +19,10 @@ interface RevisionHistoryModalProps {
     standardId: string | null
 }
 
+import { useTranslation } from "react-i18next"
+
 export function RevisionHistoryModal({ open, onOpenChange, standardId }: RevisionHistoryModalProps) {
+    const { t } = useTranslation()
     const [expandedRevisionId, setExpandedRevisionId] = useState<string | null>(null)
 
     // Fetch revision history
@@ -38,17 +41,17 @@ export function RevisionHistoryModal({ open, onOpenChange, standardId }: Revisio
             <DialogContent className="sm:max-w-[800px] h-[85vh] flex flex-col p-0 gap-0">
                 <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        Revision History
+                        {t("standards.revisionHistory.title", "Revision History")}
                     </DialogTitle>
                     <DialogDescription>
                         {data ? (
                             <span>
                                 <span className="font-mono font-medium text-foreground">{data.code}</span>
                                 <span className="mx-2">•</span>
-                                {data.totalRevisions} revisions found
+                                {data.totalRevisions} {t("standards.revisionHistory.found", "revisions found")}
                             </span>
                         ) : (
-                            "Loading history..."
+                            t("standards.revisionHistory.loading", "Loading history...")
                         )}
                     </DialogDescription>
                 </DialogHeader>
@@ -58,14 +61,14 @@ export function RevisionHistoryModal({ open, onOpenChange, standardId }: Revisio
                         {isLoading && (
                             <div className="flex flex-col items-center justify-center py-12 space-y-4 text-muted-foreground">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                <p>Loading revisions timeline...</p>
+                                <p>{t("standards.revisionHistory.loadingTimeline", "Loading revisions timeline...")}</p>
                             </div>
                         )}
 
                         {error && (
                             <div className="flex flex-col items-center justify-center py-12 space-y-4 text-destructive">
                                 <AlertCircle className="h-10 w-10" />
-                                <p>Failed to load revision history.</p>
+                                <p>{t("standards.revisionHistory.error", "Failed to load revision history.")}</p>
                             </div>
                         )}
 
@@ -85,7 +88,7 @@ export function RevisionHistoryModal({ open, onOpenChange, standardId }: Revisio
 
                         {!isLoading && data && data.history.length === 0 && (
                              <div className="text-center py-12 text-muted-foreground">
-                                 No history found for this standard.
+                                 {t("standards.revisionHistory.empty", "No history found for this standard.")}
                              </div>
                         )}
                     </div>

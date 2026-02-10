@@ -59,7 +59,10 @@ interface CheckConfigurationEditorProps {
     onSave?: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function CheckConfigurationEditor({ standardId, onSave }: CheckConfigurationEditorProps) {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [items, setItems] = useState<CheckItem[]>([]);
     const [requiredAssessors, setRequiredAssessors] = useState(1);
@@ -98,13 +101,13 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
             });
         },
         onSuccess: () => {
-            toast.success('Check configuration saved');
+            toast.success(t('standards.checks.saveSuccess', 'Check configuration saved'));
             queryClient.invalidateQueries({ queryKey: ['standard-check-definition', standardId] });
             setHasChanges(false);
             onSave?.();
         },
         onError: () => {
-            toast.error('Failed to save check configuration');
+            toast.error(t('standards.checks.saveError', 'Failed to save check configuration'));
         }
     });
 
@@ -136,7 +139,7 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
     };
 
     if (isLoading) {
-        return <div className="p-4 text-center text-muted-foreground">Loading...</div>;
+        return <div className="p-4 text-center text-muted-foreground">{t('common.loading', 'Loading...')}</div>;
     }
 
     const mandatoryCount = items.filter(i => i.is_mandatory).length;
@@ -146,12 +149,12 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
             {/* Settings Row */}
             <Card>
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Check Settings</CardTitle>
+                    <CardTitle className="text-base">{t('standards.checks.settings', 'Check Settings')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="requiredAssessors">Required Assessors</Label>
+                            <Label htmlFor="requiredAssessors">{t('standards.checks.requiredAssessors', 'Required Assessors')}</Label>
                             <Input
                                 id="requiredAssessors"
                                 type="number"
@@ -164,11 +167,11 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                                 }}
                             />
                             <p className="text-xs text-muted-foreground">
-                                Number of assessors required to complete the check
+                                {t('standards.checks.assessorsHelp', 'Number of assessors required to complete the check')}
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="intervalMonths">Validity Period (Months)</Label>
+                            <Label htmlFor="intervalMonths">{t('standards.checks.validity', 'Validity Period (Months)')}</Label>
                             <Input
                                 id="intervalMonths"
                                 type="number"
@@ -181,7 +184,7 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                                 }}
                             />
                             <p className="text-xs text-muted-foreground">
-                                How long a passed check remains valid
+                                {t('standards.checks.validityHelp', 'How long a passed check remains valid')}
                             </p>
                         </div>
                     </div>
@@ -193,13 +196,13 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-base">Check Items</CardTitle>
+                            <CardTitle className="text-base">{t('standards.checks.items', 'Check Items')}</CardTitle>
                             <CardDescription>
-                                {items.length} items ({mandatoryCount} mandatory)
+                                {t('standards.checks.itemsCount', '{{count}} items ({{mandatory}} mandatory)', { count: items.length, mandatory: mandatoryCount })}
                             </CardDescription>
                         </div>
                         <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-                            <Plus className="w-4 h-4 mr-1" /> Add Item
+                            <Plus className="w-4 h-4 mr-1" /> {t('standards.checks.addItem', 'Add Item')}
                         </Button>
                     </div>
                 </CardHeader>
@@ -207,8 +210,8 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                     {items.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                             <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>No check items defined</p>
-                            <p className="text-sm">Add items to define what assessors will evaluate</p>
+                            <p>{t('standards.checks.noItems', 'No check items defined')}</p>
+                            <p className="text-sm">{t('standards.checks.addItemsHelp', 'Add items to define what assessors will evaluate')}</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -237,12 +240,12 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium">{item.text}</span>
                                             {item.is_mandatory && (
-                                                <Badge variant="destructive" className="text-xs">Required</Badge>
+                                                <Badge variant="destructive" className="text-xs">{t('standards.checks.mandatory', 'Required')}</Badge>
                                             )}
                                         </div>
                                         <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                                            <Badge variant="outline">{item.category}</Badge>
-                                            <Badge variant="outline">{item.type === 'pass_fail' ? 'Pass/Fail' : 'Scored'}</Badge>
+                                            <Badge variant="outline">{t(`standards.checks.categories.${item.category}`, item.category)}</Badge>
+                                            <Badge variant="outline">{item.type === 'pass_fail' ? t('standards.checks.passFail', 'Pass/Fail') : t('standards.checks.scored', 'Scored')}</Badge>
                                         </div>
                                     </div>
 
@@ -277,7 +280,7 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                 <div className="flex justify-end">
                     <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
                         <Save className="w-4 h-4 mr-1" />
-                        {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+                        {saveMutation.isPending ? t('common.saving', 'Saving...') : t('common.saveChanges', 'Save Changes')}
                     </Button>
                 </div>
             )}
@@ -307,6 +310,7 @@ interface ItemFormModalProps {
 }
 
 function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: ItemFormModalProps) {
+    const { t } = useTranslation();
     const [text, setText] = useState('');
     const [category, setCategory] = useState<'Theory' | 'Practical' | 'General'>('General');
     const [type, setType] = useState<'pass_fail' | 'score'>('pass_fail');
@@ -328,7 +332,7 @@ function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: Ite
 
     const handleSubmit = () => {
         if (!text.trim()) {
-            toast.error('Item text is required');
+            toast.error(t('common.required', 'Item text is required'));
             return;
         }
 
@@ -343,15 +347,15 @@ function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: Ite
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{initialData ? 'Edit Item' : 'Add Check Item'}</DialogTitle>
+                    <DialogTitle>{initialData ? t('standards.checks.editItem', 'Edit Item') : t('standards.checks.addItemTitle', 'Add Check Item')}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="itemText">Item Text</Label>
+                        <Label htmlFor="itemText">{t('standards.checks.itemText', 'Item Text')}</Label>
                         <Input
                             id="itemText"
-                            placeholder="e.g., Device Setup Procedure"
+                            placeholder={t('standards.checks.itemPlaceholder', 'e.g., Device Setup Procedure')}
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                         />
@@ -359,28 +363,28 @@ function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: Ite
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Category</Label>
+                            <Label>{t('common.category', 'Category')}</Label>
                             <Select value={category} onValueChange={(v) => setCategory(v as typeof category)}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Theory">Theory</SelectItem>
-                                    <SelectItem value="Practical">Practical</SelectItem>
-                                    <SelectItem value="General">General</SelectItem>
+                                    <SelectItem value="Theory">{t('standards.checks.categories.Theory', 'Theory')}</SelectItem>
+                                    <SelectItem value="Practical">{t('standards.checks.categories.Practical', 'Practical')}</SelectItem>
+                                    <SelectItem value="General">{t('standards.checks.categories.General', 'General')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Evaluation Type</Label>
+                            <Label>{t('standards.checks.evalType', 'Evaluation Type')}</Label>
                             <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="pass_fail">Pass / Fail</SelectItem>
-                                    <SelectItem value="score">Scored (0-100)</SelectItem>
+                                    <SelectItem value="pass_fail">{t('standards.checks.passFail', 'Pass / Fail')}</SelectItem>
+                                    <SelectItem value="score">{t('standards.checks.scored', 'Scored (0-100)')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -388,9 +392,9 @@ function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: Ite
 
                     <div className="flex items-center justify-between border rounded-lg p-3">
                         <div>
-                            <Label htmlFor="mandatory">Mandatory Item</Label>
+                            <Label htmlFor="mandatory">{t('standards.checks.mandatory', 'Mandatory Item')}</Label>
                             <p className="text-xs text-muted-foreground">
-                                Required for "Full Renewal" checks
+                                {t('standards.checks.mandatoryHelp', 'Required for "Full Renewal" checks')}
                             </p>
                         </div>
                         <Switch
@@ -402,9 +406,9 @@ function ItemFormModal({ isOpen, onClose, onSubmit, onUpdate, initialData }: Ite
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Cancel</Button>
+                    <Button variant="outline" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
                     <Button onClick={handleSubmit}>
-                        {initialData ? 'Update' : 'Add Item'}
+                        {initialData ? t('common.update', 'Update') : t('standards.checks.addItemAction', 'Add Item')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

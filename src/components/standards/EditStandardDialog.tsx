@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { standards } from "@/lib/api"
+import { useTranslation } from "react-i18next"
 import type { Standard } from "@/types"
 import { toast } from "sonner"
 import {
@@ -27,6 +28,7 @@ interface EditStandardDialogProps {
 }
 
 export function EditStandardDialog({ standard, open, onOpenChange }: EditStandardDialogProps) {
+    const { t } = useTranslation()
     const queryClient = useQueryClient()
     const [formData, setFormData] = useState({
         name: standard.name,
@@ -96,10 +98,10 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
             queryClient.invalidateQueries({ queryKey: ["standard", standard.id] })
             queryClient.invalidateQueries({ queryKey: ["standards"] })
             onOpenChange(false)
-            toast.success(showMajorWarning ? "Major revision created (v" + (standard.revision + 1).toFixed(1) + ")" : "Standard updated successfully")
+            toast.success(showMajorWarning ? t("standards.majorRevision.success", "Major revision created (v{{ver}})", { ver: (standard.revision + 1).toFixed(1) }) : t("standards.editDialog.success", "Standard updated successfully"))
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.error?.message || "Failed to update standard")
+            toast.error(error?.response?.data?.error?.message || t("standards.editDialog.error", "Failed to update standard"))
         },
     })
 
@@ -115,9 +117,9 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Edit Standard: {standard.code}</DialogTitle>
+                    <DialogTitle>{t("standards.editDialog.title", "Edit Standard")}: {standard.code}</DialogTitle>
                     <DialogDescription>
-                        Update standard details. Major changes will trigger a new revision.
+                        {t("standards.editDialog.description", "Update standard details. Major changes will trigger a new revision.")}
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -125,28 +127,28 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                     <div className="space-y-4 py-4">
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Major Revision Detected</AlertTitle>
+                            <AlertTitle>{t("standards.majorRevision.title", "Major Revision Detected")}</AlertTitle>
                             <AlertDescription>
-                                You have modified fields that affect regulatory compliance (Validity, Assessment Criteria, etc.).
+                                {t("standards.majorRevision.description", "You have modified fields that affect regulatory compliance...")}
                                 <br /><br />
-                                This will:
+                                {t("standards.majorRevision.implications", "This will:")}
                                 <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>Create a new version <strong>v{(Math.floor(standard.revision) + 1).toFixed(1)}</strong></li>
-                                    <li>Archive the current version <strong>v{standard.revision}</strong></li>
-                                    <li>Existing training records will remain linked to v{standard.revision}</li>
+                                    <li>{t("standards.majorRevision.newVersion", "Create a new version v{{ver}}", { ver: (Math.floor(standard.revision) + 1).toFixed(1) })}</li>
+                                    <li>{t("standards.majorRevision.archive", "Archive the current version v{{ver}}", { ver: standard.revision })}</li>
+                                    <li>{t("standards.majorRevision.records", "Existing training records will remain linked to v{{ver}}", { ver: standard.revision })}</li>
                                 </ul>
                             </AlertDescription>
                         </Alert>
                         <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setShowMajorWarning(false)}>Back to Edit</Button>
-                            <Button onClick={() => updateMutation.mutate(formData)}>Confirm Major Revision</Button>
+                            <Button variant="outline" onClick={() => setShowMajorWarning(false)}>{t("common.back", "Back to Edit")}</Button>
+                            <Button onClick={() => updateMutation.mutate(formData)}>{t("standards.majorRevision.confirm", "Confirm Major Revision")}</Button>
                         </div>
                     </div>
                 ) : (
                     <>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="isActive" className="text-right">Status</Label>
+                                <Label htmlFor="isActive" className="text-right">{t("common.status", "Status")}</Label>
                                 <div className="col-span-3 flex items-center gap-2">
                                     <Switch
                                         id="isActive"
@@ -154,12 +156,12 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                         onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                                     />
                                     <Label htmlFor="isActive" className="font-normal text-muted-foreground">
-                                        {formData.isActive ? "Active" : "Inactive"}
+                                        {formData.isActive ? t("standards.active", "Active") : t("standards.inactive", "Inactive")}
                                     </Label>
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="name" className="text-right">Name</Label>
+                                <Label htmlFor="name" className="text-right">{t("common.name", "Name")}</Label>
                                 <Input
                                     id="name"
                                     className="col-span-3"
@@ -168,7 +170,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="description" className="text-right mt-2">Description</Label>
+                                <Label htmlFor="description" className="text-right mt-2">{t("common.description", "Description")}</Label>
                                 <div className="col-span-3">
                                     <textarea
                                         id="description"
@@ -179,7 +181,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="objectives" className="text-right mt-2">Objectives</Label>
+                                <Label htmlFor="objectives" className="text-right mt-2">{t("standards.objectives", "Objectives")}</Label>
                                 <div className="col-span-3">
                                     <textarea
                                         id="objectives"
@@ -191,12 +193,12 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                             </div>
 
                             <div className="grid grid-cols-4 items-center gap-4 border-t pt-4 mt-2">
-                                <Label className="text-right font-semibold">Critical Fields</Label>
-                                <div className="col-span-3 text-xs text-muted-foreground">Changes below trigger Major Revision</div>
+                                <Label className="text-right font-semibold">{t("standards.criticalFields", "Critical Fields")}</Label>
+                                <div className="col-span-3 text-xs text-muted-foreground">{t("standards.majorRevision.warning", "Changes below trigger Major Revision")}</div>
                             </div>
 
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="validity" className="text-right">Validity (months)</Label>
+                                <Label htmlFor="validity" className="text-right">{t("standards.validity", "Validity")} ({t("common.months", "months")})</Label>
                                 <Input
                                     id="validity"
                                     type="number"
@@ -206,7 +208,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label className="text-right">Has Theory</Label>
+                                <Label className="text-right">{t("standards.hasTheory", "Has Theory")}</Label>
                                 <div className="col-span-3 space-y-4">
                                     <div className="flex items-center gap-4">
                                         <Switch
@@ -215,7 +217,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                         />
                                         {formData.hasTheory && (
                                             <div className="flex items-center gap-2">
-                                                <Label>Pass %</Label>
+                                                <Label>{t("common.passPercent", "Pass %")}</Label>
                                                 <Input
                                                     type="number"
                                                     className="w-20"
@@ -228,7 +230,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                     
                                     {formData.hasTheory && (
                                         <div className="space-y-2 rounded-md border p-3">
-                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Allowed Assessment Methods</Label>
+                                            <Label className="text-xs font-semibold text-muted-foreground uppercase">{t("standards.allowedMethods", "Allowed Assessment Methods")}</Label>
                                             <div className="flex flex-wrap gap-4 pt-1">
                                                 {["written", "oral", "computer"].map((method) => (
                                                     <div key={method} className="flex items-center space-x-2">
@@ -253,7 +255,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                                             htmlFor={`edit-method-${method}`}
                                                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
                                                         >
-                                                            {method}
+                                                            {t(`standards.methods.${method}`, method)}
                                                         </label>
                                                     </div>
                                                 ))}
@@ -263,7 +265,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label className="text-right">Has Practical</Label>
+                                <Label className="text-right">{t("standards.hasPractical", "Has Practical")}</Label>
                                 <div className="col-span-3 flex items-center gap-4">
                                     <Switch
                                         checked={formData.hasPractical}
@@ -271,7 +273,7 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                                     />
                                     {formData.hasPractical && (
                                         <div className="flex items-center gap-2">
-                                            <Label>Pass %</Label>
+                                            <Label>{t("common.passPercent", "Pass %")}</Label>
                                             <Input
                                                 type="number"
                                                 className="w-20"
@@ -284,12 +286,12 @@ export function EditStandardDialog({ standard, open, onOpenChange }: EditStandar
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                            <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("common.cancel", "Cancel")}</Button>
                             <Button
                                 onClick={handleSubmit}
                                 disabled={updateMutation.isPending || !formData.name}
                             >
-                                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                {updateMutation.isPending ? t("common.saving", "Saving...") : t("common.saveChanges", "Save Changes")}
                             </Button>
                         </DialogFooter>
                     </>

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { standards, materialActions, sessions } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
@@ -41,6 +42,7 @@ interface Material {
 }
 
 export default function StandardDetailPage() {
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const queryClient = useQueryClient()
@@ -183,7 +185,7 @@ export default function StandardDetailPage() {
                     <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold">{standard.code}</h1>
                         <Badge variant={standard.isActive ? "default" : "secondary"}>
-                            {standard.isActive ? "Active" : "Inactive"}
+                            {standard.isActive ? t("standards.active", "Active") : t("standards.inactive", "Inactive")}
                         </Badge>
                         <RevisionBadge 
                             revision={standard.revision} 
@@ -195,12 +197,12 @@ export default function StandardDetailPage() {
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => setIsHistoryOpen(true)}>
                         <History className="mr-2 h-4 w-4" />
-                        History
+                        {t("standards.history", "History")}
                     </Button>
                     {canManage && (
                         <Button onClick={() => setIsEditOpen(true)} size="sm">
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit
+                            {t("standards.edit", "Edit")}
                         </Button>
                     )}
                 </div>
@@ -208,49 +210,49 @@ export default function StandardDetailPage() {
 
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="materials">Materials</TabsTrigger>
-                    <TabsTrigger value="sessions">Sessions</TabsTrigger>
-                    {canManage && <TabsTrigger value="checks">Check Configuration</TabsTrigger>}
+                    <TabsTrigger value="overview">{t("standards.tabs.overview", "Overview")}</TabsTrigger>
+                    <TabsTrigger value="materials">{t("standards.tabs.materials", "Materials")}</TabsTrigger>
+                    <TabsTrigger value="sessions">{t("standards.tabs.sessions", "Sessions")}</TabsTrigger>
+                    {canManage && <TabsTrigger value="checks">{t("standards.tabs.checks", "Check Configuration")}</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-3">
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Validity</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t("standards.validity", "Validity")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {standard.validityMonths || "-"} months
+                                    {standard.validityMonths || "-"} {t("common.months", "months")}
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Theory Assessment</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t("checks.theoryAssessment", "Theory Assessment")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {standard.hasTheory ? (
                                     <div className="text-2xl font-bold text-green-600">
-                                        {standard.theoryPassScore || 70}% to pass
+                                        {standard.theoryPassScore || 70}% {t("standards.toPass", "to pass")}
                                     </div>
                                 ) : (
-                                    <div className="text-muted-foreground">Not required</div>
+                                    <div className="text-muted-foreground">{t("standards.notRequired", "Not required")}</div>
                                 )}
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Practical Assessment</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t("checks.practicalAssessment", "Practical Assessment")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {standard.hasPractical ? (
                                     <div className="text-2xl font-bold text-blue-600">
-                                        {standard.practicalPassScore || 70}% to pass
+                                        {standard.practicalPassScore || 70}% {t("standards.toPass", "to pass")}
                                     </div>
                                 ) : (
-                                    <div className="text-muted-foreground">Not required</div>
+                                    <div className="text-muted-foreground">{t("standards.notRequired", "Not required")}</div>
                                 )}
                             </CardContent>
                         </Card>
@@ -259,7 +261,7 @@ export default function StandardDetailPage() {
                     {standard.description && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Description</CardTitle>
+                                <CardTitle>{t("standards.description", "Description")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p>{standard.description}</p>
@@ -270,8 +272,9 @@ export default function StandardDetailPage() {
                     {standard.objectives && standard.objectives.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Learning Objectives</CardTitle>
+                                <CardTitle>{t("standards.learningObjectives", "Learning Objectives")}</CardTitle>
                             </CardHeader>
+
                             <CardContent>
                                 <ul className="list-disc list-inside space-y-1">
                                     {standard.objectives.map((obj: string, i: number) => (
@@ -285,34 +288,34 @@ export default function StandardDetailPage() {
 
                 <TabsContent value="materials" className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">Training Materials</h2>
+                        <h2 className="text-lg font-semibold">{t("standards.materials.title", "Training Materials")}</h2>
                         {canUpload && (
                             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
                                 <DialogTrigger asChild>
                                     <Button size="sm">
                                         <Upload className="mr-2 h-4 w-4" />
-                                        Upload Material
+                                        {t("standards.materials.upload", "Upload Material")}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Upload Training Material</DialogTitle>
+                                        <DialogTitle>{t("standards.materials.uploadTitle", "Upload Training Material")}</DialogTitle>
                                         <DialogDescription>
-                                            Upload a new version of training material
+                                            {t("standards.materials.uploadDesc", "Upload a new version of training material")}
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-4">
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label className="text-right">Title</Label>
+                                            <Label className="text-right">{t("common.title", "Title")}</Label>
                                             <Input
                                                 className="col-span-3"
                                                 value={uploadData.title}
                                                 onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
-                                                placeholder="Material title"
+                                                placeholder={t("standards.materials.titlePlaceholder", "Material title")}
                                             />
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label className="text-right">Type</Label>
+                                            <Label className="text-right">{t("common.type", "Type")}</Label>
                                             <Select
                                                 value={uploadData.type}
                                                 onValueChange={(v) => setUploadData({ ...uploadData, type: v })}
@@ -321,15 +324,15 @@ export default function StandardDetailPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="pdf">PDF Document</SelectItem>
-                                                    <SelectItem value="video">Video</SelectItem>
-                                                    <SelectItem value="procedure">Procedure</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
+                                                    <SelectItem value="pdf">{t("standards.materials.types.pdf", "PDF Document")}</SelectItem>
+                                                    <SelectItem value="video">{t("standards.materials.types.video", "Video")}</SelectItem>
+                                                    <SelectItem value="procedure">{t("standards.materials.types.procedure", "Procedure")}</SelectItem>
+                                                    <SelectItem value="other">{t("standards.materials.types.other", "Other")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label className="text-right">File</Label>
+                                            <Label className="text-right">{t("common.file", "File")}</Label>
                                             <Input
                                                 type="file"
                                                 className="col-span-3"
@@ -342,7 +345,7 @@ export default function StandardDetailPage() {
                                             onClick={() => uploadMutation.mutate()}
                                             disabled={uploadMutation.isPending || !uploadData.title || !selectedFile}
                                         >
-                                            {uploadMutation.isPending ? "Uploading..." : "Upload"}
+                                            {uploadMutation.isPending ? t("common.uploading", "Uploading...") : t("common.upload", "Upload")}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -354,19 +357,19 @@ export default function StandardDetailPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Title</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead className="text-center">Version</TableHead>
-                                    <TableHead className="text-center">Status</TableHead>
-                                    <TableHead>Uploaded By</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>{t("common.title", "Title")}</TableHead>
+                                    <TableHead>{t("common.type", "Type")}</TableHead>
+                                    <TableHead className="text-center">{t("common.version", "Version")}</TableHead>
+                                    <TableHead className="text-center">{t("common.status", "Status")}</TableHead>
+                                    <TableHead>{t("standards.materials.uploadedBy", "Uploaded By")}</TableHead>
+                                    <TableHead className="text-right">{t("common.actions", "Actions")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {!materialsData || materialsData.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                            No materials uploaded yet
+                                            {t("standards.materials.empty", "No materials uploaded yet")}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -392,7 +395,7 @@ export default function StandardDetailPage() {
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => handleDownload(m.id)}
-                                                        title="Download"
+                                                        title={t("common.download", "Download")}
                                                     >
                                                         <Download className="h-4 w-4" />
                                                     </Button>
@@ -402,7 +405,7 @@ export default function StandardDetailPage() {
                                                             size="icon"
                                                             onClick={() => approveMutation.mutate(m.id)}
                                                             disabled={approveMutation.isPending}
-                                                            title="Approve"
+                                                            title={t("common.approve", "Approve")}
                                                         >
                                                             <Check className="h-4 w-4 text-green-600" />
                                                         </Button>
@@ -413,7 +416,7 @@ export default function StandardDetailPage() {
                                                             size="icon"
                                                             onClick={() => archiveMutation.mutate(m.id)}
                                                             disabled={archiveMutation.isPending}
-                                                            title="Archive"
+                                                            title={t("common.archive", "Archive")}
                                                         >
                                                             <Archive className="h-4 w-4" />
                                                         </Button>
@@ -431,9 +434,9 @@ export default function StandardDetailPage() {
                 <TabsContent value="sessions" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Related Sessions</CardTitle>
+                            <CardTitle>{t("standards.sessions.title", "Related Sessions")}</CardTitle>
                             <CardDescription>
-                                Training sessions linked to this standard
+                                {t("standards.sessions.subtitle", "Training sessions linked to this standard")}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -441,33 +444,33 @@ export default function StandardDetailPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Programme</TableHead>
-                                            <TableHead>Dates</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Location</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+                                            <TableHead>{t("standards.sessions.campaign", "Campaign")}</TableHead>
+                                            <TableHead>{t("common.dates", "Dates")}</TableHead>
+                                            <TableHead>{t("common.type", "Type")}</TableHead>
+                                            <TableHead>{t("common.location", "Location")}</TableHead>
+                                            <TableHead>{t("common.status", "Status")}</TableHead>
+                                            <TableHead className="text-right">{t("common.actions", "Actions")}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {isSessionsLoading ? (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                    Loading sessions...
+                                                    {t("common.loading", "Loading sessions...")}
                                                 </TableCell>
                                             </TableRow>
                                         ) : !sessionsData?.data || sessionsData.data.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                    No sessions found for this standard
+                                                    {t("standards.sessions.empty", "No sessions found for this standard")}
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
                                             sessionsData.data.map((session: any) => (
                                                 <TableRow key={session.id}>
                                                     <TableCell>
-                                                        <div className="font-medium">{session.programme?.name}</div>
-                                                        <div className="text-xs text-muted-foreground">{session.programme?.code}</div>
+                                                        <div className="font-medium">{session.campaign?.name || session.programme?.name || "-"}</div>
+                                                        <div className="text-xs text-muted-foreground">{session.campaign?.code || session.programme?.code}</div>
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="text-sm">
@@ -475,7 +478,9 @@ export default function StandardDetailPage() {
                                                             {session.dateEnd && ` - ${new Date(session.dateEnd).toLocaleDateString()}`}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="capitalize">{session.sessionType || "-"}</TableCell>
+                                                    <TableCell className="capitalize">
+                                                        {session.sessionType ? t(`standards.sessions.types.${session.sessionType}`, session.sessionType) as string : "-"}
+                                                    </TableCell>
                                                     <TableCell>{session.location}</TableCell>
                                                     <TableCell>
                                                         <Badge variant={
@@ -483,12 +488,12 @@ export default function StandardDetailPage() {
                                                             session.status === 'cancelled' ? 'destructive' :
                                                             session.status === 'in_progress' ? 'secondary' : 'outline'
                                                         }>
-                                                            {session.status}
+                                                            {t(`standards.sessions.status.${session.status}`, session.status) as string}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="sm" onClick={() => navigate(`/sessions/${session.id}`)}>
-                                                            View
+                                                            {t("common.view", "View")}
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -505,11 +510,10 @@ export default function StandardDetailPage() {
                     <TabsContent value="checks" className="space-y-4">
                         <div className="flex items-center gap-2 mb-4">
                             <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
-                            <h2 className="text-lg font-semibold">Proficiency Check Configuration</h2>
+                            <h2 className="text-lg font-semibold">{t("standards.checks.title", "Proficiency Check Configuration")}</h2>
                         </div>
                         <p className="text-sm text-muted-foreground mb-4">
-                            Define the items that will be assessed during proficiency checks for this standard.
-                            These items will be available when scheduling checks.
+                            {t("standards.checks.description", "Define the items that will be assessed during proficiency checks for this standard. These items will be available when scheduling checks.")}
                         </p>
                         <CheckConfigurationEditor standardId={id!} />
                     </TabsContent>

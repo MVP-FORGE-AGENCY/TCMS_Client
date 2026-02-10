@@ -383,6 +383,7 @@ export interface Curriculum {
     type: CurriculumType;
     validityMonths?: number;
     standardTags: string[];
+    standards?: { id: string, code: string, name: string }[];
     description?: string;
     isActive: boolean;
     revision: number;
@@ -463,6 +464,7 @@ export interface Campaign {
         name: string;
         type: CurriculumType;
         validityMonths?: number;
+        standards?: { id: string, code: string, name: string }[];
     };
     dateRangeStart: string;
     dateRangeEnd: string;

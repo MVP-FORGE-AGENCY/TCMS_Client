@@ -634,9 +634,20 @@ export default function CampaignDetailPage() {
                                 {campaign.status}
                             </Badge>
                         </div>
-                        <p className="text-muted-foreground">
-                            {campaign.curriculum?.name}
-                        </p>
+                            <div className="flex flex-col gap-1">
+                                <p className="text-muted-foreground">
+                                    {campaign.curriculum?.name}
+                                </p>
+                                {campaign.curriculum?.standards && campaign.curriculum.standards.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {campaign.curriculum.standards.map((std: any) => (
+                                            <Badge key={std.id} variant="outline" className="text-xs bg-slate-50 dark:bg-slate-900/50">
+                                                {std.code} - {std.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                     </div>
                 </div>
                 <div className="flex gap-2">

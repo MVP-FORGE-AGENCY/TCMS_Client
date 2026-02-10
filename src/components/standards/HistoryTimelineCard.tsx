@@ -24,7 +24,10 @@ interface RevisionHistoryItemProps {
     isLast: boolean
 }
 
+import { useTranslation } from "react-i18next"
+
 export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: RevisionHistoryItemProps) {
+    const { t } = useTranslation()
     const isCurrent = revision.status === 'current'
     
     // Formatting helpers
@@ -44,7 +47,7 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
             <div className={cn("p-2 rounded-md", isChanged ? "bg-amber-50 dark:bg-amber-950/30" : "")}>
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-muted-foreground uppercase">{label}</span>
-                    {isChanged && <span className="text-[10px] text-amber-600 font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50">Changed</span>}
+                    {isChanged && <span className="text-[10px] text-amber-600 font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50">{t("common.changed", "Changed")}</span>}
                 </div>
                 <div className="mt-1 text-sm">
                     {render ? render(value) : (value?.toString() || "-")}
@@ -85,28 +88,28 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
                 >
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-lg font-bold">Revision {revision.revision}</span>
+                            <span className="text-lg font-bold">{t("standards.revisionHistory.revision", "Revision")} {revision.revision}</span>
                             {isCurrent ? (
                                 <Badge variant="default" className="gap-1 pl-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Current
+                                    <CheckCircle2 className="h-3 w-3" /> {t("standards.revisionHistory.current", "Current")}
                                 </Badge>
                             ) : (
                                 <Badge variant="secondary" className="gap-1 pl-1 text-muted-foreground">
-                                    <Archive className="h-3 w-3" /> Archived
+                                    <Archive className="h-3 w-3" /> {t("standards.revisionHistory.archived", "Archived")}
                                 </Badge>
                             )}
                             <span className="text-xs text-muted-foreground ml-2">
-                                {revision.revision === 1 ? "Initial Version" : `Created ${formatDate(revision.validFrom || revision.createdAt)}`}
+                                {revision.revision === 1 ? t("standards.revisionHistory.initialVersion", "Initial Version") : `${t("standards.revisionHistory.created", "Created")} ${formatDate(revision.validFrom || revision.createdAt)}`}
                             </span>
                         </div>
                         <div className="text-sm text-muted-foreground">
                             {revision.isActive ? (
                                 <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
-                                    Active since {formatDate(revision.validFrom)}
+                                    {t("standards.revisionHistory.activeSince", "Active since")} {formatDate(revision.validFrom)}
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-1">
-                                    Active: {formatDate(revision.validFrom)} - {formatDate(revision.validUntil)}
+                                    {t("standards.revisionHistory.activeRange", "Active: {{from}} - {{to}}", { from: formatDate(revision.validFrom), to: formatDate(revision.validUntil) })}
                                 </span>
                             )}
                         </div>
@@ -114,23 +117,20 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
 
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         {revision.sessionsCount !== undefined && (
-                            <div className="flex items-center gap-1" title={`${revision.sessionsCount} sessions used this revision`}>
+                            <div className="flex items-center gap-1" title={t("standards.revisionHistory.sessionsUsed", "{{count}} sessions used this revision", { count: revision.sessionsCount })}>
                                 <Users className="h-4 w-4" />
-                                <span>{revision.sessionsCount} sessions</span>
+                                <span>{revision.sessionsCount} {t("standards.revisionHistory.sessions", "sessions")}</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Changes Summary (Always Visible if not expanded, or part of expanded?) 
-                    Actually prompt says "collapsed view: shows changes summary". 
-                    Let's show it always in collapsed, and maybe simplified in expanded. 
-                */}
+                {/* Changes Summary */}
                 {!isExpanded && (
                     <div className="px-4 pb-4">
                         {revision.changesSummary && revision.changesSummary.length > 0 ? (
                             <div className="space-y-1 mt-2">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase">Changes</p>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase">{t("standards.revisionHistory.changes", "Changes")}</p>
                                 <ul className="space-y-1">
                                     {revision.changesSummary.map((change: string, idx: number) => (
                                         <li key={idx} className="text-sm flex items-start gap-2">
@@ -142,7 +142,7 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
                             </div>
                         ) : (
                             <p className="text-sm text-muted-foreground italic mt-2">
-                                {revision.revision === 1 ? "Initial standard definition" : "No summary available"}
+                                {revision.revision === 1 ? t("standards.revisionHistory.initialDef", "Initial standard definition") : t("standards.revisionHistory.noSummary", "No summary available")}
                             </p>
                         )}
                     </div>
@@ -155,47 +155,47 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
                             {/* General Info */}
                             <div className="space-y-4">
                                 <h4 className="font-semibold flex items-center gap-2">
-                                    <Info className="h-4 w-4" /> General Settings
+                                    <Info className="h-4 w-4" /> {t("standards.revisionHistory.generalSettings", "General Settings")}
                                 </h4>
                                 <div className="grid gap-3">
-                                    <FieldValue field="name" label="Standard Name" value={snap.name} />
-                                    <FieldValue field="description" label="Description" value={snap.description} />
-                                    <FieldValue field="objectives" label="Objectives" value={snap.objectives} 
+                                    <FieldValue field="name" label={t("standards.history.standardName", "Standard Name")} value={snap.name} />
+                                    <FieldValue field="description" label={t("common.description", "Description")} value={snap.description} />
+                                    <FieldValue field="objectives" label={t("standards.objectives", "Objectives")} value={snap.objectives} 
                                         render={(val: string) => (
                                            <div className="whitespace-pre-wrap text-xs font-mono bg-background p-2 rounded border border-input/50 max-h-32 overflow-y-auto">
                                                {val}
                                            </div>
                                         )} 
                                     />
-                                    <FieldValue field="departmentTag" label="Department" value={snap.departmentTag} />
-                                    <FieldValue field="validityMonths" label="Validity" value={snap.validityMonths} render={v => `${v} months`} />
+                                    <FieldValue field="departmentTag" label={t("common.department", "Department")} value={snap.departmentTag} />
+                                    <FieldValue field="validityMonths" label={t("standards.validity", "Validity")} value={snap.validityMonths} render={v => `${v} ${t("common.months", "months")}`} />
                                 </div>
                             </div>
 
                             {/* Requirements */}
                             <div className="space-y-4">
                                 <h4 className="font-semibold flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4" /> Requirements
+                                    <CheckCircle2 className="h-4 w-4" /> {t("standards.revisionHistory.requirements", "Requirements")}
                                 </h4>
                                 
                                 <div className="space-y-4">
                                     {/* Theory */}
                                     <div className={cn("p-3 rounded-md border", snap.hasTheory ? "bg-background" : "bg-muted/50 opacity-70")}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">Theory Component</span>
+                                            <span className="font-medium">{t("standards.revisionHistory.theoryComponent", "Theory Component")}</span>
                                             <Badge variant={snap.hasTheory ? "outline" : "secondary"}>
-                                                {snap.hasTheory ? "Enabled" : "Disabled"}
+                                                {snap.hasTheory ? t("standards.revisionHistory.enabled", "Enabled") : t("standards.revisionHistory.disabled", "Disabled")}
                                             </Badge>
                                         </div>
                                         {snap.hasTheory && (
                                             <div className="grid grid-cols-2 gap-4">
-                                                <FieldValue field="theoryPassScore" label="Pass Score" value={snap.theoryPassScore} render={v => `${v}%`} />
-                                                <FieldValue field="allowedMethods" label="Methods" value={snap.allowedMethods} 
+                                                <FieldValue field="theoryPassScore" label={t("standards.passScore", "Pass Score")} value={snap.theoryPassScore} render={v => `${v}%`} />
+                                                <FieldValue field="allowedMethods" label={t("standards.allowedMethods", "Methods")} value={snap.allowedMethods} 
                                                     render={(methods: string[]) => (
                                                         <div className="flex flex-wrap gap-1">
                                                             {methods?.map(m => (
                                                                 <Badge key={m} variant="secondary" className="text-[10px] capitalize">
-                                                                    {m}
+                                                                    {t(`standards.methods.${m}`, m)}
                                                                 </Badge>
                                                             ))}
                                                         </div>
@@ -208,14 +208,14 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
                                     {/* Practical */}
                                     <div className={cn("p-3 rounded-md border", snap.hasPractical ? "bg-background" : "bg-muted/50 opacity-70")}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">Practical Component</span>
+                                            <span className="font-medium">{t("standards.revisionHistory.practicalComponent", "Practical Component")}</span>
                                             <Badge variant={snap.hasPractical ? "outline" : "secondary"}>
-                                                {snap.hasPractical ? "Enabled" : "Disabled"}
+                                                {snap.hasPractical ? t("standards.revisionHistory.enabled", "Enabled") : t("standards.revisionHistory.disabled", "Disabled")}
                                             </Badge>
                                         </div>
                                         {snap.hasPractical && (
                                             <div className="grid grid-cols-2 gap-4">
-                                                <FieldValue field="practicalPassScore" label="Pass Score" value={snap.practicalPassScore} render={v => `${v}%`} />
+                                                <FieldValue field="practicalPassScore" label={t("standards.passScore", "Pass Score")} value={snap.practicalPassScore} render={v => `${v}%`} />
                                             </div>
                                         )}
                                     </div>
@@ -236,11 +236,11 @@ export function HistoryTimelineCard({ revision, isExpanded, onToggle, isLast }: 
                     <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs text-muted-foreground">
                         {isExpanded ? (
                             <>
-                                <ChevronUp className="h-3 w-3" /> Hide Details
+                                <ChevronUp className="h-3 w-3" /> {t("standards.revisionHistory.hideDetails", "Hide Details")}
                             </>
                         ) : (
                             <>
-                                <ChevronDown className="h-3 w-3" /> View Full Details
+                                <ChevronDown className="h-3 w-3" /> {t("standards.revisionHistory.viewDetails", "View Full Details")}
                             </>
                         )}
                     </Button>
