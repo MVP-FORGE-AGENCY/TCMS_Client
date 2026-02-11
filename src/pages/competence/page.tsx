@@ -215,10 +215,10 @@ export default function CompetenceDashboard() {
                 }}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                         <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <SelectValue placeholder="All Employees" />
+                        <SelectValue placeholder={t('common.allEmployees')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Employees</SelectItem>
+                        <SelectItem value="all">{t('common.allEmployees')}</SelectItem>
                         {employees.map(emp => (
                             <SelectItem key={emp.id} value={emp.id}>{emp.fullName}</SelectItem>
                         ))}

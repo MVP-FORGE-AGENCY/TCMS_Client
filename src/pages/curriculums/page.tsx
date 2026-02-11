@@ -200,7 +200,7 @@ export default function CurriculumsPage() {
                                                 curriculum.isActive ? getTypeColor(curriculum.type) : ''
                                             )}
                                         >
-                                            {curriculum.type}
+                                            {t(`curriculums.types.${curriculum.type}`, curriculum.type)}
                                         </Badge>
                                     </div>
                                 </div>

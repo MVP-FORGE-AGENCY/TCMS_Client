@@ -74,7 +74,10 @@
         "hours": "hours",
         "fullDay": "full day",
         "collapseSidebar": "Collapse sidebar",
-        "expandSidebar": "Expand sidebar"
+        "expandSidebar": "Expand sidebar",
+        "organization": "Organization",
+        "allEmployees": "All Employees",
+        "areaOfActivity": "Area of Activity"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -326,17 +329,21 @@
             "employee": "Employee",
             "auditor": "Auditor"
         },
+        "tabs": {
+            "employees": "Employees",
+            "auditors": "Auditors"
+        },
+        "noInactive": "No inactive employees found",
+        "inactiveDesc": "Inactive employees will appear here.",
         "toast": {
             "created": "Employee created successfully",
             "updated": "Employee updated successfully",
             "deleted": "Employee deleted successfully",
             "createError": "Failed to create employee",
             "updateError": "Failed to update employee",
-            "deleteError": "Failed to delete employee"
-        },
-        "tabs": {
-            "employees": "Employees",
-            "auditors": "Auditors"
+            "deleteError": "Failed to delete employee",
+            "activated": "Employee activated successfully",
+            "deactivated": "Employee deactivated successfully"
         },
         "auditors": {
             "noAuditorsTitle": "No Auditors Found",
@@ -664,6 +671,10 @@
         "regulatoryLibrary": "Regulatory Library",
         "regulatoryLibraryDesc": "Manage training standards and regulatory requirements.",
         "complianceSettings": "Compliance Settings",
+        "myProfile": "My Profile",
+        "myProfileDesc": "Your account information and role details.",
+        "configureGlobal": "Configure global application settings.",
+        "selectLanguage": "Select your preferred language.",
         "tabs": {
             "general": "General",
             "compliance": "Compliance",
@@ -1185,6 +1196,7 @@
         "admin": "Admin",
         "training_manager": "Training Manager",
         "instructor": "Instructor",
-        "assessor": "Assessor"
+        "assessor": "Assessor",
+        "employee": "Employee"
     }
 }

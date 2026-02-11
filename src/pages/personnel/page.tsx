@@ -17,9 +17,10 @@ import { api, auth, employees as employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Plus, Users, ShieldCheck } from "lucide-react"
+import { Plus, Users, ShieldCheck, UserX, UserCheck } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "react-i18next"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function PersonnelPage() {
     const { t } = useTranslation()
@@ -29,11 +30,15 @@ export default function PersonnelPage() {
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
     const [isAuditorModalOpen, setIsAuditorModalOpen] = useState(false)
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+    const [statusFilter, setStatusFilter] = useState<'active' | 'inactive'>('active')
 
     const fetchEmployees = async () => {
         try {
             setIsLoading(true)
-            const response = await api.get("/employees")
+            // Pass status filter to API
+            const response = await api.get("/employees", {
+                params: { status: statusFilter }
+            })
             // Handle both array and paginated response structure
             const data = Array.isArray(response.data) ? response.data : (response.data?.data || [])
             setEmployees(Array.isArray(data) ? data : [])
@@ -47,7 +52,7 @@ export default function PersonnelPage() {
 
     useEffect(() => {
         fetchEmployees()
-    }, [])
+    }, [statusFilter]) // Refetch when filter changes
 
     const { user } = useAuth()
     const canEdit = ["admin", "training_manager", "super_admin"].includes(user?.role || "")
@@ -110,11 +115,12 @@ export default function PersonnelPage() {
     const handleStatusChange = async (id: string, isActive: boolean) => {
         try {
             await api.patch(`/employees/${id}`, { isActive })
-            toast.success(t("personnel.toast.updated", "Status updated successfully"))
-            // Optimistic update or refetch
-            setEmployees(prev => prev.map(emp => 
-                emp.id === id ? { ...emp, isActive } : emp
-            ))
+            
+            const action = isActive ? "activated" : "deactivated";
+            toast.success(t(`personnel.toast.${action}`, `Employee ${action} successfully`));
+            
+            // Remove from current list since filters are strict
+            setEmployees(prev => prev.filter(emp => emp.id !== id))
         } catch (error) {
             console.error("Failed to update status:", error)
             toast.error(t("personnel.toast.updateError", "Failed to update status"))
@@ -147,31 +153,59 @@ export default function PersonnelPage() {
                         {t("personnel.subtitle")}
                     </p>
                 </div>
-                {canEdit && (
-                  				<div className="flex gap-2 w-full sm:w-auto">
-					{canInviteAuditor && (
-						<Button variant="outline" onClick={() => setIsAuditorModalOpen(true)} className="w-full sm:w-auto">
-							<ShieldCheck className="mr-2 h-4 w-4" /> {t("personnel.auditors.addAuditor")}
-						</Button>
-					)}
-					{canCreate && (
-                        <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
-						    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
-					    </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    {/* Status Filter */}
+                    <div className="w-full sm:w-40">
+                        <Select
+                            value={statusFilter}
+                            onValueChange={(val) => setStatusFilter(val as 'active' | 'inactive')}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="active">
+                                    <div className="flex items-center gap-2">
+                                        <UserCheck className="h-4 w-4 text-green-600" />
+                                        <span>{t("common.active", "Active")}</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="inactive">
+                                     <div className="flex items-center gap-2">
+                                        <UserX className="h-4 w-4 text-muted-foreground" />
+                                        <span>{t("common.inactive", "Inactive")}</span>
+                                    </div>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {canEdit && (
+                        <>
+                            {canInviteAuditor && (
+                                <Button variant="outline" onClick={() => setIsAuditorModalOpen(true)} className="w-full sm:w-auto">
+                                    <ShieldCheck className="mr-2 h-4 w-4" /> {t("personnel.auditors.addAuditor")}
+                                </Button>
+                            )}
+                            {canCreate && statusFilter === 'active' && (
+                                <Button onClick={openCreateModal} className="w-full sm:w-auto justify-start sm:justify-center">
+                                    <Plus className="mr-2 h-4 w-4" /> {t("personnel.addEmployee")}
+                                </Button>
+                            )}
+                        </>
                     )}
-				</div>
-                )}
+                </div>
             </div>
 
             {isLoading ? (
                 <TableSkeleton columnCount={5} rowCount={10} />
             ) : employees.length === 0 ? (
                 <EmptyState
-                    icon={Users}
-                    title={t("common.noData")}
-                    description={t("common.getStarted")}
-                    actionLabel={canCreate ? t("personnel.addEmployee") : undefined}
-                    onAction={canCreate ? openCreateModal : undefined}
+                    icon={statusFilter === 'active' ? Users : UserX}
+                    title={statusFilter === 'active' ? t("common.noData") : t("personnel.noInactive", "No inactive employees found")}
+                    description={statusFilter === 'active' ? t("common.getStarted") : t("personnel.inactiveDesc", "Inactive employees will appear here.")}
+                    actionLabel={canCreate && statusFilter === 'active' ? t("personnel.addEmployee") : undefined}
+                    onAction={canCreate && statusFilter === 'active' ? openCreateModal : undefined}
                 />
             ) : (
                 <Tabs defaultValue="employees" className="w-full">
@@ -186,6 +220,7 @@ export default function PersonnelPage() {
                             onEdit={canEdit ? openEditModal : undefined}
                             onViewHistory={viewHistory}
                             onDelete={canEdit ? handleDelete : undefined}
+                            onStatusChange={canEdit ? handleStatusChange : undefined}
                             showTypeColumn={false}
                         />
                     </TabsContent>
@@ -228,11 +263,11 @@ export default function PersonnelPage() {
                 </DialogContent>
             </Dialog>
 
-            			<PersonnelHistoryModal
-				employee={selectedEmployee}
-				open={isHistoryOpen}
-				onOpenChange={setIsHistoryOpen}
-			/>
+            <PersonnelHistoryModal
+                employee={selectedEmployee}
+                open={isHistoryOpen}
+                onOpenChange={setIsHistoryOpen}
+            />
 
             <AuditorInviteModal 
                 open={isAuditorModalOpen} 

@@ -12,15 +12,7 @@ import {
 import { Globe, User, Mail, Shield, Building2, Briefcase } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 
-const roleLabels: Record<string, string> = {
-    super_admin: "Super Admin",
-    admin: "Administrator",
-    training_manager: "Training Manager",
-    instructor: "Instructor",
-    assessor: "Assessor",
-    employee: "Employee",
-    readonly: "Read Only",
-}
+// roleLabels removed in favor of translations
 
 const roleBadgeVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     super_admin: "destructive",
@@ -54,10 +46,10 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <User className="h-5 w-5" />
-                            My Profile
+                            {t("settings.myProfile")}
                         </CardTitle>
                         <CardDescription>
-                            Your account information and role details.
+                            {t("settings.myProfileDesc")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -70,14 +62,14 @@ export default function SettingsPage() {
                                     </span>
                                 </div>
                                 <Badge variant={roleBadgeVariants[user?.role || 'employee']}>
-                                    {roleLabels[user?.role || 'employee']}
+                                    {t(`roles.${user?.role || 'employee'}`)}
                                 </Badge>
                             </div>
 
                             {/* Info Section */}
                             <div className="flex-1 grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-1">
-                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">Full Name</Label>
+                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.fullName", "Full Name")}</Label>
                                     <p className="font-medium flex items-center gap-2">
                                         <User className="h-4 w-4 text-muted-foreground" />
                                         {user?.fullName || 'N/A'}
@@ -85,7 +77,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">Email</Label>
+                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.email", "Email")}</Label>
                                     <p className="font-medium flex items-center gap-2">
                                         <Mail className="h-4 w-4 text-muted-foreground" />
                                         {user?.email || 'N/A'}
@@ -93,15 +85,15 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">Role</Label>
+                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.role", "Role")}</Label>
                                     <p className="font-medium flex items-center gap-2">
                                         <Shield className="h-4 w-4 text-muted-foreground" />
-                                        {roleLabels[user?.role || 'employee']}
+                                        {t(`roles.${user?.role || 'employee'}`)}
                                     </p>
                                 </div>
 
                                 <div className="space-y-1">
-                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">Organization</Label>
+                                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.organization", "Organization")}</Label>
                                     <p className="font-medium flex items-center gap-2">
                                         <Building2 className="h-4 w-4 text-muted-foreground" />
                                         {user?.organisation?.name || (user?.role === 'super_admin' ? 'Platform Admin' : 'N/A')}
@@ -110,7 +102,7 @@ export default function SettingsPage() {
 
                                 {user?.departmentTag && (
                                     <div className="space-y-1">
-                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Department</Label>
+                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.department", "Department")}</Label>
                                         <p className="font-medium flex items-center gap-2">
                                             <Briefcase className="h-4 w-4 text-muted-foreground" />
                                             {user.departmentTag}
@@ -120,7 +112,7 @@ export default function SettingsPage() {
 
                                 {user?.areaOfActivity && (
                                     <div className="space-y-1">
-                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Area of Activity</Label>
+                                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">{t("common.areaOfActivity", "Area of Activity")}</Label>
                                         <p className="font-medium flex items-center gap-2">
                                             <Briefcase className="h-4 w-4 text-muted-foreground" />
                                             {user.areaOfActivity}
@@ -140,19 +132,19 @@ export default function SettingsPage() {
                             {t("settings.systemPreferences")}
                         </CardTitle>
                         <CardDescription>
-                            Configure global application settings.
+                            {t("settings.configureGlobal")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <Label>{t("settings.language")}</Label>
-                                <p className="text-sm text-muted-foreground">Select your preferred language.</p>
+                                <p className="text-sm text-muted-foreground">{t("settings.selectLanguage")}</p>
                             </div>
                             <div className="w-[180px]">
                                 <Select value={i18n.language.split('-')[0]} onValueChange={handleLanguageChange}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select Language" />
+                                        <SelectValue placeholder={t("settings.language")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="en">English</SelectItem>

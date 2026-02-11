@@ -25,11 +25,27 @@ interface ActionItemProps {
     onNavigate: (url: string) => void
 }
 
-const PRIORITY_CONFIG: Record<ActionItemPriority, { color: string; bgColor: string }> = {
-    critical: { color: 'text-red-700', bgColor: 'bg-red-100 dark:bg-red-950/40' },
-    high: { color: 'text-amber-700', bgColor: 'bg-amber-100 dark:bg-amber-950/40' },
-    medium: { color: 'text-blue-700', bgColor: 'bg-blue-100 dark:bg-blue-950/40' },
-    low: { color: 'text-slate-600', bgColor: 'bg-slate-100 dark:bg-slate-800' }
+const PRIORITY_CONFIG: Record<ActionItemPriority, { color: string; bgColor: string; hoverBg: string }> = {
+    critical: { 
+        color: 'text-red-700', 
+        bgColor: 'bg-red-100 dark:bg-red-950/40',
+        hoverBg: 'hover:bg-red-200 dark:hover:bg-red-900/60'
+    },
+    high: { 
+        color: 'text-amber-700', 
+        bgColor: 'bg-amber-100 dark:bg-amber-950/40',
+        hoverBg: 'hover:bg-amber-200 dark:hover:bg-amber-900/60'
+    },
+    medium: { 
+        color: 'text-blue-700', 
+        bgColor: 'bg-blue-100 dark:bg-blue-950/40',
+        hoverBg: 'hover:bg-blue-200 dark:hover:bg-blue-900/60'
+    },
+    low: { 
+        color: 'text-slate-600', 
+        bgColor: 'bg-slate-100 dark:bg-slate-800',
+        hoverBg: 'hover:bg-slate-200 dark:hover:bg-slate-700'
+    }
 }
 
 const TYPE_CONFIG: Record<ActionItemType, { icon: React.ElementType; label: string }> = {
@@ -57,8 +73,9 @@ function ActionItemRow({ item, onNavigate }: ActionItemProps) {
     return (
         <div 
             className={cn(
-                "flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-accent",
-                priorityConfig.bgColor
+                "flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer",
+                priorityConfig.bgColor,
+                priorityConfig.hoverBg
             )}
             onClick={() => onNavigate(item.targetUrl)}
         >
