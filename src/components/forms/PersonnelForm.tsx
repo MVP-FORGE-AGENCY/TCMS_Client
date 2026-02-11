@@ -34,6 +34,9 @@ const formSchema = z.object({
     role: z.string().min(1, {
         message: "Please select a role.",
     }),
+    userType: z.string().min(1, {
+        message: "Please select a user type.",
+    }),
     // organisationId: z.string().min(1, {
     //     message: "Please select an organisation.",
     // }),
@@ -71,6 +74,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
             fullName: "",
             email: "",
             role: "",
+            userType: "employee", // Default to employee
             // organisationId: "",
             areaOfActivity: "",
             employmentStart: new Date().toISOString().split("T")[0],
@@ -85,6 +89,7 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                 fullName: initialData.fullName,
                 email: "mock@example.com", // Mock email as it's not in the type yet
                 role: initialData.role,
+                userType: initialData.userType || "employee",
                 // organisationId: initialData.organisationId,
                 areaOfActivity: initialData.areaOfActivity || "",
                 employmentStart: initialData.employmentStart,
@@ -159,6 +164,28 @@ export function PersonnelForm({ initialData, onSubmit, onCancel }: PersonnelForm
                                         <SelectItem value="instructor">{t("personnel.roles.instructor")}</SelectItem>
                                         <SelectItem value="employee">{t("personnel.roles.employee")}</SelectItem>
                                         <SelectItem value="auditor">{t("personnel.roles.auditor")}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="userType"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t("personnel.userType", "User Type")}</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="employee">{t("personnel.types.employee", "Employee")}</SelectItem>
+                                        <SelectItem value="student">{t("personnel.types.student", "Student")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

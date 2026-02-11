@@ -33,6 +33,7 @@ const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage
 const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
 const ImportPage = lazy(() => import("@/pages/super-admin/ImportPage"))
 const AuditLogsPage = lazy(() => import("@/pages/audit-logs/page"))
+const ProtocolPage = lazy(() => import("@/pages/protocols/ProtocolViewer"))
 
 // Curriculum and Campaign routes
 const CurriculumsPage = lazy(() => import("@/pages/curriculums/page"))
@@ -40,6 +41,8 @@ const CurriculumBuilder = lazy(() => import("@/pages/curriculums/CurriculumBuild
 const CurriculumDetailPage = lazy(() => import("@/pages/curriculums/CurriculumDetailPage"))
 const CampaignsPage = lazy(() => import("@/pages/campaigns/page"))
 const CampaignDetailPage = lazy(() => import("@/pages/campaigns/CampaignDetailPage"))
+
+const VerifyProtocolPage = lazy(() => import("@/pages/public/VerifyProtocolPage"))
 
 function ProtectedRoute() {
   const { isAuthenticated, isLoading, user } = useAuth()
@@ -85,6 +88,9 @@ function App() {
                 }>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
+                    
+                    {/* Public Verification Route (Phase 1.3) */}
+                    <Route path="/verify" element={<VerifyProtocolPage />} />
     
                     <Route element={<ProtectedRoute />}>
                       <Route element={<Layout />}>
@@ -124,6 +130,9 @@ function App() {
                         <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
                         <Route path="/super-admin/organizations" element={<OrganizationsPage />} />
                         <Route path="/super-admin/import" element={<ImportPage />} />
+
+                        {/* Competence Protocols (Phase 2) */}
+                        <Route path="/protocols/:id" element={<ProtocolPage />} />
                       </Route>
                     </Route>
                     

@@ -240,6 +240,7 @@ export interface Employee {
     email?: string;
     organisationId: string;
     role: 'super_admin' | 'admin' | 'training_manager' | 'instructor' | 'assessor' | 'employee' | 'readonly' | 'auditor';
+    userType?: 'employee' | 'student'; // Phase 3.1
     areaOfActivity?: string | null;
     departmentTag?: string | null;
     employmentStart?: string;

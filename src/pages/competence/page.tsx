@@ -24,9 +24,10 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TrafficLightCard } from "@/components/ui/traffic-light-card"
-import { Filter, User } from "lucide-react"
+import { Filter, User, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
+import { toast } from "sonner"
 
 // Define types locally if not yet in global types
 interface CompetenceItem {
@@ -39,6 +40,7 @@ interface CompetenceItem {
     status: 'valid' | 'expiring_soon' | 'expired' | 'not_acquired'
     validUntil: string | null
     lastCompletionDate: string | null
+    protocolId?: string | null
 }
 
 interface CompetenceSummary {
@@ -337,9 +339,18 @@ export default function CompetenceDashboard() {
                                             {getStatusBadge(item.status)}
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${item.userId}/history`)}>
-                                                {t("competence.history")}
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/personnel/${item.userId}/history`)}>
+                                                    {t("competence.history")}
+                                                </Button>
+                                                {(item.status === 'valid' || item.status === 'expiring_soon') && item.protocolId && (
+                                                     <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="View Protocol" onClick={() => {
+                                                         navigate(`/protocols/${item.protocolId}`);
+                                                     }}>
+                                                        <ShieldCheck className="w-4 h-4" />
+                                                     </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))

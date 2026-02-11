@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, Award } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -41,6 +43,7 @@ const CheckDetailPage = () => {
     const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
     const [isSignModalOpen, setIsSignModalOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [password, setPassword] = useState('');
     const [selectedCandidate, setSelectedCandidate] = useState<{id: string, name: string} | null>(null);
 
     useEffect(() => {
@@ -101,6 +104,11 @@ const CheckDetailPage = () => {
 
 
     const handleFinalize = async () => {
+        if (!password) {
+            toast.error("Password is required to sign the protocol");
+            return;
+        }
+
         try {
             // Recalculate just in case
             const decision = getDerivedDecision();
@@ -108,10 +116,12 @@ const CheckDetailPage = () => {
 
             await api.patch(`/checks/${id}/finalise`, {
                 finalDecision: decision,
-                comments: comments
+                comments: comments,
+                password
             });
             toast.success(t('checks.checkFinalized', 'Check finalised successfully'));
             setIsFinalizeOpen(false);
+            setPassword('');
             fetchCheck();
         } catch (error: any) {
             console.error('Finalize error:', error);
@@ -669,6 +679,18 @@ const CheckDetailPage = () => {
                                 </div>
                             );
                         })}
+                        </div>
+
+                        <div className="mt-6 border-t pt-4">
+                            <Label htmlFor="signing-password">Enter your password to sign and finalize</Label>
+                            <Input 
+                                id="signing-password" 
+                                type="password" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                placeholder="Start typing..."
+                                className="mt-1.5"
+                            />
                         </div>
                     </div>
 

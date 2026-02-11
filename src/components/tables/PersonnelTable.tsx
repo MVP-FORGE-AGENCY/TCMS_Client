@@ -62,7 +62,19 @@ export function PersonnelTable({
         {
             accessorKey: "fullName",
             header: t("personnel.name"),
-            cell: ({ row }) => <div className="font-medium">{row.getValue("fullName")}</div>,
+            cell: ({ row }) => {
+                const userType = row.original.userType;
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="font-medium">{row.getValue("fullName")}</div>
+                        {userType === 'student' && (
+                            <Badge variant="outline" className="text-xs h-5 px-1.5 bg-blue-50 text-blue-700 border-blue-200">
+                                {t("personnel.types.student", "Student")}
+                            </Badge>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             accessorKey: "role",
