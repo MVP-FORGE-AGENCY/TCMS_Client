@@ -29,6 +29,7 @@ const ProcedureDetailPage = lazy(() => import("@/pages/procedures/ProcedureDetai
 const CompetenceDashboard = lazy(() => import("@/pages/competence/page"))
 const EmployeeHistoryPage = lazy(() => import("@/pages/competence/EmployeeHistoryPage"))
 const ChangePasswordPage = lazy(() => import("@/pages/auth/ChangePasswordPage"))
+const ForceChangePasswordPage = lazy(() => import("@/pages/auth/ForceChangePasswordPage"))
 const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/DashboardPage"))
 const OrganizationsPage = lazy(() => import("@/pages/super-admin/OrganizationsPage"))
 const ImportPage = lazy(() => import("@/pages/super-admin/ImportPage"))
@@ -63,6 +64,11 @@ function ProtectedRoute() {
   // const { user } = useAuth() // Moved to top
   if (user?.mustChangePassword && location.pathname !== "/change-password") {
     return <Navigate to="/change-password" replace />
+  }
+
+  // Phase 3.3: Password Expiry
+  if (user?.passwordExpired && location.pathname !== "/auth/force-change-password") {
+    return <Navigate to="/auth/force-change-password" replace />
   }
 
   // Allow access to /change-password manually
@@ -139,6 +145,7 @@ function App() {
                     {/* Independent Protected Route for Change Password to avoid Layout if needed, or keep inside */}
                      <Route element={<ProtectedRoute />}>
                         <Route path="/change-password" element={<ChangePasswordPage />} />
+                        <Route path="/auth/force-change-password" element={<ForceChangePasswordPage />} />
                      </Route>
     
                   </Routes>

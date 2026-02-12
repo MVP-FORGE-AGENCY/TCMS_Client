@@ -248,6 +248,9 @@ export interface Employee {
     isActive?: boolean;
     accountType?: 'internal' | 'external';
     mustChangePassword?: boolean;
+    passwordChangedAt?: string; // Phase 3.3
+    passwordExpiresInDays?: number | null; // Phase 3.3
+    passwordExpired?: boolean; // Phase 3.3
     organisation?: {
         id: string;
         name: string;

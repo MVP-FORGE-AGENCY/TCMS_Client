@@ -239,6 +239,31 @@ export function MyActions() {
                 }
             }
 
+            // Phase 3.3: Password Expiry Warning
+            if (user.role !== 'employee') {
+                const lastChange = user.passwordChangedAt ? new Date(user.passwordChangedAt) : null;
+                // If no date, assume fresh or handled by mustChangePassword flag
+                if (lastChange) {
+                    const daysSince = Math.floor((new Date().getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+                    const daysRemaining = 90 - daysSince;
+
+                    if (daysRemaining < 10) {
+                        const expiryDate = new Date(lastChange.getTime() + 90 * 24 * 60 * 60 * 1000);
+                        generatedActions.push({
+                            id: 'password-expiry-action',
+                            type: 'expiry_warning',
+                            title: t('actions.passwordExpiringTitle', 'Password Expiring Soon'),
+                            description: t('actions.passwordExpiringDesc', 'You have {{days}} days to change your password', { days: Math.max(0, daysRemaining) }),
+                            priority: 'critical',
+                            dueDate: expiryDate.toISOString(),
+                            targetUrl: '/profile', 
+                            entityType: 'competence', // Reusing existing type for icon
+                            createdAt: now.toISOString()
+                        });
+                    }
+                }
+            }
+
             // Sort by priority and due date
             const priorityOrder: Record<ActionItemPriority, number> = {
                 critical: 0,
