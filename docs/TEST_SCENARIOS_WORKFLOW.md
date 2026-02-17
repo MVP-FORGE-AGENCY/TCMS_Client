@@ -7,15 +7,17 @@ This document provides step-by-step test scenarios for the new workflow-driven f
 ## Prerequisites
 
 Before testing, ensure:
+
 1. The API server is running with migrations 028-031 applied
 2. You have an admin or training_manager account
 3. At least 5-10 test employees exist in the system
 
 ---
 
-## Scenario 1: Create a Curriculum (Replaces Programme + Profile)
+## Scenario 1: Create a Curriculum
 
 ### Goal
+
 Create a complete curriculum with both instruction and assessment modules.
 
 ### Steps
@@ -63,9 +65,10 @@ Create a complete curriculum with both instruction and assessment modules.
    - You should be redirected to the curriculums list
 
 ### Expected Result
+
 - Curriculum appears in the list with:
   - Blue "Recurrent" badge
-  - Shows "2 modules" 
+  - Shows "2 modules"
   - Shows "6h total"
   - Active status (green badge)
 
@@ -74,6 +77,7 @@ Create a complete curriculum with both instruction and assessment modules.
 ## Scenario 2: Create a Campaign (Bulk Scheduling)
 
 ### Goal
+
 Create a training campaign for Winter 2025 recurrent training.
 
 ### Steps
@@ -122,6 +126,7 @@ Create a training campaign for Winter 2025 recurrent training.
    - Verify the status badge changes to blue "Active"
 
 ### Expected Result
+
 - Campaign shows with:
   - Correct enrollment count
   - Progress bar (starts at 0%)
@@ -133,6 +138,7 @@ Create a training campaign for Winter 2025 recurrent training.
 ## Scenario 3: Exception-Based Grading
 
 ### Goal
+
 Grade a proficiency check using the new "click-to-deviate" interface.
 
 ### Steps
@@ -172,6 +178,7 @@ Grade a proficiency check using the new "click-to-deviate" interface.
      - All grades 2-5 with mandatory passes = Pass
 
 ### Expected Result
+
 - Grading legend shows color coding
 - Only deviated elements require comments
 - Overall result correctly calculated
@@ -182,6 +189,7 @@ Grade a proficiency check using the new "click-to-deviate" interface.
 ## Scenario 4: Schedule a Retake
 
 ### Goal
+
 Schedule a retake session for a failed trainee.
 
 ### Steps
@@ -213,6 +221,7 @@ Schedule a retake session for a failed trainee.
    - Clicking on the session shows link to original
 
 ### Expected Result
+
 - Retake session created with proper linkage
 - Original session shows "Has Retake" indicator
 - Retake counter increments for each attempt
@@ -222,6 +231,7 @@ Schedule a retake session for a failed trainee.
 ## Scenario 5: My Actions Dashboard
 
 ### Goal
+
 Verify the prioritized task list shows relevant actions.
 
 ### Steps
@@ -256,6 +266,7 @@ Verify the prioritized task list shows relevant actions.
      - Campaign progress alerts
 
 ### Expected Result
+
 - Actions filtered by user role
 - Priority correctly assigned based on urgency
 - Navigation works for all action types
@@ -265,6 +276,7 @@ Verify the prioritized task list shows relevant actions.
 ## Scenario 6: Visual Differentiation (Training vs Checking)
 
 ### Goal
+
 Verify the UI correctly distinguishes training and checking activities.
 
 ### Steps
@@ -289,6 +301,7 @@ Verify the UI correctly distinguishes training and checking activities.
    - Prevents confusion about event type
 
 ### Expected Result
+
 - Clear visual distinction between training and checking
 - Consistent terminology throughout
 
@@ -297,6 +310,7 @@ Verify the UI correctly distinguishes training and checking activities.
 ## API Endpoints Reference
 
 ### Curriculums
+
 ```
 GET    /api/v1/curriculums           - List all curriculums
 GET    /api/v1/curriculums/:id       - Get single curriculum with modules
@@ -307,6 +321,7 @@ DELETE /api/v1/curriculums/:id       - Delete curriculum
 ```
 
 ### Campaigns
+
 ```
 GET    /api/v1/campaigns             - List all campaigns
 GET    /api/v1/campaigns/:id         - Get campaign with enrollments
@@ -320,6 +335,7 @@ DELETE /api/v1/campaigns/:id         - Delete campaign
 ```
 
 ### Retakes
+
 ```
 POST   /api/v1/sessions/:id/schedule-retake - Create retake session
 GET    /api/v1/sessions/:id/retake-chain    - Get retake history
@@ -329,40 +345,44 @@ GET    /api/v1/sessions/:id/retake-chain    - Get retake history
 
 ## Database Tables Added
 
-| Table | Purpose |
-|-------|---------|
-| `curriculums` | Merged programme/profile definitions |
-| `curriculum_modules` | Instruction and assessment modules |
-| `campaigns` | Bulk scheduling containers |
-| `campaign_enrollments` | User assignments to campaigns |
+| Table                  | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `curriculums`          | Merged programme/profile definitions |
+| `curriculum_modules`   | Instruction and assessment modules   |
+| `campaigns`            | Bulk scheduling containers           |
+| `campaign_enrollments` | User assignments to campaigns        |
 
 ### New Columns on Existing Tables
 
-| Table | Column | Purpose |
-|-------|--------|---------|
-| `training_sessions` | `retake_of` | Links to original session |
-| `training_sessions` | `campaign_id` | Links to campaign |
-| `training_sessions` | `attempt_number` | Retake counter |
-| `proficiency_checks` | `retake_of` | Links to original check |
-| `proficiency_checks` | `campaign_id` | Links to campaign |
+| Table                | Column           | Purpose                   |
+| -------------------- | ---------------- | ------------------------- |
+| `training_sessions`  | `retake_of`      | Links to original session |
+| `training_sessions`  | `campaign_id`    | Links to campaign         |
+| `training_sessions`  | `attempt_number` | Retake counter            |
+| `proficiency_checks` | `retake_of`      | Links to original check   |
+| `proficiency_checks` | `campaign_id`    | Links to campaign         |
 
 ---
 
 ## Troubleshooting
 
 ### "Module not found" errors
+
 - Clear Vite cache: `rm -rf node_modules/.vite`
 - Restart dev server
 
 ### Types not exported
+
 - Ensure imports use `import type { ... }` for type-only imports
 - Check `verbatimModuleSyntax` in tsconfig
 
 ### Campaign not showing enrollments
+
 - Verify the curriculum exists
 - Check user permissions (admin/training_manager required)
 
 ### Retake button not appearing
+
 - Only shows for failed participants
 - Session must be completed
 - User must have scheduling permission
