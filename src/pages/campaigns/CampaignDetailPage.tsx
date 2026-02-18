@@ -494,7 +494,7 @@ export default function CampaignDetailPage() {
             setManualScheduling(true)
             const response = await api.post(`/campaigns/${id}/schedule-module`, {
                 ...manualScheduleForm,
-                participantIds: manualScheduleForm.selectedTraineeIds
+                userIds: manualScheduleForm.selectedTraineeIds
             })
             toast.success(t('campaigns.sessionsScheduled', '{count} session(s) scheduled', {
                 count: response.data.summary.sessionsCreated
@@ -902,206 +902,10 @@ export default function CampaignDetailPage() {
                             </Dialog>
 
                             {isManager && (
-                                <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline">
-                                            <Wand2 className="mr-2 h-4 w-4" />
-                                            {t('campaigns.autoSchedule', 'Auto-Schedule')}
-                                        </Button>
-                                    </DialogTrigger>
-                                    {/* ... rest of dialog content ... */}
-                                    <DialogContent className="max-h-[85vh] overflow-y-auto">
-                                        <DialogHeader>
-                                            <DialogTitle>{t('campaigns.autoScheduler', 'Auto-Scheduler')}</DialogTitle>
-                                            <DialogDescription>
-                                                {t('campaigns.autoSchedulerDesc', 'Automatically generate training sessions for all enrolled trainees.')}
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label>{t('campaigns.instructor', 'Default Instructor')}</Label>
-                                            <Select 
-                                                value={schedulerForm.instructorId}
-                                                onValueChange={(v) => setSchedulerForm({ ...schedulerForm, instructorId: v })}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {instructors.map((i) => (
-                                                        <SelectItem key={i.id} value={i.id}>
-                                                            {i.fullName}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {/* Per-module instructor selection */}
-                                        {curriculumModules.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label>{t('campaigns.instructorByModule', 'Instructor by Module')}</Label>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {t('campaigns.instructorByModuleDesc', 'Optionally assign different instructors per module. Leave blank to use default.')}
-                                                </p>
-                                                <div className="max-h-48 overflow-auto space-y-2 border rounded-md p-2">
-                                                    {curriculumModules.map(mod => (
-                                                        <div key={mod.id} className="flex items-center gap-2">
-                                                            <span className="w-40 text-sm truncate" title={mod.name}>
-                                                                {mod.name}
-                                                            </span>
-                                                            <Select 
-                                                                value={moduleInstructors[mod.id] || 'default'}
-                                                                onValueChange={(v) => setModuleInstructors({
-                                                                    ...moduleInstructors, 
-                                                                    [mod.id]: v === 'default' ? '' : v
-                                                                })}
-                                                            >
-                                                                <SelectTrigger className="flex-1">
-                                                                    <SelectValue placeholder={t('common.default', 'Default')} />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="default">
-                                                                        {t('common.default', 'Default')}
-                                                                    </SelectItem>
-                                                                    {instructors.map((i) => (
-                                                                        <SelectItem key={i.id} value={i.id}>
-                                                                            {i.fullName}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <Label>{t('campaigns.location', 'Location')}</Label>
-                                            <Input 
-                                                value={schedulerForm.location}
-                                                onChange={(e) => setSchedulerForm({ ...schedulerForm, location: e.target.value })}
-                                                placeholder="e.g., Training Center A"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>{t('campaigns.sessionDuration', 'Session Duration (hours)')}</Label>
-                                            <Select 
-                                                value={schedulerForm.sessionDurationHours?.toString()}
-                                                onValueChange={(v) => setSchedulerForm({ ...schedulerForm, sessionDurationHours: parseInt(v) })}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(hours => (
-                                                        <SelectItem key={hours} value={hours.toString()}>
-                                                            {hours} {hours === 1 ? t('common.hour', 'hour') : t('common.hours', 'hours')}
-                                                            {hours === 8 && ` (${t('common.fullDay', 'full day')})`}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label>{t('campaigns.preferredDays', 'Preferred Days')}</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const).map((day) => (
-                                                    <Button
-                                                        key={day}
-                                                        type="button"
-                                                        variant={schedulerForm.preferredDays?.includes(day) ? 'default' : 'outline'}
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            const currentDays = schedulerForm.preferredDays || []
-                                                            const newDays = currentDays.includes(day)
-                                                                ? currentDays.filter(d => d !== day)
-                                                                : [...currentDays, day]
-                                                            setSchedulerForm({ ...schedulerForm, preferredDays: newDays })
-                                                        }}
-                                                    >
-                                                        {day.charAt(0).toUpperCase() + day.slice(1, 3)}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>{t('campaigns.preferredTime', 'Preferred Start Time')}</Label>
-                                                <Input 
-                                                    type="time"
-                                                    value={schedulerForm.preferredTime || '09:00'}
-                                                    onChange={(e) => setSchedulerForm({ ...schedulerForm, preferredTime: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>{t('campaigns.breakBetween', 'Break Between Sessions')}</Label>
-                                                <Select 
-                                                    value={schedulerForm.breakBetweenMinutes?.toString() || '60'}
-                                                    onValueChange={(v) => setSchedulerForm({ ...schedulerForm, breakBetweenMinutes: parseInt(v) })}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="0">No break</SelectItem>
-                                                        <SelectItem value="15">15 minutes</SelectItem>
-                                                        <SelectItem value="30">30 minutes</SelectItem>
-                                                        <SelectItem value="60">1 hour</SelectItem>
-                                                        <SelectItem value="120">2 hours</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-
-                                        <Card className="bg-muted/50">
-                                            <CardContent className="pt-4">
-                                                {(() => {
-                                                    const groupCount = Math.ceil((campaign.enrollments?.length || 0) / (campaign.maxPerSession || 1))
-                                                    const totalDuration = curriculumModules.reduce((acc, mod) => acc + (mod.durationHours || 0), 0)
-                                                    // Fallback: if total duration is 0, use module count as a rough proxy for "sessions" or assume 2h per module
-                                                    const effectiveTotalDuration = totalDuration > 0 ? totalDuration : (curriculumModules.length * 2) 
-                                                    
-                                                    const sessDuration = schedulerForm.sessionDurationHours || 2
-                                                    const sessionsPerGroup = Math.ceil(effectiveTotalDuration / sessDuration)
-                                                    const totalSessions = groupCount * sessionsPerGroup
-
-                                                    return (
-                                                        <>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {t('campaigns.willGenerate', 'This will generate approximately')}:
-                                                            </p>
-                                                            <p className="text-lg font-medium">
-                                                                {totalSessions} {t('campaigns.sessions', 'sessions')}
-                                                            </p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {groupCount} {t('campaigns.groups', 'groups')} × {sessionsPerGroup} {t('campaigns.sessionsPerGroup', 'sessions/group')}
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground mt-1">
-                                                                ({campaign.enrollments?.length || 0} {t('campaigns.trainees', 'trainees')} ÷ {campaign.maxPerSession} {t('campaigns.perSession', 'per session')})
-                                                                {' × '}
-                                                                ({effectiveTotalDuration}h {t('common.total', 'total')} ÷ {sessDuration}h {t('campaigns.perSession', 'per session')})
-                                                            </p>
-                                                        </>
-                                                    )
-                                                })()}
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button variant="outline" onClick={() => setSchedulerDialogOpen(false)}>
-                                            {t('common.cancel', 'Cancel')}
-                                        </Button>
-                                        <Button onClick={handleGenerateSchedule} disabled={scheduling}>
-                                            <Wand2 className="mr-2 h-4 w-4" />
-                                            {scheduling ? t('campaigns.generating', 'Generating...') : t('campaigns.generate', 'Generate Schedule')}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                    <Button variant="outline" onClick={() => setSchedulerDialogOpen(true)}>
+                                        <Wand2 className="mr-2 h-4 w-4" />
+                                        {t('campaigns.autoSchedule', 'Auto-Schedule')}
+                                    </Button>
                             )}
                         </div>
                     </div>
@@ -1880,7 +1684,204 @@ export default function CampaignDetailPage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Trainee Details Dialog */}
+            {/* Auto-Scheduler Dialog - Moved out of Tabs */}
+            {isManager && (
+                <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
+                    <DialogContent className="max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>{t('campaigns.autoScheduler', 'Auto-Scheduler')}</DialogTitle>
+                            <DialogDescription>
+                                {t('campaigns.autoSchedulerDesc', 'Automatically generate training sessions for all enrolled trainees.')}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>{t('campaigns.instructor', 'Default Instructor')}</Label>
+                                <Select 
+                                    value={schedulerForm.instructorId}
+                                    onValueChange={(v) => setSchedulerForm({ ...schedulerForm, instructorId: v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('campaigns.selectInstructor', 'Select instructor')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {instructors.map((i) => (
+                                            <SelectItem key={i.id} value={i.id}>
+                                                {i.fullName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Per-module instructor selection */}
+                            {curriculumModules.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label>{t('campaigns.instructorByModule', 'Instructor by Module')}</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('campaigns.instructorByModuleDesc', 'Optionally assign different instructors per module. Leave blank to use default.')}
+                                    </p>
+                                    <div className="max-h-48 overflow-auto space-y-2 border rounded-md p-2">
+                                        {curriculumModules.map(mod => (
+                                            <div key={mod.id} className="flex items-center gap-2">
+                                                <span className="w-40 text-sm truncate" title={mod.name}>
+                                                    {mod.name}
+                                                </span>
+                                                <Select 
+                                                    value={moduleInstructors[mod.id] || 'default'}
+                                                    onValueChange={(v) => setModuleInstructors({
+                                                        ...moduleInstructors, 
+                                                        [mod.id]: v === 'default' ? '' : v
+                                                    })}
+                                                >
+                                                    <SelectTrigger className="flex-1">
+                                                        <SelectValue placeholder={t('common.default', 'Default')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="default">
+                                                            {t('common.default', 'Default')}
+                                                        </SelectItem>
+                                                        {instructors.map((i) => (
+                                                            <SelectItem key={i.id} value={i.id}>
+                                                                {i.fullName}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <Label>{t('campaigns.location', 'Location')}</Label>
+                                <Input 
+                                    value={schedulerForm.location}
+                                    onChange={(e) => setSchedulerForm({ ...schedulerForm, location: e.target.value })}
+                                    placeholder="e.g., Training Center A"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>{t('campaigns.sessionDuration', 'Session Duration (hours)')}</Label>
+                                <Select 
+                                    value={schedulerForm.sessionDurationHours?.toString()}
+                                    onValueChange={(v) => setSchedulerForm({ ...schedulerForm, sessionDurationHours: parseInt(v) })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(hours => (
+                                            <SelectItem key={hours} value={hours.toString()}>
+                                                {hours} {hours === 1 ? t('common.hour', 'hour') : t('common.hours', 'hours')}
+                                                {hours === 8 && ` (${t('common.fullDay', 'full day')})`}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>{t('campaigns.preferredDays', 'Preferred Days')}</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const).map((day) => (
+                                        <Button
+                                            key={day}
+                                            type="button"
+                                            variant={schedulerForm.preferredDays?.includes(day) ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => {
+                                                const currentDays = schedulerForm.preferredDays || []
+                                                const newDays = currentDays.includes(day)
+                                                    ? currentDays.filter(d => d !== day)
+                                                    : [...currentDays, day]
+                                                setSchedulerForm({ ...schedulerForm, preferredDays: newDays })
+                                            }}
+                                        >
+                                            {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>{t('campaigns.preferredTime', 'Preferred Start Time')}</Label>
+                                    <Input 
+                                        type="time"
+                                        value={schedulerForm.preferredTime || '09:00'}
+                                        onChange={(e) => setSchedulerForm({ ...schedulerForm, preferredTime: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('campaigns.breakBetween', 'Break Between Sessions')}</Label>
+                                    <Select 
+                                        value={schedulerForm.breakBetweenMinutes?.toString() || '60'}
+                                        onValueChange={(v) => setSchedulerForm({ ...schedulerForm, breakBetweenMinutes: parseInt(v) })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0">No break</SelectItem>
+                                            <SelectItem value="15">15 minutes</SelectItem>
+                                            <SelectItem value="30">30 minutes</SelectItem>
+                                            <SelectItem value="60">1 hour</SelectItem>
+                                            <SelectItem value="120">2 hours</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <Card className="bg-muted/50">
+                                <CardContent className="pt-4">
+                                    {(() => {
+                                        const groupCount = Math.ceil((campaign.enrollments?.length || 0) / (campaign.maxPerSession || 1))
+                                        const totalDuration = curriculumModules.reduce((acc, mod) => acc + (mod.durationHours || 0), 0)
+                                        // Fallback: if total duration is 0, use module count as a rough proxy for "sessions" or assume 2h per module
+                                        const effectiveTotalDuration = totalDuration > 0 ? totalDuration : (curriculumModules.length * 2) 
+                                        
+                                        const sessDuration = schedulerForm.sessionDurationHours || 2
+                                        const sessionsPerGroup = Math.ceil(effectiveTotalDuration / sessDuration)
+                                        const totalSessions = groupCount * sessionsPerGroup
+
+                                        return (
+                                            <>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {t('campaigns.willGenerate', 'This will generate approximately')}:
+                                                </p>
+                                                <p className="text-lg font-medium">
+                                                    {totalSessions} {t('campaigns.sessions', 'sessions')}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {groupCount} {t('campaigns.groups', 'groups')} × {sessionsPerGroup} {t('campaigns.sessionsPerGroup', 'sessions/group')}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    ({campaign.enrollments?.length || 0} {t('campaigns.trainees', 'trainees')} ÷ {campaign.maxPerSession} {t('campaigns.perSession', 'per session')})
+                                                    {' × '}
+                                                    ({effectiveTotalDuration}h {t('common.total', 'total')} ÷ {sessDuration}h {t('campaigns.perSession', 'per session')})
+                                                </p>
+                                            </>
+                                        )
+                                    })()}
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setSchedulerDialogOpen(false)}>
+                                {t('common.cancel', 'Cancel')}
+                            </Button>
+                            <Button onClick={handleGenerateSchedule} disabled={scheduling}>
+                                <Wand2 className="mr-2 h-4 w-4" />
+                                {scheduling ? t('campaigns.generating', 'Generating...') : t('campaigns.generate', 'Generate Schedule')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* Trainee Details Dialog */}{/* Rest of the line content, which is nothing actually */}
             <Dialog open={traineeDetailsOpen} onOpenChange={setTraineeDetailsOpen}>
                 <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
