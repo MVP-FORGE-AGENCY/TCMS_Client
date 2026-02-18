@@ -145,7 +145,7 @@ export default function CompetenceDashboard() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-20 md:pb-0">
             <div className="flex flex-col gap-2">
                 <h1 className="text-h2">{t("competence.dashboardTitle")}</h1>
                 <p className="text-slate-500 text-sm">{t("competence.dashboardSubtitle")}</p>

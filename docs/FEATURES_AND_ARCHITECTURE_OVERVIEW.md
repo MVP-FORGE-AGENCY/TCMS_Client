@@ -241,7 +241,21 @@ Manages the _execution_ of a Curriculum for a specific group of employees over a
   - `POST /campaigns/:id/generate-schedule`: Triggers the complex backend scheduling engine.
   - `POST /campaigns/:id/schedule-module`: Manual session creation.
   - `POST /campaigns/:id/sessions/retake`: Specialized retake session creation.
-  - `POST /reports/campaigns/:id/certificate`: Triggers the PDF generation worker.
+  - `POST /reports/campaigns/:id/certificate`: Triggers the certificate generation.
+
+#### Technical Deep Dive: Training Certificates (On-Demand Strategy)
+
+Unlike Regulatory Protocols (which are immutable PDFs), **Training Certificates** for campaigns are generated **on-demand** to save storage and allow for template updates.
+
+1.  **Trigger**: User clicks "Download Certificate" on a completed campaign.
+2.  **Storage**: The system does **NOT** store the generated PDF. Instead, it stores a lightweight **Certificate Record** (`training_certificates` table) containing:
+    - `certificate_number`: Unique identifier (e.g., `CAM-A320-2024-001`).
+    - `metadata`: JSON blob snapshot of the trainee's name, completed modules, instructor names, and completion dates.
+    - `issue_date` & `expiry_date`.
+3.  **Generation**:
+    - `CertificateService.js` fetches the record and its metadata.
+    - It uses `pdfkit` to render the PDF _in-memory_ using the current styling template.
+    - This allows certificates to always look "fresh" while preserving the historical _data_ (dates/names) exactly as they were at issuance.
 
 ---
 
@@ -304,7 +318,10 @@ Manages regulatory proficiency checks (OPC/LPC) and assessments. Unlike training
 
 1.  **Eligibility & Scheduling**:
     - **Smart Eligibility**: Automatically flags trainees with expiring competences or those who have completed initial training (`EligibleTraineesTable`).
-    - **Flexible Scheduling**: Supports **Single Candidate** or **Group Checks**.
+    - **Conflict Detection**:
+      - **Blocking**: Prevents scheduling if the candidate has another check at the same time.
+      - **Warning**: Alerts on Assessor availability or overlap for the same standard.
+    - **Unified Workflow**: Creates individual check records for each candidate to simplify tracking, even when scheduled in bulk.
 
 2.  **Assessment Workflow (`CheckDetailPage`)**:
     - **Gatekeeping**: Prevents starting the check before the scheduled date (`canStartCheck`).
@@ -312,36 +329,86 @@ Manages regulatory proficiency checks (OPC/LPC) and assessments. Unlike training
       - _Elements_: Pass/Fail per item.
       - _Outcome_: Algorithmic determination of overall Pass/Fail based on elements.
 
-3.  **Strict Sign-off & Finalization**:
-    - **Assessor Signature**: Digital signature (Draw) with strict acknowledgments ("Accurate", "Fair", "Matches Result").
-    - **Finalization**: Requires **Password Re-entry** to lock the record and issue the competence. This is a higher security level than training sessions.
+3.  **Strict Sign-off & Auto-Finalization**:
+    - **Assessor Signature**: Digital signature (Draw) involves **Password Re-entry** as the critical identity verification step.
+    - **Auto-Finalization**: Once the required number of assessors have signed, the system **automatically** locks the record, calculates the outcome, and issues the competence. No separate manual "Finalize" step is needed.
 
 4.  **Regulatory Output**:
     - **Protocols**: Generates the official "Proficiency Check Protocol" PDF, signed by the Assessor.
-    - **Competence Issuance**: A passed and finalized check automatically updates the trainee's Competence record (validity, expiry).
+    - **Competence Issuance**: A passed checks automatically updates the trainee's Competence record (validity, expiry).
 
 #### Data Flow & Backend Context
 
 - **Controller**: `ChecksController` (`controllers/checks.js`).
 - **Service**: `ProficiencyCheckService.js`.
 - **Key Logic**:
-  - **Creation**: Supports `Single` or `Group` checks.
-  - **Assignment**: Enforces **Conflict of Interest** checks (e.g., Assessor cannot have instructed the trainee on the same standard in the last 12 months).
-  - **Finalization**: `finalizeCheck` transaction verifies all required signatures, re-authenticates the user (Password), and triggers `CompetenceService` updates if passed.
+  - **Creation**: Logic handles iterating through candidates to create distinct check records.
+  - **Assignment**: Enforces **Conflict of Interest** checks (Assessor cannot have instructed the trainee on the same standard in the last 12 months).
+  - **Auto-Finalization**: The last required signature (`signProtocol`) triggers the `finalizeCheck` routine, which verifies signatures, locks the record, and updates `user_competences`.
   - **Digital Seal**: Usage of cryptographic hashes for Protocol generation.
 - **API Routes**:
   - **Fetching**:
     - `GET /checks`: List with filters (Status, Assessor, Candidate).
     - `GET /checks/:id`: Full check details, candidates, and evaluation status.
   - **Actions**:
-    - `POST /checks`: Schedule a new check.
+  - **Actions**:
+    - `POST /checks`: Schedule new checks (bulk creation supported).
+    - `GET /checks/conflicts`: Pre-flight check for scheduling conflicts.
     - `POST /checks/:id/start`: Opens the check for evaluation.
-    - `POST /checks/:id/evaluate`: Submit grades for a candidate.
-    - `POST /checks/:id/sign`: Submit Assessor's digital signature.
-    - `PATCH /checks/:id/finalise`: **(Protected)** Finalizes check using Password auth.
+    - `POST /checks/:id/evaluate`: Submit grades.
+    - `POST /checks/:id/sign`: Submit Assessor's digital signature (Trigger for Auto-Finalization).
+    - `POST /checks/:id/sign`: Submit Assessor's digital signature (Trigger for Auto-Finalization).
     - `GET /checks/:id/protocol`: Generates the official PDF with embedded verification hash.
 
----
+#### Protocol Generation & Storage (Deep Dive)
+
+**Trigger**: Users click "Generate Protocol" or "Download" on a finalized check.
+
+**Data Flow**:
+
+1.  **Request**: Frontend (`CheckDetailPage`) requests `GET /checks/:id/protocol` (optionally with `?candidateId=...` for group checks).
+2.  **Controller Logic** (`checks.js`):
+    - **Fetch**: Retrieves Check details, Candidates, Standards, and **Signatures** (from `check_signatures` table).
+    - **Path Construction**:
+      - Generates a structured storage path: `protocols/<Organisation_Name>/<Candidate_Name>/<Standard_Code>/Protocol_<Number>.pdf`.
+      - **Sanitization**: All path segments are sanitized to remove special characters.
+    - **Optimization (Smart Cache)**:
+      - Before generating, the system checks Supabase Storage for an existing file at the constructed path.
+      - **Hit**: If found, it immediately generates a Signed URL for the existing file (0ms generation time).
+      - **Miss**: If missing, it triggers the PDF generation engine.
+3.  **PDF Generation** (`pdfGenerator.js`):
+    - Uses `pdfkit` to render the document in memory.
+    - **Digital Seal**: Embeds a unique `dataHash` and verification URL (`certifycloud.com/verify?id=...`).
+    - **Signatures**: Fetches the base64 signature image from the secure `check_signatures` table (protected by RLS) and embeds it into the PDF.
+    - **Upload**: Streams the generated buffer directly to Supabase Storage at the structured path.
+4.  **Delivery**: Returns a temporary Signed URL (valid for 1 hour) to the client for immediate download.
+
+**Storage Structure**:
+
+- Bucket: `certificates`
+- Path: `protocols / :orgName / :candidateName / :standardCode / :filename`
+- **Benefit**: This structure allows admins to browse/audit protocols via the Storage file browser organized by hierarchy.
+
+**Security**:
+
+- **Immutability**: Once generated and stored, the PDF serves as the permanent record. Re-downloading fetches the _same_ file, ensuring the Digital Seal and timestamps remain consistent.
+- **RLS**: The `check_signatures` table is protected so that only authorized users (Same Org) can view the raw signature data needed for generation.
+
+#### Protocol Verification (The "Digital Seal")
+
+To ensure **EASA Compliance** and prevent tampering, protocols employ a cryptographic verification mechanism.
+
+1.  **Sealing Process (Finalization)**:
+    - When a check is finalized, `ProficiencyCheckService` creates a **canonical snapshot** of the result (Protocol Number + Timestamp + Sorted Metadata).
+    - A **SHA-256 Hash** is generated from this string: `hash = SHA256(ref + time + metadata)`.
+    - This hash is stored permanently in the `competence_protocols` table (`data_hash`).
+
+2.  **Verification (Public)**:
+    - The generated PDF includes a **QR Code** pointing to `https://certifycloud.com/verify?id=...&hash=...`.
+    - Scanning this code hits the public `VerificationController`:
+      - **Authenticity**: Checks if the Protocol exists.
+      - **Integrity**: Compares the URL hash against the database hash. Any tampering with the PDF changes the content but breaks the hash link.
+      - **validity**: Checks the _current_ real-time status of the competence. If a pilot is suspended _after_ the check, the verification page will show **REVOKED**, even if the paper protocol says "PASS".
 
 ### 2.7 Standards & Compliance
 

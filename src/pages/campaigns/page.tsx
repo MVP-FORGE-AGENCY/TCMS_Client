@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext'
 export default function CampaignsPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
-    const isAuditor = user?.role === 'auditor' || user?.role === 'readonly'
+
     const navigate = useNavigate()
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [curriculums, setCurriculums] = useState<Curriculum[]>([])
@@ -121,7 +121,13 @@ export default function CampaignsPage() {
                         {t('campaigns.subtitle', 'Manage training campaigns and bulk scheduling.')}
                     </p>
                 </div>
-                {!isAuditor && (
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('campaigns.title', 'Campaigns')}</h1>
+                    <p className="text-muted-foreground">
+                        {t('campaigns.subtitle', 'Manage training campaigns and bulk scheduling.')}
+                    </p>
+                </div>
+                {['admin', 'training_manager'].includes(user?.role || '') && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>

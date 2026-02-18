@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, Award, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -78,11 +78,10 @@ const CheckDetailPage = () => {
     const canStartCheck = () => {
         if (!check || check.finalDecision !== 'pending') return { allowed: false };
         
-        // 1. Role Check - Only assigned assessors or admin/training_manager can start
+        // 1. Role Check - Only assigned assessors can start
         const isAssessor = check.assessors?.some((a: any) => a.user?.id === user?.id);
-        const isAdminOrManager = user?.role && ['admin', 'training_manager'].includes(user.role);
         
-        if (!isAssessor && !isAdminOrManager) return { allowed: false, reason: t('checks.notAuthorizedToStart', 'Only assigned assessors can start this check') };
+        if (!isAssessor) return { allowed: false, reason: t('checks.notAuthorizedToStart', 'Only assigned assessors can start this check') };
 
         // 2. Date Check
         const today = new Date();
@@ -246,8 +245,8 @@ const CheckDetailPage = () => {
                             {check.finalDecision === 'pass' && <Badge className="bg-green-500">{t('common.passed')}</Badge>}
                             {check.finalDecision === 'fail' && <Badge variant="destructive">{t('common.statusFailed')}</Badge>}
 
-                            {/* Start Check Action - Only assigned assessors or admin/training_manager */}
-                            {(check.assessors?.some((a: any) => a.user?.id === user?.id) || (user?.role && ['admin', 'training_manager'].includes(user.role))) && check.finalDecision === 'pending' && (
+                            {/* Start Check Action - Only assigned assessors */}
+                            {check.assessors?.some((a: any) => a.user?.id === user?.id) && check.finalDecision === 'pending' && (
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -278,12 +277,7 @@ const CheckDetailPage = () => {
                                 </Button>
                             )}
 
-                            {/* Generate Official Protocol - Only for finalized checks */}
-                            {(check.finalDecision === 'pass' || check.finalDecision === 'fail') && (
-                                <Button size="sm" variant="outline" className="ml-2 gap-2" onClick={() => handleDownloadProtocol()}>
-                                    <FileText className="w-4 h-4" /> {t('checks.generateProtocol')}
-                                </Button>
-                            )}
+                            {/* Generate Official Protocol - Moved to candidate list */}
 
                             {/* Manual Finalize Removed - Auto-finalization in place */}
                         </div>
@@ -356,8 +350,8 @@ const CheckDetailPage = () => {
 
                                             {/* Protocol/Certificate Download (Combined) */}
                                             {status !== 'pending' && (
-                                                <Button size="sm" variant="ghost" onClick={() => handleDownloadProtocol(candidate.candidateId)}>
-                                                    <Award className="w-4 h-4 mr-1 text-yellow-600" /> {t('checks.protocol')}
+                                                <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleDownloadProtocol(candidate.candidateId)}>
+                                                    <FileText className="w-4 h-4 mr-1" /> {t('checks.generateProtocol')}
                                                 </Button>
                                             )}
 

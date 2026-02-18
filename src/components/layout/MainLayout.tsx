@@ -14,7 +14,7 @@ export function MainLayout() {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
 
     return (
-        <div className="flex min-h-screen w-full flex-col bg-background dark:bg-slate-950 overflow-x-hidden transition-colors duration-300">
+        <div className="flex min-h-screen w-full flex-col bg-background dark:bg-slate-950 transition-colors duration-300">
              {isAuditor && (
                 <div className="w-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-4 py-1.5 text-center text-sm font-medium flex items-center justify-center gap-2 border-b border-amber-200 dark:border-amber-800 fixed top-0 z-50 h-auto sm:h-8">
                     <Lock className="h-3 w-3" />

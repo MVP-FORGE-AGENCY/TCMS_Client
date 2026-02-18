@@ -84,11 +84,11 @@ export function TraineeCompetenceTab({ userId }: TraineeCompetenceTabProps) {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h3 className="text-lg font-medium">{t("personnel.history.competenceOverview")}</h3>
-                <div className="w-[200px]">
+                <div className="w-full sm:w-[200px]">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                             <SelectValue placeholder={t("personnel.history.filterStatus")} />
                         </SelectTrigger>
                         <SelectContent>

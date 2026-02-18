@@ -134,7 +134,9 @@ export default function DashboardPage() {
                 // Use explicit summary from API if available, otherwise fallback
                 // Cast to any to avoid TS errors with inferred types
                 const resAny = competenceRes as any
-                const summary = resAny?.summary || { valid: 0, expiringSoon: 0, expired: 0 }
+                // Fix: Access data properties from the response data, not the response object itself
+                // The structure is res.data.summary and res.data.pagination
+                const summary = resAny?.data?.summary || { valid: 0, expiringSoon: 0, expired: 0 }
                 
                 const totalPersonnel = employeesRes?.data?.pagination?.total ?? employees.length
                 const activeProgrammes = (campaignsData as Array<{ status?: string }>).filter(c => c.status === 'active').length
@@ -142,7 +144,7 @@ export default function DashboardPage() {
                 const validCount = summary.valid
                 const expiringStatusCount = summary.expiringSoon
                 const expiredCount = summary.expired
-                const totalCompetences = resAny?.pagination?.total ?? competences.length
+                const totalCompetences = resAny?.data?.pagination?.total ?? competences.length
 
                 // For the card display:
                 // If we have expired items, we want to highlight them.

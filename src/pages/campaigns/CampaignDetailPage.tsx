@@ -901,23 +901,25 @@ export default function CampaignDetailPage() {
                                 </DialogContent>
                             </Dialog>
 
-                            <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline">
-                                        <Wand2 className="mr-2 h-4 w-4" />
-                                        {t('campaigns.autoSchedule', 'Auto-Schedule')}
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-h-[85vh] overflow-y-auto">
-                                    <DialogHeader>
-                                        <DialogTitle>{t('campaigns.autoScheduler', 'Auto-Scheduler')}</DialogTitle>
-                                        <DialogDescription>
-                                            {t('campaigns.autoSchedulerDesc', 'Automatically generate training sessions for all enrolled trainees.')}
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label>{t('campaigns.instructor', 'Default Instructor')}</Label>
+                            {isManager && (
+                                <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline">
+                                            <Wand2 className="mr-2 h-4 w-4" />
+                                            {t('campaigns.autoSchedule', 'Auto-Schedule')}
+                                        </Button>
+                                    </DialogTrigger>
+                                    {/* ... rest of dialog content ... */}
+                                    <DialogContent className="max-h-[85vh] overflow-y-auto">
+                                        <DialogHeader>
+                                            <DialogTitle>{t('campaigns.autoScheduler', 'Auto-Scheduler')}</DialogTitle>
+                                            <DialogDescription>
+                                                {t('campaigns.autoSchedulerDesc', 'Automatically generate training sessions for all enrolled trainees.')}
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>{t('campaigns.instructor', 'Default Instructor')}</Label>
                                             <Select 
                                                 value={schedulerForm.instructorId}
                                                 onValueChange={(v) => setSchedulerForm({ ...schedulerForm, instructorId: v })}
@@ -1100,91 +1102,154 @@ export default function CampaignDetailPage() {
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+                            )}
                         </div>
                     </div>
 
-                    {/* Trainees table */}
-                    <div className="rounded-lg border">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-muted/50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
-                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('common.email', 'Email')}</th>
-                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
-                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.absences', 'Absences')}</th>
-                                        <th className="px-4 py-3 text-left text-sm font-medium">{t('common.enrolledAt', 'Enrolled')}</th>
-                                        <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {campaign.enrollments?.map((enrollment) => {
-                                        // Map status based on module results
-                                        const getDisplayStatus = () => {
-                                            // If trainee has any failed modules, show Failed
-                                            if (enrollment.hasFailedModules) {
-                                                return { label: t('common.statusFailed', 'Failed'), color: 'bg-red-500' }
-                                            }
-                                            // If all modules passed, show Passed
-                                            if (enrollment.allModulesPassed) {
-                                                return { label: t('common.passed', 'Passed'), color: 'bg-green-500' }
-                                            }
-                                            // Otherwise, ongoing
-                                            return { label: t('common.ongoing', 'Ongoing'), color: 'bg-blue-500' }
-                                        }
-                                        const displayStatus = getDisplayStatus()
+                    {/* Trainees view - Responsive */}
+                    <div className="space-y-4">
+                        {/* Mobile/Tablet Card View */}
+                        <div className="md:hidden space-y-4">
+                            {campaign.enrollments?.map((enrollment) => {
+                                const getDisplayStatus = () => {
+                                    if (enrollment.hasFailedModules) return { label: t('common.statusFailed', 'Failed'), color: 'bg-red-500' }
+                                    if (enrollment.allModulesPassed) return { label: t('common.passed', 'Passed'), color: 'bg-green-500' }
+                                    return { label: t('common.ongoing', 'Ongoing'), color: 'bg-blue-500' }
+                                }
+                                const displayStatus = getDisplayStatus()
+
+                                return (
+                                    <div key={enrollment.id} className="border rounded-lg p-4 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-medium">{enrollment.user?.fullName}</div>
+                                                <div className="text-sm text-muted-foreground">{enrollment.user?.email}</div>
+                                            </div>
+                                            <Badge className={displayStatus.color}>{displayStatus.label}</Badge>
+                                        </div>
                                         
-                                        return (
-                                            <tr key={enrollment.id} className="hover:bg-muted/25">
-                                                <td className="px-4 py-3 font-medium">{enrollment.user?.fullName}</td>
-                                                <td className="px-4 py-3 text-muted-foreground">{enrollment.user?.email}</td>
-                                                <td className="px-4 py-3">
-                                                    <Badge className={displayStatus.color}>
-                                                        {displayStatus.label}
-                                                    </Badge>
-                                                    {enrollment.hasFailedModules && (
-                                                        <span className="ml-2 text-xs text-red-500">
-                                                            {t('campaigns.failedModulesCount', '({{count}} failed)', { count: enrollment.failedModuleCount })}
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">{t('campaigns.absences', 'Absences')}</span>
+                                            <span className={(enrollment.absenceCount ?? 0) > 0 ? 'text-orange-500 font-medium' : ''}>
+                                                {enrollment.absenceCount ?? 0} / {campaignSessions.length === 0 ? 0 : (enrollment.totalSessions ?? 0)}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">{t('common.enrolledAt', 'Enrolled')}</span>
+                                            <span>{format(new Date(enrollment.enrolledAt), 'MMM d, yyyy')}</span>
+                                        </div>
+
+                                        {enrollment.hasFailedModules && (
+                                            <div className="text-xs text-red-500">
+                                                {t('campaigns.failedModulesCount', '{{count}} failed', { count: enrollment.failedModuleCount })}
+                                            </div>
+                                        )}
+
+                                        <div className="pt-2 flex justify-end gap-2 border-t mt-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => loadTraineeModules(enrollment.userId)}
+                                            >
+                                                {t('common.viewDetails', 'Details')}
+                                            </Button>
+                                            {isManager && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    className="text-destructive hover:text-destructive"
+                                                    onClick={() => handleUnenroll(enrollment.userId)}
+                                                >
+                                                    <XCircle className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            {(!campaign.enrollments || campaign.enrollments.length === 0) && (
+                                <div className="text-center text-muted-foreground py-8 border rounded-lg">
+                                    {t('campaigns.noEnrollments', 'No trainees enrolled yet.')}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block rounded-lg border">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-muted/50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.email', 'Email')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.absences', 'Absences')}</th>
+                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.enrolledAt', 'Enrolled')}</th>
+                                            <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {campaign.enrollments?.map((enrollment) => {
+                                            const getDisplayStatus = () => {
+                                                if (enrollment.hasFailedModules) return { label: t('common.statusFailed', 'Failed'), color: 'bg-red-500' }
+                                                if (enrollment.allModulesPassed) return { label: t('common.passed', 'Passed'), color: 'bg-green-500' }
+                                                return { label: t('common.ongoing', 'Ongoing'), color: 'bg-blue-500' }
+                                            }
+                                            const displayStatus = getDisplayStatus()
+                                            
+                                            return (
+                                                <tr key={enrollment.id} className="hover:bg-muted/25">
+                                                    <td className="px-4 py-3 font-medium">{enrollment.user?.fullName}</td>
+                                                    <td className="px-4 py-3 text-muted-foreground">{enrollment.user?.email}</td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge className={displayStatus.color}>
+                                                            {displayStatus.label}
+                                                        </Badge>
+                                                        {enrollment.hasFailedModules && (
+                                                            <span className="ml-2 text-xs text-red-500">
+                                                                {t('campaigns.failedModulesCount', '({{count}} failed)', { count: enrollment.failedModuleCount })}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={(enrollment.absenceCount ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
+                                                            {enrollment.absenceCount ?? 0} {t('common.of', 'of')} {campaignSessions.length === 0 ? 0 : (enrollment.totalSessions ?? 0)}
                                                         </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={(enrollment.absenceCount ?? 0) > 0 ? 'text-orange-500 font-medium' : 'text-muted-foreground'}>
-                                                        {enrollment.absenceCount ?? 0} {t('common.of', 'of')} {campaignSessions.length === 0 ? 0 : (enrollment.totalSessions ?? 0)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {format(new Date(enrollment.enrolledAt), 'MMM d, yyyy')}
-                                                </td>
-                                                <td className="px-4 py-3 text-right flex justify-end gap-1">
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm"
-                                                        onClick={() => loadTraineeModules(enrollment.userId)}
-                                                    >
-                                                        {t('common.viewDetails', 'View Details')}
-                                                    </Button>
-                                                    {isManager && <Button 
-                                                        variant="ghost" 
-                                                        size="sm"
-                                                        className="text-destructive hover:text-destructive"
-                                                        onClick={() => handleUnenroll(enrollment.userId)}
-                                                    >
-                                                        <XCircle className="h-4 w-4" />
-                                                    </Button>}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-muted-foreground">
+                                                        {format(new Date(enrollment.enrolledAt), 'MMM d, yyyy')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right flex justify-end gap-1">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            onClick={() => loadTraineeModules(enrollment.userId)}
+                                                        >
+                                                            {t('common.viewDetails', 'View Details')}
+                                                        </Button>
+                                                        {isManager && <Button 
+                                                            variant="ghost" 
+                                                            size="sm"
+                                                            className="text-destructive hover:text-destructive"
+                                                            onClick={() => handleUnenroll(enrollment.userId)}
+                                                        >
+                                                            <XCircle className="h-4 w-4" />
+                                                        </Button>}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {(!campaign.enrollments || campaign.enrollments.length === 0) && (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                                    {t('campaigns.noEnrollments', 'No trainees enrolled yet.')}
                                                 </td>
                                             </tr>
-                                        )
-                                    })}
-                                    {(!campaign.enrollments || campaign.enrollments.length === 0) && (
-                                        <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                                                {t('campaigns.noEnrollments', 'No trainees enrolled yet.')}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </TabsContent>
@@ -1195,6 +1260,7 @@ export default function CampaignDetailPage() {
                         <h3 className="text-lg font-medium">{t('campaigns.curriculumModules', 'Curriculum Modules')}</h3>
                     </div>
                     
+                    {/* Modules View - Responsive */}
                     {loadingModules ? (
                         <Card className="p-8 text-center">
                             <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
@@ -1206,59 +1272,106 @@ export default function CampaignDetailPage() {
                             </p>
                         </Card>
                     ) : (
-                        <div className="rounded-lg border">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-muted/50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">#</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.type', 'Type')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.sessions', 'Sessions')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.progress', 'Progress')}</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {campaignModulesStats.map((mod, idx) => {
-                                            // Calculate stats from actual sessions
-                                            const modSessions = campaignSessions.filter(s => (s.curriculumModuleId || s.curriculumModule?.id) === mod.id)
-                                            const completedCount = modSessions.filter(s => s.status === 'completed').length
-                                            const totalCount = modSessions.length
+                        <div className="space-y-4">
+                            {/* Mobile/Tablet Card View */}
+                            <div className="md:hidden space-y-4">
+                                {campaignModulesStats.map((mod, idx) => {
+                                    const modSessions = campaignSessions.filter(s => (s.curriculumModuleId || s.curriculumModule?.id) === mod.id)
+                                    const completedCount = modSessions.filter(s => s.status === 'completed').length
+                                    const totalCount = modSessions.length
+                                    
+                                    return (
+                                        <div key={mod.id} className="border rounded-lg p-4 space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-muted-foreground text-sm">#{idx + 1}</span>
+                                                    <div className="font-medium">{mod.name}</div>
+                                                </div>
+                                                <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
+                                                    {t(`modules.types.${mod.type}`, mod.type)}
+                                                </Badge>
+                                            </div>
                                             
-                                            return (
-                                            <tr key={mod.id} className="hover:bg-muted/25">
-                                                <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
-                                                <td className="px-4 py-3 font-medium">{mod.name}</td>
-                                                <td className="px-4 py-3">
-                                                    <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
-                                                        {t(`modules.types.${mod.type}`, mod.type)}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className="text-muted-foreground">
-                                                        {completedCount} / {totalCount}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <Progress 
-                                                        value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0} 
-                                                        className="w-24" 
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => loadModuleTrainees(mod.id)}
-                                                    >
-                                                        {t('common.viewDetails', 'View Details')}
-                                                    </Button>
-                                                </td>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">{t('campaigns.progress', 'Progress')}</span>
+                                                    <span>{completedCount} / {totalCount} {t('campaigns.sessions', 'Sessions')}</span>
+                                                </div>
+                                                <Progress 
+                                                    value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0} 
+                                                    className="h-2" 
+                                                />
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full"
+                                                    onClick={() => loadModuleTrainees(mod.id)}
+                                                >
+                                                    {t('common.viewDetails', 'View Details')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block rounded-lg border">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">#</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name', 'Name')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.type', 'Type')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.sessions', 'Sessions')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('campaigns.progress', 'Progress')}</th>
+                                                <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
                                             </tr>
-                                        )})}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {campaignModulesStats.map((mod, idx) => {
+                                                const modSessions = campaignSessions.filter(s => (s.curriculumModuleId || s.curriculumModule?.id) === mod.id)
+                                                const completedCount = modSessions.filter(s => s.status === 'completed').length
+                                                const totalCount = modSessions.length
+                                                
+                                                return (
+                                                <tr key={mod.id} className="hover:bg-muted/25">
+                                                    <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
+                                                    <td className="px-4 py-3 font-medium">{mod.name}</td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant={mod.type === 'assessment' ? 'destructive' : 'secondary'}>
+                                                            {t(`modules.types.${mod.type}`, mod.type)}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-muted-foreground">
+                                                            {completedCount} / {totalCount}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Progress 
+                                                            value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0} 
+                                                            className="w-24" 
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => loadModuleTrainees(mod.id)}
+                                                        >
+                                                            {t('common.viewDetails', 'View Details')}
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            )})}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1360,6 +1473,7 @@ export default function CampaignDetailPage() {
                         </div>}
                     </div>
 
+                    {/* Schedule View - Responsive */}
                     {loadingSessions ? (
                         <Card className="p-8 text-center">
                             <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
@@ -1376,115 +1490,214 @@ export default function CampaignDetailPage() {
                             </Button>}
                         </Card>
                     ) : (
-                        <div className="rounded-lg border">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-muted/50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.date', 'Date')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.time', 'Time')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.duration', 'Duration')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.module', 'Module')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.location', 'Location')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.instructor', 'Instructor')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.trainees', 'Trainees')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
-                                            <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {campaignSessions.map((session) => {
-                                            // Compute session number within the module
-                                            const moduleId = session.curriculumModuleId || session.curriculumModule?.id
-                                            const moduleSessions = campaignSessions.filter(s => 
-                                                (s.curriculumModuleId || s.curriculumModule?.id) === moduleId
-                                            ).sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
-                                            const sessionNumber = moduleSessions.findIndex(s => s.id === session.id) + 1
-                                            const totalModuleSessions = moduleSessions.length
-                                            const moduleName = session.curriculumModule?.name || ''
-                                            
-                                            return (
-                                            <tr key={session.id} className="hover:bg-muted/25">
-                                                <td className="px-4 py-3 font-medium">
-                                                    {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd || session.dateStart), 'HH:mm')}
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {(() => {
-                                                        const start = new Date(session.dateStart).getTime()
-                                                        const end = session.dateEnd ? new Date(session.dateEnd).getTime() : start
-                                                        const hours = Math.round(((end - start) / (1000 * 60 * 60)) * 10) / 10
-                                                        return `${hours}${t('common.hourShort', 'h')}`
-                                                    })()}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">
-                                                            {moduleName || '-'}
-                                                            {totalModuleSessions > 1 && ` (${sessionNumber}/${totalModuleSessions})`}
-                                                        </span>
-                                                        {session.isFinalModuleSession && (
-                                                            <Badge variant="secondary" className="mt-1 w-fit text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                                                {t('sessions.finalExam', 'Final / Assessment')}
-                                                            </Badge>
-                                                        )}
+                        <div className="space-y-4">
+                            {/* Mobile/Tablet Card View */}
+                            <div className="md:hidden space-y-4">
+                                {campaignSessions.map((session) => {
+                                    const moduleId = session.curriculumModuleId || session.curriculumModule?.id
+                                    const moduleSessions = campaignSessions.filter(s => 
+                                        (s.curriculumModuleId || s.curriculumModule?.id) === moduleId
+                                    ).sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+                                    const sessionNumber = moduleSessions.findIndex(s => s.id === session.id) + 1
+                                    const totalModuleSessions = moduleSessions.length
+                                    const moduleName = session.curriculumModule?.name || ''
+                                    
+                                    return (
+                                        <div key={session.id} className="border rounded-lg p-4 space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <div className="font-medium text-lg">
+                                                        {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-3">{session.location || '-'}</td>
-                                                <td className="px-4 py-3">{session.instructor?.fullName || '-'}</td>
-                                                <td className="px-4 py-3">
-                                                    {session.participantDisplay || (
-                                                        <span className="text-muted-foreground text-sm">{t('sessions.noTrainees', 'No trainees')}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <Badge className={cn(
-                                                        session.status === 'planned' && 'bg-blue-100 text-blue-800',
-                                                        session.status === 'completed' && 'bg-green-100 text-green-800',
-                                                        session.status === 'cancelled' && 'bg-red-100 text-red-800'
-                                                    )}>
-                                                        {session.status}
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd || session.dateStart), 'HH:mm')}
+                                                        <span className="mx-2">•</span>
+                                                        {(() => {
+                                                            const start = new Date(session.dateStart).getTime()
+                                                            const end = session.dateEnd ? new Date(session.dateEnd).getTime() : start
+                                                            const hours = Math.round(((end - start) / (1000 * 60 * 60)) * 10) / 10
+                                                            return `${hours}${t('common.hourShort', 'h')}`
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                                <Badge className={cn(
+                                                    session.status === 'planned' && 'bg-blue-100 text-blue-800',
+                                                    session.status === 'completed' && 'bg-green-100 text-green-800',
+                                                    session.status === 'cancelled' && 'bg-red-100 text-red-800'
+                                                )}>
+                                                    {session.status}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="bg-muted/30 p-2 rounded text-sm space-y-1">
+                                                <div className="flex gap-2">
+                                                    <span className="font-medium">{t('sessions.module', 'Module')}:</span>
+                                                    <span>{moduleName} {totalModuleSessions > 1 && `(${sessionNumber}/${totalModuleSessions})`}</span>
+                                                </div>
+                                                {session.isFinalModuleSession && (
+                                                    <Badge variant="secondary" className="text-[10px] h-5 bg-amber-100 text-amber-800">
+                                                        {t('sessions.finalExam', 'Final / Assessment')}
                                                     </Badge>
-                                                </td>
-                                                <td className="px-4 py-3 text-right flex gap-1 justify-end">
-                                                    {isManager && session.status === 'planned' && (
-                                                        <>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm"
-                                                                onClick={() => openEditSessionDialog(session)}
-                                                            >
-                                                                <Pencil className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm"
-                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                disabled={deletingSessionId === session.id}
-                                                                onClick={() => handleDeleteSession(session.id)}
-                                                            >
-                                                                {deletingSessionId === session.id ? (
-                                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                                                                ) : (
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                )}
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm"
-                                                        onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}&moduleName=${encodeURIComponent(moduleName)}&sessionNumber=${sessionNumber}&totalSessions=${totalModuleSessions}`)}
-                                                    >
-                                                        {t('common.view', 'View')}
-                                                    </Button>
-                                                </td>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <span className="font-medium">{t('sessions.location', 'Location')}:</span>
+                                                    <span>{session.location || '-'}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <span className="font-medium">{t('sessions.instructor', 'Instructor')}:</span>
+                                                    <span>{session.instructor?.fullName || '-'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-2 pt-2 border-t">
+                                                {isManager && session.status === 'planned' && (
+                                                    <>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            onClick={() => openEditSessionDialog(session)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            disabled={deletingSessionId === session.id}
+                                                            onClick={() => handleDeleteSession(session.id)}
+                                                        >
+                                                            {deletingSessionId === session.id ? (
+                                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}&moduleName=${encodeURIComponent(moduleName)}&sessionNumber=${sessionNumber}&totalSessions=${totalModuleSessions}`)}
+                                                >
+                                                    {t('common.view', 'View')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block rounded-lg border">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.date', 'Date')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.time', 'Time')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.duration', 'Duration')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.module', 'Module')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.location', 'Location')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.instructor', 'Instructor')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('sessions.trainees', 'Trainees')}</th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status', 'Status')}</th>
+                                                <th className="px-4 py-3 text-right text-sm font-medium">{t('common.actions', 'Actions')}</th>
                                             </tr>
-                                        )})}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {campaignSessions.map((session) => {
+                                                // Compute session number within the module
+                                                const moduleId = session.curriculumModuleId || session.curriculumModule?.id
+                                                const moduleSessions = campaignSessions.filter(s => 
+                                                    (s.curriculumModuleId || s.curriculumModule?.id) === moduleId
+                                                ).sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+                                                const sessionNumber = moduleSessions.findIndex(s => s.id === session.id) + 1
+                                                const totalModuleSessions = moduleSessions.length
+                                                const moduleName = session.curriculumModule?.name || ''
+                                                
+                                                return (
+                                                <tr key={session.id} className="hover:bg-muted/25">
+                                                    <td className="px-4 py-3 font-medium">
+                                                        {format(new Date(session.dateStart), 'EEE, MMM d, yyyy')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-muted-foreground">
+                                                        {format(new Date(session.dateStart), 'HH:mm')} - {format(new Date(session.dateEnd || session.dateStart), 'HH:mm')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-muted-foreground">
+                                                        {(() => {
+                                                            const start = new Date(session.dateStart).getTime()
+                                                            const end = session.dateEnd ? new Date(session.dateEnd).getTime() : start
+                                                            const hours = Math.round(((end - start) / (1000 * 60 * 60)) * 10) / 10
+                                                            return `${hours}${t('common.hourShort', 'h')}`
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">
+                                                                {moduleName || '-'}
+                                                                {totalModuleSessions > 1 && ` (${sessionNumber}/${totalModuleSessions})`}
+                                                            </span>
+                                                            {session.isFinalModuleSession && (
+                                                                <Badge variant="secondary" className="mt-1 w-fit text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                                                    {t('sessions.finalExam', 'Final / Assessment')}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">{session.location || '-'}</td>
+                                                    <td className="px-4 py-3">{session.instructor?.fullName || '-'}</td>
+                                                    <td className="px-4 py-3">
+                                                        {session.participantDisplay || (
+                                                            <span className="text-muted-foreground text-sm">{t('sessions.noTrainees', 'No trainees')}</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge className={cn(
+                                                            session.status === 'planned' && 'bg-blue-100 text-blue-800',
+                                                            session.status === 'completed' && 'bg-green-100 text-green-800',
+                                                            session.status === 'cancelled' && 'bg-red-100 text-red-800'
+                                                        )}>
+                                                            {session.status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                                                        {isManager && session.status === 'planned' && (
+                                                            <>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm"
+                                                                    onClick={() => openEditSessionDialog(session)}
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm"
+                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                    disabled={deletingSessionId === session.id}
+                                                                    onClick={() => handleDeleteSession(session.id)}
+                                                                >
+                                                                    {deletingSessionId === session.id ? (
+                                                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                                                                    ) : (
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm"
+                                                            onClick={() => navigate(`/sessions/${session.id}?campaignId=${id}&campaignName=${encodeURIComponent(campaign?.name || '')}&moduleName=${encodeURIComponent(moduleName)}&sessionNumber=${sessionNumber}&totalSessions=${totalModuleSessions}`)}
+                                                        >
+                                                            {t('common.view', 'View')}
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            )})}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1538,48 +1751,87 @@ export default function CampaignDetailPage() {
                     ) : (
                         <Card>
                             <CardContent className="p-0">
-                                <table className="w-full">
-                                    <thead className="border-b bg-muted/50">
-                                        <tr>
-                                            <th className="text-left p-3 font-medium">{t('materials.title', 'Title')}</th>
-                                            <th className="text-left p-3 font-medium">{t('materials.module', 'Module')}</th>
-                                            <th className="text-left p-3 font-medium">{t('materials.type', 'Type')}</th>
-                                            <th className="text-center p-3 font-medium">{t('materials.version', 'Version')}</th>
-                                            <th className="text-right p-3 font-medium">{t('common.actions', 'Actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {materials.map((m) => (
-                                            <tr key={m.id} className="border-b last:border-0 hover:bg-muted/30">
-                                                <td className="p-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="font-medium">{m.title}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="p-3">
-                                                    {m.moduleName ? (
-                                                        <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
-                                                    ) : (
-                                                        <span className="text-muted-foreground text-xs">General</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-3 uppercase text-xs text-muted-foreground">{m.type}</td>
-                                                <td className="p-3 text-center">v{m.version}</td>
-                                                <td className="p-3 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDownload(m.id)}
-                                                    >
-                                                        <Download className="h-4 w-4 mr-1" />
-                                                        {t('common.download', 'Download')}
-                                                    </Button>
-                                                </td>
+                                {/* Mobile/Tablet Card View */}
+                                <div className="md:hidden divide-y">
+                                    {materials.map((m) => (
+                                        <div key={m.id} className="p-4 space-y-2">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                                                    <span className="font-medium">{m.title}</span>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground whitespace-nowrap">v{m.version}</span>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2 text-sm">
+                                                {m.moduleName ? (
+                                                    <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">General</span>
+                                                )}
+                                                <span className="text-xs uppercase text-muted-foreground px-2 border-l">{m.type}</span>
+                                            </div>
+
+                                            <div className="pt-1">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full"
+                                                    onClick={() => handleDownload(m.id)}
+                                                >
+                                                    <Download className="h-4 w-4 mr-1" />
+                                                    {t('common.download', 'Download')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block">
+                                    <table className="w-full">
+                                        <thead className="border-b bg-muted/50">
+                                            <tr>
+                                                <th className="text-left p-3 font-medium">{t('materials.title', 'Title')}</th>
+                                                <th className="text-left p-3 font-medium">{t('materials.module', 'Module')}</th>
+                                                <th className="text-left p-3 font-medium">{t('materials.type', 'Type')}</th>
+                                                <th className="text-center p-3 font-medium">{t('materials.version', 'Version')}</th>
+                                                <th className="text-right p-3 font-medium">{t('common.actions', 'Actions')}</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {materials.map((m) => (
+                                                <tr key={m.id} className="border-b last:border-0 hover:bg-muted/30">
+                                                    <td className="p-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="font-medium">{m.title}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {m.moduleName ? (
+                                                            <Badge variant="outline" className="text-xs">{m.moduleName}</Badge>
+                                                        ) : (
+                                                            <span className="text-muted-foreground text-xs">General</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-3 uppercase text-xs text-muted-foreground">{m.type}</td>
+                                                    <td className="p-3 text-center">v{m.version}</td>
+                                                    <td className="p-3 text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDownload(m.id)}
+                                                        >
+                                                            <Download className="h-4 w-4 mr-1" />
+                                                            {t('common.download', 'Download')}
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </CardContent>
                         </Card>
                     )}

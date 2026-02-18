@@ -122,7 +122,13 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
 
         setLoading(true);
         try {
-            const signatureData = sigCanvas.current?.toDataURL('image/png');
+            // Use captured signature from state (canvas is unmounted in step 3)
+            const signatureData = signaturePreview;
+            if (!signatureData) {
+                toast.error("Signature data missing. Please sign again.");
+                setStep(2);
+                return;
+            }
 
             await api.post(`/checks/${checkId}/sign`, {
                 signatureData,
