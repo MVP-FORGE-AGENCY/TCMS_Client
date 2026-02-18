@@ -76,10 +76,11 @@ interface Assessor {
 }
 
 interface Conflict {
-    assessorId: string
-    assessorName: string
-    candidateId: string
-    candidateName: string
+    type: 'blocking' | 'warning'
+    assessorId?: string
+    assessorName?: string
+    candidateId?: string
+    candidateName?: string
     message: string
 }
 
@@ -206,44 +207,43 @@ export function ScheduleCheckModal({
 
     const createCheckMutation = useMutation({
         mutationFn: async () => {
-            if (!selectedStandard) return // Should be blocked by step validation
+            if (!selectedStandard) return
 
-            return checks.create({
-                standardId: selectedStandardId,
-                checkType,
-                candidateIds: candidates.map(c => c.id),
-                assessorIds: selectedAssessorIds,
-                dateStart,
-                location: location || undefined,
-                passCriteria: {
-                    required: [
-                        ...(selectedStandard.hasTheory ? ['theory'] : []),
-                        ...(selectedStandard.hasPractical ? ['practical'] : [])
-                    ],
-                    practical: (selectedStandard.hasPractical ? selectedStandard.practicalPassScore || 70 : 'pass') as any,
-                    theory: (selectedStandard.hasTheory ? selectedStandard.theoryPassScore || 70 : undefined) as any
-                }
-            })
+            const promises = candidates.map(candidate => 
+                checks.create({
+                    standardId: selectedStandardId,
+                    checkType,
+                    candidateIds: [candidate.id], // One check per candidate
+                    assessorIds: selectedAssessorIds,
+                    dateStart,
+                    location: location || undefined,
+                    passCriteria: {
+                        required: [
+                            ...(selectedStandard.hasTheory ? ['theory'] : []),
+                            ...(selectedStandard.hasPractical ? ['practical'] : [])
+                        ],
+                        practical: (selectedStandard.hasPractical ? selectedStandard.practicalPassScore || 70 : 'pass') as any,
+                        theory: (selectedStandard.hasTheory ? selectedStandard.theoryPassScore || 70 : undefined) as any
+                    }
+                })
+            )
+
+            return Promise.all(promises)
         },
-        onSuccess: (data) => {
-            toast.success(t('checks.scheduled'))
+        onSuccess: (results) => {
+            const count = Array.isArray(results) ? results.length : 1
+            toast.success(t('checks.scheduledCount', { count }))
+            
+            // Invalidate queries
             queryClient.invalidateQueries({ queryKey: ['proficiency-checks'] })
             queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
-            queryClient.invalidateQueries({ queryKey: ['eligible-trainees'] })
-            queryClient.invalidateQueries({ queryKey: ['eligible-by-standard'] })
+            queryClient.invalidateQueries({ queryKey: ['getting-started-stats'] })
             
-            if (onSuccess) {
-                onSuccess()
-            }
-
-            if (data.conflicts && data.conflicts.length > 0) {
-                toast.warning(t('checks.conflictsDetected'))
-            }
-            
+            if (onSuccess) onSuccess()
             handleClose()
         },
         onError: (error: any) => {
-            const message = error.response?.data?.error?.message || 'Failed to schedule check'
+            const message = error.response?.data?.error?.message || 'Failed to schedule checks'
             toast.error(message)
         }
     })
@@ -270,42 +270,47 @@ export function ScheduleCheckModal({
     }
 
     const checkForConflicts = async () => {
-        const newConflicts: Conflict[] = []
-        
-        for (const assessorId of selectedAssessorIds) {
-            for (const candidate of candidates) {
-                try {
-                    const res = await checks.checkConflict(candidate.id, assessorId, dateStart)
-                    if (res.hasConflict) {
-                        const assessor = assessors?.find(a => a.id === assessorId)
-                        
-                        if (res.conflictSessions && res.conflictSessions.length > 0) {
-                            res.conflictSessions.forEach((cs: any) => {
-                                newConflicts.push({
-                                    assessorId,
-                                    assessorName: assessor?.fullName || 'Unknown',
-                                    candidateId: candidate.id,
-                                    candidateName: candidate.fullName,
-                                    message: `${cs.programmeName || cs.programmeCode || 'Training'} (${new Date(cs.date).toLocaleDateString()})`
-                                })
-                            })
-                        } else {
-                            newConflicts.push({
-                                assessorId,
-                                assessorName: assessor?.fullName || 'Unknown',
-                                candidateId: candidate.id,
-                                candidateName: candidate.fullName,
-                                message: t('checks.conflictDefaultMsg') || 'Recent training interaction detected'
-                            })
-                        }
-                    }
-                } catch {
-                    // Ignore conflict check errors
-                }
-            }
+        try {
+            const res = await checks.checkConflicts({
+                candidateIds: candidates.map(c => c.id),
+                assessorIds: selectedAssessorIds,
+                standardId: selectedStandardId,
+                dateStart
+            })
+
+            const newConflicts: Conflict[] = []
+
+            // blocking
+            res.blocking?.forEach((b: any) => {
+                const candidate = candidates.find(c => c.id === b.candidateId)
+                newConflicts.push({
+                    type: 'blocking',
+                    candidateId: b.candidateId,
+                    candidateName: candidate?.fullName || 'Unknown',
+                    message: b.message
+                })
+            })
+
+            // warnings
+            res.warnings?.forEach((w: any) => {
+                let msg = w.message
+                let candidateName = w.candidateId ? candidates.find(c => c.id === w.candidateId)?.fullName : undefined
+                let assessorName = w.assessorId ? assessors?.find(a => a.id === w.assessorId)?.fullName : undefined
+
+                newConflicts.push({
+                    type: 'warning',
+                    candidateId: w.candidateId,
+                    candidateName,
+                    assessorId: w.assessorId,
+                    assessorName,
+                    message: msg
+                })
+            })
+
+            setConflicts(newConflicts)
+        } catch (err) {
+            console.error('Conflict check failed', err)
         }
-        
-        setConflicts(newConflicts)
     }
 
     const handleNext = async () => {
@@ -327,13 +332,15 @@ export function ScheduleCheckModal({
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     }
 
+    const hasBlockingConflicts = conflicts.some(c => c.type === 'blocking')
+
     const canProceed = () => {
         switch (step) {
             case 1: return candidates.length > 0
             case 2: return !!selectedStandardId
             case 3: return !!dateStart
             case 4: return selectedAssessorIds.length > 0
-            case 5: return true
+            case 5: return !hasBlockingConflicts
             default: return false
         }
     }
@@ -635,28 +642,42 @@ export function ScheduleCheckModal({
 
                             {/* Conflict warnings */}
                             {/* Conflict warnings */}
+                            {/* Conflict warnings */}
                             {conflicts.length > 0 && (
-                                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-3">
-                                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold">
+                                <div className={`rounded-lg border p-4 space-y-3 ${hasBlockingConflicts ? 'border-red-500/50 bg-red-500/10' : 'border-amber-500/50 bg-amber-500/10'}`}>
+                                    <div className={`flex items-center gap-2 font-bold ${hasBlockingConflicts ? 'text-red-600' : 'text-amber-600'}`}>
                                         <AlertTriangle className="h-5 w-5" />
-                                        {t('checks.conflictWarning')}
+                                        {hasBlockingConflicts 
+                                            ? t('checks.blockingConflictsFound', 'Scheduling blocked due to conflicts') 
+                                            : t('checks.warningsFound', 'Scheduling warnings')
+                                        }
                                     </div>
-                                    <p className="text-sm text-muted-foreground bg-background/50 p-2 rounded">
-                                        {t('checks.conflictDescription')}
-                                    </p>
+                                    
                                     <div className="space-y-2 text-sm">
                                         {conflicts.map((conflict, i) => (
-                                            <div key={i} className="flex flex-col gap-1 p-2 border border-red-200 dark:border-red-900/50 rounded bg-background/50">
+                                            <div key={i} className={`flex flex-col gap-1 p-2 border rounded bg-background/50 ${
+                                                conflict.type === 'blocking' ? 'border-red-200' : 'border-amber-200'
+                                            }`}>
                                                 <div className="font-semibold flex items-center gap-2">
-                                                    <span className="text-red-600">{t('checks.assessorLabel', { name: conflict.assessorName })}</span>
-                                                    <span className="text-muted-foreground">→</span>
-                                                    <span>{t('checks.candidateLabel', { name: conflict.candidateName })}</span>
+                                                    {conflict.type === 'blocking' && <Badge variant="destructive" className="h-5 text-[10px]">BLOCK</Badge>}
+                                                    {conflict.candidateName && <span>{t('checks.candidate')}: {conflict.candidateName}</span>}
+                                                    {conflict.assessorName && <span> / {t('checks.assessor')}: {conflict.assessorName}</span>}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground ml-4">
-                                                    {t('checks.conflictReason')}: {conflict.message}
+                                                <div className="text-xs text-muted-foreground ml-1">
+                                                    {conflict.message}
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {candidates.length > 1 && (
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-sm flex gap-2 items-start border border-blue-200 dark:border-blue-800">
+                                    <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                                    <div>
+                                        <div className="font-semibold">{t('checks.multiCandidateNotice', 'Multiple Checks will be created')}</div>
+                                        <div>{t('checks.multiCandidateDesc', `You are about to schedule ${candidates.length} individual proficiency checks.`)}</div>
                                     </div>
                                 </div>
                             )}

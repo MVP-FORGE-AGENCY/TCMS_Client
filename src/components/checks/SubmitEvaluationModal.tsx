@@ -24,13 +24,14 @@ interface SubmitEvaluationModalProps {
     };
     standard?: any;
     traineeName: string;
-    candidateId?: string; // Add optional candidateId
-    skipSignature?: boolean; // New: allow skipping signature step for batch grading
+    candidateId?: string;
+    // candidates, skipSignature, startStep removed
+    currentAssessorId?: string;
     onSuccess: () => void;
 }
 
 const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({ 
-    open, onOpenChange, checkId, profile, checkType = 'combined', passCriteria, standard, traineeName, candidateId, skipSignature, onSuccess 
+    open, onOpenChange, checkId, profile, checkType = 'combined', passCriteria, standard, traineeName, candidateId, onSuccess 
 }) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
@@ -41,7 +42,9 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
     const [comments, setComments] = useState('');
     const [theoryScore, setTheoryScore] = useState<string>('');
     const [practicalScore, setPracticalScore] = useState<string>('');
+    const [password, setPassword] = useState('');
     const sigCanvas = useRef<SignatureCanvas>(null);
+    const [signaturePreview, setSignaturePreview] = useState<string>('');
 
     const [step, setStep] = useState(1);
 
@@ -92,13 +95,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                 ...({ practicalScore: practicalScore ? parseInt(practicalScore) : null })
             } as any);
             
-            if (skipSignature) {
-                toast.success(t('checks.evalModal.evaluationSubmitted'));
-                onSuccess();
-                onOpenChange(false);
-            } else {
-                setStep(2);
-            }
+            setStep(2);
         } catch (error: any) {
              console.error(error);
              toast.error(error.response?.data?.error?.message || t('checks.evalModal.submitError'));
@@ -107,10 +104,19 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
         }
     };
 
-    const handleSignSubmit = async () => {
+    const handleSignSubmit = () => {
         // Validate Signature
         if (sigCanvas.current?.isEmpty()) {
             toast.error(t('checks.evalModal.signatureRequired'));
+            return;
+        }
+        setSignaturePreview(sigCanvas.current?.toDataURL('image/png') || '');
+        setStep(3);
+    };
+
+    const handleFinalizeSubmit = async () => {
+        if (!password) {
+            toast.error("Password is required");
             return;
         }
 
@@ -119,7 +125,8 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             const signatureData = sigCanvas.current?.toDataURL('image/png');
 
             await api.post(`/checks/${checkId}/sign`, {
-                signatureData
+                signatureData,
+                password
             });
             
             toast.success(t('checks.evalModal.protocolSigned'));
@@ -138,7 +145,7 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
-                        {step === 1 ? t('checks.evalModal.titleStep1') : t('checks.evalModal.titleStep2')}
+                        {step === 1 ? t('checks.evalModal.titleStep1') : step === 2 ? t('checks.evalModal.titleStep2') : t('checks.finalizeDialog.title', 'Finalize & Sign')}
                     </DialogTitle>
                     <DialogDescription>
                         {step === 1 
@@ -146,7 +153,10 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                                 trainee: traineeName || t('checks.candidate'), 
                                 standard: standard?.code || profile?.code || 'Standard' 
                               })
-                            : t('checks.evalModal.descStep2')}
+                            : step === 2 
+                                ? t('checks.evalModal.descStep2')
+                                : t('checks.finalizeDialog.enterPasswordLabel', 'Enter your password to confirm identity and sign.')}
+
                     </DialogDescription>
                 </DialogHeader>
 
@@ -270,23 +280,57 @@ const SubmitEvaluationModal: React.FC<SubmitEvaluationModalProps> = ({
                         </div>
                     )}
 
+                    {step === 3 && (
+                        /* Password Step & Summary */
+                        <div className="space-y-6">
+                            
+                            {/* Signature Preview */}
+                            <div className="bg-muted/30 p-4 rounded-md border flex flex-col items-center justify-center">
+                                <span className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">{t('checks.evalModal.signaturePreview', 'Signature Preview')}</span>
+                                {signaturePreview ? (
+                                    <img src={signaturePreview} alt="Signature" className="h-16 object-contain" />
+                                ) : (
+                                    <span className="text-sm italic text-muted-foreground">No signature captured</span>
+                                )}
+                            </div>
+
+                            {/* Candidates Summary Removed - Single candidate flow */}
+
+                            <div className="space-y-2 pt-2 border-t">
+                                <Label>{t('checks.finalizeDialog.enterPasswordLabel')}</Label>
+                                <Input 
+                                    type="password" 
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder={t('checks.finalizeDialog.passwordPlaceholder')}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                 </div>
 
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={() => {
-                        if (step === 2) setStep(1);
+                        if (step === 3) setStep(2);
+                        else if (step === 2) setStep(1);
                         else onOpenChange(false);
                     }} disabled={loading}>
                         {step === 1 ? t('checks.evalModal.cancel') : t('checks.evalModal.back')}
                     </Button>
                     
+
                     {step === 1 ? (
                          <Button onClick={handleScoreSubmit}>
-                             {skipSignature ? t('checks.evalModal.submitEvaluation') : t('checks.evalModal.nextSign')}
+                             {t('checks.evalModal.nextSign')}
+                         </Button>
+                    ) : step === 2 ? (
+                         <Button onClick={handleSignSubmit}>
+                             {t('checks.evalModal.nextSign', 'Next')}
                          </Button>
                     ) : (
-                         <Button onClick={handleSignSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                             {loading ? t('checks.evalModal.submitting') : t('checks.evalModal.signAndComplete')}
+                         <Button onClick={handleFinalizeSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">
+                             {loading ? t('checks.evalModal.submitting') : t('checks.finalizeDialog.confirm')}
                          </Button>
                     )}
                 </DialogFooter>

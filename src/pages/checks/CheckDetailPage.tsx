@@ -6,16 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, Award } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, CheckCircle, AlertCircle, Play, PenTool, Trash2, FileText, Award, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import SubmitEvaluationModal from '@/components/checks/SubmitEvaluationModal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import SignatureModal from './SignatureModal';
+// SignatureModal removed
 
 import { useBreadcrumb } from "@/context/BreadcrumbContext";
 
@@ -40,11 +37,26 @@ const CheckDetailPage = () => {
     const [check, setCheck] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-    const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
-    const [isSignModalOpen, setIsSignModalOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-    const [password, setPassword] = useState('');
-    const [selectedCandidate, setSelectedCandidate] = useState<{id: string, name: string} | null>(null);
+    // Removed isFinalizeOpen, isSignModalOpen, password state
+    const [conflicts, setConflicts] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (check?.candidates?.[0]?.candidate?.id && check?.dateStart && check.trainingStandards?.id) {
+             // Check for conflicts on mount (non-blocking alerts)
+             api.get('/checks/conflicts', { 
+                 params: { 
+                     candidateIds: [check.candidates[0].candidate.id],
+                     standardId: check.trainingStandards.id,
+                     dateStart: check.dateStart
+                 } 
+             }).then(res => {
+                 if (res.data?.warnings?.length > 0) {
+                     setConflicts(res.data.warnings);
+                 }
+             }).catch(console.error);
+        }
+    }, [check]);
 
     useEffect(() => {
         if (check && id) {
@@ -96,38 +108,7 @@ const CheckDetailPage = () => {
 
     const startStatus = canStartCheck();
 
-    const getDerivedDecision = () => {
-        if (!check?.assessors) return 'fail';
-        const allPass = check.assessors.every((a: any) => a.evaluation?.result === 'pass');
-        return allPass ? 'pass' : 'fail';
-    };
-
-
-    const handleFinalize = async () => {
-        if (!password) {
-            toast.error("Password is required to sign the protocol");
-            return;
-        }
-
-        try {
-            // Recalculate just in case
-            const decision = getDerivedDecision();
-            const comments = getDerivedComments();
-
-            await api.patch(`/checks/${id}/finalise`, {
-                finalDecision: decision,
-                comments: comments,
-                password
-            });
-            toast.success(t('checks.checkFinalized', 'Check finalised successfully'));
-            setIsFinalizeOpen(false);
-            setPassword('');
-            fetchCheck();
-        } catch (error: any) {
-            console.error('Finalize error:', error);
-            toast.error(error.response?.data?.error?.message || 'Failed to finalise check');
-        }
-    };
+    // Finalize logic now handled via Sign in SubmitEvaluationModal (auto-finalize on last signature)
 
     const fetchCheck = async () => {
         if (!check) setLoading(true);
@@ -205,13 +186,6 @@ const CheckDetailPage = () => {
         }
     };
 
-
-
-    const getDerivedComments = () => {
-        if (!check?.assessors) return '';
-        return check.assessors.map((a: any) => `${a.full_name}: ${a.evaluation?.comments || 'No comments'}`).join('\n');
-    };
-
     useEffect(() => {
         if (id) fetchCheck();
     }, [id]);
@@ -236,6 +210,23 @@ const CheckDetailPage = () => {
             <Button variant="ghost" onClick={() => navigate('/checks')} className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" /> {t('checks.backToList')}
             </Button>
+
+            {/* Conflict Banner */}
+            {conflicts.length > 0 && (
+                <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                        <h4 className="font-bold text-amber-600 mb-1">{t('checks.warningsFound', 'Scheduling warnings')}</h4>
+                        <div className="space-y-1">
+                            {conflicts.map((c, i) => (
+                                <div key={i} className="text-sm text-muted-foreground">
+                                    {c.message}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Main Info */}
@@ -293,6 +284,8 @@ const CheckDetailPage = () => {
                                     <FileText className="w-4 h-4" /> {t('checks.generateProtocol')}
                                 </Button>
                             )}
+
+                            {/* Manual Finalize Removed - Auto-finalization in place */}
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -375,11 +368,7 @@ const CheckDetailPage = () => {
                                                         <CheckCircle className="w-3 h-3 mr-1" /> {t('checks.submitted')}
                                                     </Badge>
                                                 ) : (
-                                                    <Button size="sm" onClick={() => {
-                                                        const name = candidate.candidate?.fullName || candidate.candidate?.full_name || candidate.fullName || 'Candidate';
-                                                        setSelectedCandidate({ id: candidate.candidateId, name });
-                                                        setIsSubmitModalOpen(true);
-                                                    }}>
+                                                    <Button size="sm" onClick={() => setIsSubmitModalOpen(true)}>
                                                         <PenTool className="w-3 h-3 mr-1" /> {t('checks.evaluate')}
                                                     </Button>
                                                 )
@@ -454,23 +443,7 @@ const CheckDetailPage = () => {
 
                                                 {/* Evaluate Button - Show if Started and NOT signed */}
                                                 {(user?.id === assessor.user?.id && check.finalDecision === 'in_progress' && !assessor.evaluationSubmitted && !assessor.signatureReceived) && (
-                                                    <Button size="sm" className="h-8" onClick={() => {
-                                                        // If single candidate, auto-select
-                                                        if (check.candidates && check.candidates.length === 1) {
-                                                           const c = check.candidates[0];
-                                                           const name = c.candidate?.fullName || c.candidate?.full_name || t('checks.candidate');
-                                                           setSelectedCandidate({ id: c.candidateId, name });
-                                                           setIsSubmitModalOpen(true);
-                                                        } else if (check.candidates && check.candidates.length > 1) {
-                                                            // If multiple, show toast or scroll to candidates list
-                                                            toast.info("Please select a specific candidate from the list above to evaluate.");
-                                                            const el = document.getElementById('candidates-list');
-                                                            if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                                        } else {
-                                                            // Legacy fallback
-                                                            setIsSubmitModalOpen(true);
-                                                        }
-                                                    }}>
+                                                    <Button size="sm" className="h-8" onClick={() => setIsSubmitModalOpen(true)}>
                                                         <PenTool className="w-3 h-3 mr-1" /> {t('checks.evaluate')}
                                                     </Button>
                                                 )}
@@ -548,42 +521,7 @@ const CheckDetailPage = () => {
             </div>
 
             {/* Batch Signing Button for Multi-Candidate */}
-            {check.candidates?.length > 1 && (
-                 (() => {
-                     const isAssessor = check.assessors?.some((a: any) => a.id === user?.id);
-                     if (!isAssessor) return null;
-                     
-                     // Check if I have graded all candidates
-                     const myEvals = check.candidates.filter((c: any) => 
-                         c.evaluations?.some((e: any) => e.assessor_id === user?.id)
-                     );
-                     const allGraded = myEvals.length === check.candidates.length;
-                     
-                     // Check if I have already signed
-                     // We don't have direct access to check_signatures here unless we add it to the API response
-                     // Assuming 'assessor.signatureReceived' logic maps efficiently?
-                     // Verify API response for 'assessors' includes signature status.
-                     // The View code shows `assessor.signatureReceived`.
-                     const meAssessor = check.assessors.find((a: any) => a.id === user?.id);
-                     const alreadySigned = meAssessor?.signatureReceived; // Note: Ensure backend populates this
-
-                     if (allGraded && !alreadySigned && check.finalDecision !== 'pass' && check.finalDecision !== 'fail' && check.finalDecision !== 'completed') {
-                         return (
-                            <div className="fixed bottom-6 right-6 z-50">
-                                <Button 
-                                    size="lg" 
-                                    className="shadow-xl" 
-                                    onClick={() => setIsSignModalOpen(true)}
-                                >
-                                    <PenTool className="mr-2 h-5 w-5" />
-                                    {t('checks.signProtocol')} ({check.candidates.length} {t('checks.candidates')})
-                                </Button>
-                            </div>
-                         );
-                     }
-                     return null;
-                 })()
-            )}
+            {/* Batch Signing Removed */}
 
             <SubmitEvaluationModal 
                 open={isSubmitModalOpen}
@@ -593,22 +531,14 @@ const CheckDetailPage = () => {
                 checkType={check.checkType || 'combined'}
                 passCriteria={check.passCriteria}
                 standard={check.trainingStandards || check.profile?.trainingStandards}
-                traineeName={selectedCandidate?.name || check.trainee?.full_name}
-                candidateId={selectedCandidate?.id}
-                skipSignature={check.candidates?.length > 1}
+                traineeName={check.trainee?.full_name || check.candidates?.[0]?.candidate?.fullName}
+                candidateId={check.candidates?.[0]?.candidateId}
                 onSuccess={() => {
                     fetchCheck();
-                    setSelectedCandidate(null);
                 }}
             />
-
-            <SignatureModal
-                open={isSignModalOpen}
-                onOpenChange={setIsSignModalOpen}
-                checkId={id!}
-                traineeName={check.isGroupCheck ? "Multiple Candidates" : check.trainee?.full_name}
-                onSuccess={fetchCheck}
-            />
+            {/* SignatureModal Removed */}
+            {/* Finalize Dialog Removed */}
 
             <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
                 <AlertDialogContent>
@@ -626,82 +556,7 @@ const CheckDetailPage = () => {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <Dialog open={isFinalizeOpen} onOpenChange={setIsFinalizeOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Finalise Proficiency Check</DialogTitle>
-                        <DialogDescription>
-                            You are about to submit the proficiency check for <strong>{check.trainee?.full_name}</strong>.
-                            Review the assessor evaluations below.
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Review the evaluations below. This will finalize the check and record competence for passing candidates.
-                        </p>
-
-                        {/* Iterate Candidates */}
-                        <div className="space-y-6">
-                        {check.candidates?.map((candidate: any) => {
-                            // Calculate candidate specific status
-                            const candidateEvals = candidate.evaluations || [];
-                            const allPass = candidateEvals.length > 0 && candidateEvals.length >= check.profile?.required_assessors && candidateEvals.every((e: any) => e.result === 'pass');
-                            const outcome = allPass ? 'pass' : 'fail';
-                            // If insufficient evals, it's technically a fail or pending, but here we assume validation happened
-                            
-                            return (
-                                <div key={candidate.id} className="border rounded-md p-4">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h4 className="font-semibold">{candidate.fullName}</h4>
-                                        <Badge className={outcome === 'pass' ? 'bg-green-600' : 'bg-red-600'}>
-                                            {t('checks.proposed')}: {outcome.toUpperCase()}
-                                        </Badge>
-                                    </div>
-                                    
-                                    <div className="grid gap-2 pl-4 border-l-2">
-                                        {check.assessors?.map((assessor: any) => {
-                                            const evaluation = candidateEvals.find((e: any) => e.assessor_id === assessor.id);
-                                            return (
-                                                <div key={assessor.id} className="flex justify-between items-center text-sm">
-                                                    <span>{assessor.fullName}</span>
-                                                    {evaluation ? (
-                                                        <span className={evaluation.result === 'pass' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                                                            {evaluation.result.toUpperCase()}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-amber-500 italic">Pending</span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        </div>
-
-                        <div className="mt-6 border-t pt-4">
-                            <Label htmlFor="signing-password">Enter your password to sign and finalize</Label>
-                            <Input 
-                                id="signing-password" 
-                                type="password" 
-                                value={password} 
-                                onChange={(e) => setPassword(e.target.value)} 
-                                placeholder="Start typing..."
-                                className="mt-1.5"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsFinalizeOpen(false)}>Cancel</Button>
-                        <Button onClick={handleFinalize}>
-                            Confirm & Submit
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Finalize Dialog Removed */}
         </div>
     );
 };

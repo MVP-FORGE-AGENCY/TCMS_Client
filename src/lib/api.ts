@@ -269,6 +269,10 @@ export const checks = {
         const response = await api.get("/checks/conflict", { params: { traineeId, assessorId, checkDate } })
         return response.data
     },
+    checkConflicts: async (params: { candidateIds?: string[], assessorIds?: string[], standardId?: string, dateStart: string }) => {
+        const response = await api.get("/checks/conflicts", { params });
+        return response.data;
+    },
     submitEvaluation: async (id: string, data: {
         elementsResults: Record<string, string>
         result: string

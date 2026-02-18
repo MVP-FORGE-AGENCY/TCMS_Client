@@ -737,8 +737,11 @@
          "multipleCandidates": "{{count}} кандидати",
          "conflictDescription": "Следните двойки оценител-кандидат нарушават правилото за 'Без самопроверка' (обучение, проведено в рамките на ограничения прозорец).",
         "conflictDefaultMsg": "Засечено е скорошно обучение",
+        "scheduledCount": "Планирани са {{count}} проверки",
         "selectStandardPrompt": "Моля, изберете стандарт, за да видите критериите.",
         "submittedHidden": "Изпратен (Скрит)",
+        "waitingForAssessors": "Изчакване на други оценители",
+        "completeCheck": "Завърши проверката",
         "start": "Старт",
         "evalModal": {
             "titleStep1": "Изпращане на оценка (Стъпка 1/2)",
@@ -774,8 +777,24 @@
             "resultRequired": "Краен резултат е задължителен",
             "theoryRequired": "Теоретична оценка е задължителна",
             "practicalRequired": "Практическа оценка е задължителна",
-            "mandatoryElementError": "Задължителен елемент \"{{name}}\" трябва да бъде оценен"
-        }
+            "mandatoryElementError": "Задължителен елемент \"{{name}}\" трябва да бъде оценен",
+            "assessmentSummary": "Обобщение на оценката",
+            "submitEvaluation": "Предай оценка",
+            "nextSign": "Напред (Подпис)",
+            "submitting": "Изпращане...",
+            "cancel": "Отказ",
+            "back": "Назад"
+        },
+        "finalizeDialog": {
+            "title": "Приключване на проверка",
+            "description": "Предстои да изпратите проверката за <strong>{{name}}</strong>.",
+            "reviewInstruction": "Прегледайте оценките по-долу. Това ще финализира проверката и ще запише компетентност за преминалите кандидати.",
+            "enterPasswordLabel": "Въведете паролата си за подписване и финализиране",
+            "passwordPlaceholder": "Започнете да пишете...",
+            "confirm": "Финализирай",
+            "cancel": "Отказ"
+        },
+        "requiredElements": "Задължителни елементи"
     },
     "roles": {
         "admin": "Администратор",
@@ -827,6 +846,7 @@
              "completed": "Завършена",
              "cancelled": "Отменена"
         },
+
         "attendanceStatus": {
              "planned": "Планирана",
              "present": "Присъствал",
@@ -1426,6 +1446,14 @@
             "instruction": "Обучение",
             "assessment": "Оценяване"
         }
+    },
+    "status": {
+        "pass": "ПРЕМИНАЛ",
+        "fail": "НЕПРЕМИНАЛ",
+        "pending": "ЧАКАЩ",
+        "cancelled": "ОТКАЗАН",
+        "planned": "ПЛАНИРАН",
+        "in_progress": "В ПРОЦЕС",
+        "completed": "ЗАВЪРШЕН"
     }
-
 }

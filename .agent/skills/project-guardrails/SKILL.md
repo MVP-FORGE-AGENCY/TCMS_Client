@@ -15,6 +15,7 @@ This is the **frontend repository** (Vite/React). The backend is a separate repo
 - Do not refactor component structure, rename folders, or reformat large areas unless explicitly requested.
 - Do not introduce new npm packages without approval.
 - Do not assume the backend will change to accommodate frontend convenience.
+- Always add bulgarian translations/text when creating or modifying components.
 
 ## Breaking changes require approval
 
