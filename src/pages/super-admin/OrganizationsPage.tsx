@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
     Table,
@@ -95,7 +96,61 @@ export default function OrganizationsPage() {
                 />
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {isLoading ? (
+                    <div className="text-center py-10 border rounded-md bg-muted/20">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    </div>
+                ) : orgs.length === 0 ? (
+                    <div className="text-center py-10 border rounded-md bg-muted/20">
+                        {t("nav.superAdmin.organizations.table.empty")}
+                    </div>
+                ) : (
+                    orgs.map((org) => (
+                        <Card key={org.id}>
+                            <CardHeader className="p-4 pb-2">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            {org.name}
+                                        </CardTitle>
+                                        <div className="text-xs text-muted-foreground font-mono mt-1">{org.code}</div>
+                                    </div>
+                                    <Badge variant={
+                                        org.status === 'active' ? 'default' : 
+                                        org.status === 'trial' ? 'secondary' : 'destructive'
+                                    }>
+                                        {org.status}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2 space-y-2 text-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <span className="text-muted-foreground block text-xs">{t("nav.superAdmin.organizations.table.country")}</span>
+                                        <span>{org.country}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground block text-xs">{t("nav.superAdmin.organizations.table.license")}</span>
+                                        <span className="capitalize">{org.licenseType || '-'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground block text-xs">{t("nav.superAdmin.organizations.table.admins")}</span>
+                                        <span>{org.adminCount ?? '-'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground block text-xs">{t("nav.superAdmin.organizations.table.users")}</span>
+                                        <span>{org.userCount ?? '-'}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>

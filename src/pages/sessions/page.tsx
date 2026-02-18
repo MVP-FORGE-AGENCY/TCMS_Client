@@ -420,12 +420,12 @@ export default function SessionsPage() {
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'calendar')}>
                         <TabsList>
                             <TabsTrigger value="table">
-                                <List className="h-4 w-4 mr-1" />
-                                {t("common.table", "Table")}
+                                <List className="h-4 w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">{t("common.table", "Table")}</span>
                             </TabsTrigger>
                             <TabsTrigger value="calendar">
-                                <Calendar className="h-4 w-4 mr-1" />
-                                {t("common.calendar", "Calendar")}
+                                <Calendar className="h-4 w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">{t("common.calendar", "Calendar")}</span>
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -434,15 +434,15 @@ export default function SessionsPage() {
                         onClick={toggleMySessions}
                         className={showMySessions ? "bg-primary/10 text-primary border-primary/20" : ""}
                     >
-                        <User className="mr-2 h-4 w-4" /> 
-                        {t("sessions.mySessions", "My Sessions")}
+                        <User className="h-4 w-4 sm:mr-2" /> 
+                        <span className="hidden sm:inline">{t("sessions.mySessions", "My Sessions")}</span>
                     </Button>
                     <Button 
                         variant={showFilters ? "secondary" : "outline"} 
                         onClick={() => setShowFilters(!showFilters)}
                     >
-                        <Filter className="mr-2 h-4 w-4" /> 
-                        {t("common.filter", "Filter")}
+                        <Filter className="h-4 w-4 sm:mr-2" /> 
+                        <span className="hidden sm:inline">{t("common.filter", "Filter")}</span>
                         {hasActiveFilters && (
                             <span className="ml-2 rounded-full bg-primary w-2 h-2" />
                         )}
@@ -471,7 +471,7 @@ export default function SessionsPage() {
                     )}
                     {canSchedule && (
                     <Button onClick={() => setIsCreateOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> {t("sessions.scheduleSession")}
+                        <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">{t("sessions.scheduleSession")}</span>
                     </Button>
                     )}
                 </div>

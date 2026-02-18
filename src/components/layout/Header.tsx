@@ -88,8 +88,10 @@ export function Header({ toggleSidebar, isSidebarOpen = true }: HeaderProps) {
                     <CommandMenu />
                 </div>
 
-                <LanguageSwitcher />
-                <ModeToggle />
+                <div className="hidden md:flex items-center gap-2">
+                    <LanguageSwitcher />
+                    <ModeToggle />
+                </div>
                 <NotificationBell />
 
                 <DropdownMenu>

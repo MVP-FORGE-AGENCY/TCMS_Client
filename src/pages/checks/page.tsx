@@ -464,7 +464,7 @@ const ChecksPage = () => {
 
 
     return (
-        <div className="container mx-auto py-6 space-y-8">
+        <div className="space-y-8 w-full min-w-0">
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
                 <div>
                      <div className="flex items-center gap-2 mb-1">
@@ -485,21 +485,21 @@ const ChecksPage = () => {
             </div>
 
             <Tabs defaultValue="eligible" className="w-full">
-            <TabsList className="flex flex-wrap h-auto sm:grid sm:w-full sm:grid-cols-3 lg:w-[600px] mb-6">
+            <TabsList className="grid w-full grid-cols-1 h-auto gap-2 sm:grid-cols-3 lg:w-[600px] mb-6">
                     <TabsTrigger value="eligible">{t("checks.eligibleTrainees")}</TabsTrigger>
                     <TabsTrigger value="allocated">{t("checks.scheduledChecks")}</TabsTrigger>
                     <TabsTrigger value="my_assessments">{t("checks.myAssessments")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="eligible" className="mt-6">
-                    <Card>
-                        <CardHeader>
+                    <Card className="border-0 shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                        <CardHeader className="px-0 md:px-6">
                             <CardTitle>{t("checks.eligibleTrainees")}</CardTitle>
                             <CardDescription>
                                 {t("checks.eligibleDescription", "Trainees who have completed training and require proficiency checks")}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0 md:p-6">
                             <EligibleTraineesTable 
                                 onScheduleClick={handleScheduleClick}
                             />
@@ -523,14 +523,14 @@ const ChecksPage = () => {
                     )}
 
                     {allocatedViewMode === 'table' ? (
-                        <Card>
-                            <CardHeader>
+                        <Card className="border-0 shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                            <CardHeader className="px-0 md:px-6">
                                 <CardTitle>{t("checks.scheduledChecks")}</CardTitle>
                                 <CardDescription>
                                     {t("checks.scheduledDescription")}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-0 md:p-6">
                                 <ScheduledChecksTable 
                                     filter="all"
                                     refreshTrigger={refreshTrigger}
@@ -565,14 +565,14 @@ const ChecksPage = () => {
                     )}
 
                     {myViewMode === 'table' ? (
-                        <Card>
-                            <CardHeader>
+                        <Card className="border-0 shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                            <CardHeader className="px-0 md:px-6">
                                 <CardTitle>{t("checks.myAssessments")}</CardTitle>
                                 <CardDescription>
                                     {t("checks.myAssessmentsDescription")}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-0 md:p-6">
                                 <ScheduledChecksTable 
                                     filter="my_assignments" 
                                     refreshTrigger={refreshTrigger}

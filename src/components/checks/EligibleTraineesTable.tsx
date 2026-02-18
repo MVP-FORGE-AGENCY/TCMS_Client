@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, CalendarPlus, Users } from 'lucide-react';
+import { Search, CalendarPlus, Users, MoreHorizontal } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { checks } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
 
@@ -79,8 +81,8 @@ const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onSchedul
     return (
         <div className="space-y-4">
             {/* Search and Actions */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="relative max-w-sm flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="relative w-full sm:max-w-sm flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder={t('common.search', 'Search trainees...')}
@@ -97,8 +99,97 @@ const EligibleTraineesTable: React.FC<EligibleTraineesTableProps> = ({ onSchedul
                 )}
             </div>
 
-            {/* Table */}
-            <div className="rounded-md border">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {isLoading ? (
+                     <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
+                        {t('common.loading', 'Loading...')}
+                    </div>
+                ) : filteredTrainees.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
+                        {t('checks.noEligibleTrainees', 'No trainees require proficiency checks at this time')}
+                    </div>
+                ) : (
+                    filteredTrainees.map((trainee) => (
+                        <Card key={trainee.id}>
+                            <CardHeader className="p-4 pb-2">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox 
+                                            checked={selectedTrainees.includes(trainee.id)}
+                                            onCheckedChange={() => handleSelectTrainee(trainee.id)}
+                                        />
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarFallback>
+                                                {getInitials(trainee.fullName)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <CardTitle className="text-base font-medium leading-none">
+                                                {trainee.fullName}
+                                            </CardTitle>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                {trainee.email}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => onScheduleClick(trainee.id)}>
+                                                <CalendarPlus className="mr-2 h-4 w-4" />
+                                                {t('common.schedule', 'Schedule')}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2 space-y-3">
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div className="space-y-1">
+                                        <span className="text-muted-foreground text-xs font-medium uppercase">{t('common.role', 'Role')}</span>
+                                        <div><Badge variant="outline">{trainee.jobTitle || t(`roles.${trainee.role?.toLowerCase()}`, trainee.role)}</Badge></div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-muted-foreground text-xs font-medium uppercase">{t('common.department', 'Department')}</span>
+                                        <div className="truncate" title={trainee.department}>{trainee.department || '-'}</div>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-muted-foreground text-xs font-medium uppercase">{t('checks.eligibleStandards', 'Eligible Standards')}</span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {trainee.eligibleStandards.map(std => (
+                                            <Badge 
+                                                key={std.id} 
+                                                variant="secondary" 
+                                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                                                onClick={() => onScheduleClick(trainee.id, undefined, std.id)}
+                                            >
+                                                {std.code}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                <Button 
+                                    className="w-full" 
+                                    variant="secondary"
+                                    onClick={() => onScheduleClick(trainee.id)}
+                                >
+                                    <CalendarPlus className="h-4 w-4 mr-2" />
+                                    {t('common.schedule', 'Schedule Check')}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>

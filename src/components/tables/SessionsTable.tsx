@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, Users, ClipboardCheck, Ban } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MoreHorizontal, Users, ClipboardCheck, Ban, Calendar, MapPin, User } from "lucide-react"
 import type { Session } from "@/types"
 import { format } from "date-fns"
 
@@ -92,16 +93,109 @@ export function SessionsTable({
 
     return (
         <div className="space-y-4">
+
             <div className="flex items-center gap-4">
                 <Input
                     placeholder={t('sessions.searchPlaceholder', 'Search by campaign, module, instructor, or location...')}
                     value={filterSearch}
                     onChange={(e) => setFilterSearch(e.target.value)}
-                    className="max-w-sm"
+                    className="max-w-sm w-full"
                 />
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {filteredData.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
+                        {t('common.noResults', 'No results found')}
+                    </div>
+                ) : (
+                    filteredData.map((session) => (
+                        <Card key={session.id} className="overflow-hidden">
+                            <CardHeader className="p-4 bg-muted/30 pb-2">
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-base font-medium">
+                                            {(session as any).curriculumModule?.name || '-'}
+                                        </CardTitle>
+                                        <div className="text-sm text-muted-foreground">
+                                            {(session as any).campaign?.name || session.programme?.name || '-'}
+                                        </div>
+                                    </div>
+                                    <Badge className={getStatusColor(session.status)}>
+                                        {session.status.replace("_", " ")}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2 space-y-3">
+                                <div className="flex items-center text-sm gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground min-w-4" />
+                                    <span>{format(new Date(session.dateStart), 'EEE, MMM d, yyyy • HH:mm')}</span>
+                                </div>
+                                
+                                {session.instructor && (
+                                    <div className="flex items-center text-sm gap-2">
+                                        <User className="h-4 w-4 text-muted-foreground min-w-4" />
+                                        <span>{session.instructor.fullName}</span>
+                                    </div>
+                                )}
+                                
+                                {session.location && (
+                                    <div className="flex items-center text-sm gap-2">
+                                        <MapPin className="h-4 w-4 text-muted-foreground min-w-4" />
+                                        <span>{session.location}</span>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-2 pt-2 border-t mt-2">
+                                    {isColumnVisible('type') && (
+                                        <Badge variant="outline" className={getSessionTypeBadge(session.sessionType)}>
+                                            {session.sessionType}
+                                        </Badge>
+                                    )}
+                                    {(session as any).isFinalModuleSession && (
+                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                            Final
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                      {/* Mobile Actions */}
+                                      <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                              <Button variant="outline" size="sm" className="w-full">
+                                                  <MoreHorizontal className="mr-2 h-4 w-4" />
+                                                  {t('common.actions', 'Actions')}
+                                              </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end" className="w-[200px]">
+                                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                              <DropdownMenuItem onClick={() => onViewSession(session)}>
+                                                  <Users className="mr-2 h-4 w-4" />
+                                                  {t('common.view', 'View Details')}
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => onRecordResults(session)}>
+                                                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                  {t('sessions.recordResults', 'Record Results')}
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                  onClick={() => onCancelSession(session)}
+                                                  className="text-red-600"
+                                              >
+                                                  <Ban className="mr-2 h-4 w-4" />
+                                                  {t('sessions.cancelSession', 'Cancel Session')}
+                                              </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                      </DropdownMenu>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            <div className="hidden md:block rounded-md border overflow-x-auto">
                 <Table className="min-w-[800px]">
                     <TableHeader>
                         <TableRow>

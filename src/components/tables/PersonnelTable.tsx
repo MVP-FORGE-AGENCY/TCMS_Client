@@ -35,6 +35,7 @@ import type { Employee } from "@/types"
 import { Edit, Eye, Trash2, ChevronDown } from "lucide-react"
 
 import { Switch } from "@/components/ui/switch"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface PersonnelTableProps {
     data: Employee[]
@@ -251,7 +252,110 @@ export function PersonnelTable({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                 {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => {
+                        const employee = row.original;
+                        const isActive = employee.isActive !== false;
+                        
+                        return (
+                            <Card key={row.id}>
+                                <CardHeader className="p-4 pb-2">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                {employee.fullName}
+                                                {employee.userType === 'student' && (
+                                                    <Badge variant="outline" className="text-xs h-5 px-1.5 bg-blue-50 text-blue-700 border-blue-200">
+                                                        Student
+                                                    </Badge>
+                                                )}
+                                            </CardTitle>
+                                            <div className="text-xs text-muted-foreground mt-1">{employee.email}</div>
+                                        </div>
+                                        <Badge variant={isActive ? "default" : "secondary"}>
+                                            {isActive ? t("common.active") : t("common.inactive")}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-2 space-y-3">
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span className="text-muted-foreground block text-xs">{t("personnel.role")}</span>
+                                            <span className="font-medium">{t(`personnel.roles.${employee.role}`)}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground block text-xs">{t("personnel.department")}</span>
+                                            <span>{employee.areaOfActivity || "-"}</span>
+                                        </div>
+                                        {showTypeColumn && employee.accountType && (
+                                            <div>
+                                                <span className="text-muted-foreground block text-xs">{t("personnel.type")}</span>
+                                                  <Badge variant={employee.accountType === 'external' ? 'destructive' : 'secondary'} className="mt-1">
+                                                    {employee.accountType === 'external' ? 'External' : 'Internal'}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                          <div>
+                                            <span className="text-muted-foreground block text-xs">{t("personnel.startDate")}</span>
+                                            <span>{employee.employmentStart || "-"}</span>
+                                        </div>
+                                    </div>
+
+                                    {onStatusChange && (
+                                         <div className="flex items-center justify-between py-2 border-t border-dashed">
+                                            <span className="text-sm text-muted-foreground">{t("personnel.status")}</span>
+                                            <Switch
+                                                checked={isActive}
+                                                onCheckedChange={(checked) => onStatusChange(employee.id, checked)}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-end gap-2 pt-1 border-t">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onViewHistory(employee)}
+                                        >
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            {t("personnel.historyLabel", "History")}
+                                        </Button>
+                                         {onEdit && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onEdit(employee)}
+                                            >
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                {t("common.edit")}
+                                            </Button>
+                                        )}
+                                         {onDelete && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => onDelete(employee.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                {t("common.delete")}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                ) : (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
+                         {t("common.noData")}
+                    </div>
+                )}
+            </div>
+
+            <div className="hidden md:block rounded-md border overflow-x-auto">
                 <Table className="min-w-[600px] md:min-w-full">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (

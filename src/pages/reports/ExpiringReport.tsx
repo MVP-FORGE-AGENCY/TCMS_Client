@@ -18,6 +18,7 @@ import { reports } from "@/lib/api"
 
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function ExpiringReport() {
     const { t, i18n } = useTranslation()
@@ -123,19 +124,19 @@ export default function ExpiringReport() {
 
     return (
         <div className="space-y-6 print:space-y-2">
-            <div className="flex items-center justify-between print:hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{t("reports.expiringTitle")}</h1>
                     <p className="text-muted-foreground">
                         {showAll ? t("reports.showingAll") : t("reports.expiringSubtitle", { days: daysThreshold[0] })}
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={handleExportCSV} variant="outline">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button onClick={handleExportCSV} variant="outline" className="w-full sm:w-auto">
                         <FileSpreadsheet className="mr-2 h-4 w-4" />
                         {t("reports.exportCsv")}
                     </Button>
-                    <Button onClick={handlePrint} variant="outline">
+                    <Button onClick={handlePrint} variant="outline" className="w-full sm:w-auto">
                         <Printer className="mr-2 h-4 w-4" />
                         {t("reports.exportPdf")}
                     </Button>
@@ -168,7 +169,59 @@ export default function ExpiringReport() {
                 )}
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4 print:hidden">
+                {filteredItems.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
+                         {t("reports.noExpiringItems")}
+                    </div>
+                ) : (
+                    filteredItems.map((item) => {
+                        const daysRemaining = differenceInDays(item.expiryDate, new Date());
+
+                        // Note: hover classes don't matter much on mobile, but bg classes do.
+                        // We might want to apply the bg color to the card or a border.
+                        
+                        return (
+                            <Card key={item.id} className={`${daysRemaining < 7 ? 'border-red-200 bg-red-50/50' : daysRemaining < 30 ? 'border-amber-200 bg-amber-50/50' : ''}`}>
+                                <CardHeader className="p-4 pb-2">
+                                    <div className="flex justify-between items-start">
+                                        <CardTitle className="text-base">{item.employee}</CardTitle>
+                                        <Badge variant={daysRemaining < 0 ? "secondary" : "outline"} className="uppercase text-xs">
+                                            {getStatusTranslation(item.status)}
+                                        </Badge>
+                                    </div>
+                                    <div className="text-sm font-medium text-muted-foreground">{item.competence}</div>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-2 space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">{t("reports.daysRemaining")}:</span>
+                                        <span className={daysRemaining < 0 
+                                            ? "text-gray-500 font-medium" 
+                                            : daysRemaining < 7 
+                                                ? "text-red-600 font-bold" 
+                                                : daysRemaining < 30 
+                                                    ? "text-amber-600 font-medium" 
+                                                    : ""}>
+                                            {formatDays(daysRemaining)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-dashed pt-2">
+                                        <span className="text-muted-foreground">{t("common.date")}:</span>
+                                        <span>{formatDate(item.expiryDate)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">{t("reports.dateCompleted")}:</span>
+                                        <span>{item.dateCompleted ? formatDate(item.dateCompleted) : '-'}</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                )}
+            </div>
+
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>

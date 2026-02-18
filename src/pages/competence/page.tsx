@@ -24,10 +24,10 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TrafficLightCard } from "@/components/ui/traffic-light-card"
-import { Filter, User, ShieldCheck } from "lucide-react"
+import { Filter, User, ShieldCheck, Clock } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
-import { toast } from "sonner"
+
 
 // Define types locally if not yet in global types
 interface CompetenceItem {
@@ -244,7 +244,7 @@ export default function CompetenceDashboard() {
 
             {/* Expiring Competences Slider (Full Width) */}
             <Card className={`border-dashed transition-colors ${expiryFilterEnabled ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50'}`}>
-                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                <CardContent className="p-3 sm:p-4 flex flex-col md:flex-row md:items-center gap-3 sm:gap-4 md:gap-6">
                     <div className="flex items-center gap-4 min-w-[200px]">
                          <div className="flex items-center space-x-2">
                             <Switch 
@@ -297,8 +297,53 @@ export default function CompetenceDashboard() {
                 </CardContent>
             </Card>
 
-            {/* Table */}
-            <Card>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {isLoading ? (
+                    <div className="text-center py-10 border rounded-md bg-muted/20">{t("competence.loading")}</div>
+                ) : data.length === 0 ? (
+                    <div className="text-center py-10 border rounded-md bg-muted/20">{t("competence.noRecords")}</div>
+                ) : (
+                    data.map((item, idx) => (
+                        <Card key={idx}>
+                            <CardHeader className="p-4 pb-2">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle className="text-base">{item.fullName}</CardTitle>
+                                        <div className="text-xs text-muted-foreground">{item.departmentTag}</div>
+                                    </div>
+                                    {getStatusBadge(item.status)}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2 space-y-3">
+                                <div>
+                                    <div className="font-medium text-sm">{item.competenceCode}</div>
+                                    <div className="text-sm text-muted-foreground">{item.competenceName}</div>
+                                </div>
+                                <div className="flex justify-between text-sm py-1 border-t border-b border-dashed">
+                                    <span className="text-muted-foreground">{t("competence.validUntil")}:</span>
+                                    <span className="font-medium">{item.validUntil ? new Date(item.validUntil).toLocaleDateString() : 'Permanent'}</span>
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/personnel/${item.userId}/history`)}>
+                                        <Clock className="w-4 h-4 mr-2" />
+                                        {t("competence.history")}
+                                    </Button>
+                                    {(item.status === 'valid' || item.status === 'expiring_soon') && item.protocolId && (
+                                        <Button variant="secondary" size="sm" className="flex-1" onClick={() => navigate(`/protocols/${item.protocolId}`)}>
+                                            <ShieldCheck className="w-4 h-4 mr-2" />
+                                            Protocol
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Table View */}
+            <Card className="hidden md:block">
                 <CardContent className="p-0 overflow-x-auto">
                     <Table className="min-w-[700px]">
                         <TableHeader>
