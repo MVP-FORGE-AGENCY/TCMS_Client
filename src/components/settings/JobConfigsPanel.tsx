@@ -390,6 +390,9 @@ export default function JobConfigsPanel() {
         return Object.entries(type.configSchema).map(([key, schema]: [string, any]) => (
             <div key={key} className="grid gap-2">
                 <Label>{schema.label || key}</Label>
+                {schema.description && (
+                    <p className="text-xs text-muted-foreground -mt-1">{schema.description}</p>
+                )}
                 {schema.type === 'number' && (
                     <Input
                         type="number"
@@ -443,6 +446,68 @@ export default function JobConfigsPanel() {
                         ))}
                     </div>
                 )}
+                {schema.type === 'recipients' && (() => {
+                    const current = formData.config_payload[key] || schema.default || { roles: [], emails: [] }
+                    // Handle legacy format (flat string array)
+                    const roles: string[] = Array.isArray(current) ? current : (current.roles || [])
+                    const emails: string[] = Array.isArray(current) ? [] : (current.emails || [])
+                    const availableRoles = ['admin', 'manager', 'employee', 'instructor']
+
+                    const updateRecipients = (newRoles: string[], newEmails: string[]) => {
+                        setFormData({
+                            ...formData,
+                            config_payload: {
+                                ...formData.config_payload,
+                                [key]: { roles: newRoles, emails: newEmails }
+                            }
+                        })
+                    }
+
+                    return (
+                        <div className="space-y-3">
+                            {/* Role checkboxes */}
+                            <div>
+                                <p className="text-sm font-medium mb-2">Roles</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableRoles.map((role) => (
+                                        <Badge
+                                            key={role}
+                                            variant={roles.includes(role) ? "default" : "outline"}
+                                            className="cursor-pointer capitalize"
+                                            onClick={() => {
+                                                const updated = roles.includes(role)
+                                                    ? roles.filter(r => r !== role)
+                                                    : [...roles, role]
+                                                updateRecipients(updated, emails)
+                                            }}
+                                        >
+                                            {role}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Direct emails */}
+                            <div>
+                                <p className="text-sm font-medium mb-2">Additional Email Addresses</p>
+                                <Input
+                                    type="text"
+                                    placeholder="e.g. auditor@company.com, safety@firm.com"
+                                    value={emails.join(', ')}
+                                    onChange={(e) => {
+                                        const parsed = e.target.value
+                                            .split(/[,;\s]+/)
+                                            .map(s => s.trim())
+                                            .filter(s => s.length > 0)
+                                        updateRecipients(roles, parsed)
+                                    }}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Comma-separated email addresses for external recipients
+                                </p>
+                            </div>
+                        </div>
+                    )
+                })()}
             </div>
         ))
     }

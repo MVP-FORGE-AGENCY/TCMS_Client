@@ -45,7 +45,7 @@ export default function AutomationCenter() {
         try {
             setIsLoading(true)
             const logsRes = await api.get('/admin/automation/logs')
-            setLogs(logsRes.data)
+            setLogs(logsRes.data?.data || logsRes.data || [])
         } catch (error) {
             console.error(error)
             toast.error(t("errors.loadError"))
