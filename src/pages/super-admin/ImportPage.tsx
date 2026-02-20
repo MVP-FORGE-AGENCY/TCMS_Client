@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Upload, FileJson, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 
 const ImportPage: React.FC = () => {
-    const { token } = useAuth();
+
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -53,26 +53,17 @@ const ImportPage: React.FC = () => {
                 try {
                     const payload = JSON.parse(event.target?.result as string);
                     
-                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/super-admin/import`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify(payload)
-                    });
+                    const response = await api.post("/super-admin/import", payload);
 
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error?.message || 'Import failed');
+                    if (response.status !== 200 && response.status !== 201) {
+                        throw new Error(response.data.error?.message || 'Import failed');
                     }
 
-                    setResult(data);
+                    setResult(response.data);
                     setFile(null);
                     setPreview(null);
                 } catch (err: any) {
-                    setError(err.message);
+                    setError(err.message || 'An error occurred during import');
                 } finally {
                     setIsLoading(false);
                 }
@@ -83,6 +74,7 @@ const ImportPage: React.FC = () => {
             setIsLoading(false);
         }
     };
+
 
     return (
         <div className="container mx-auto py-8 max-w-3xl">

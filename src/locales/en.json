@@ -336,7 +336,23 @@
         "quickActions": "Quick Actions",
         "myActions": "My Actions",
         "actionsDesc": "Tasks that need your attention",
-        "noActions": "All caught up! No pending actions."
+        "noActions": "All caught up! No pending actions.",
+        "expiredCompetences": "Expired Competences",
+        "expiredAlert": "Expired Competences Detected",
+        "expiredAlertDesc": "There are competences that have expired and require immediate attention. Schedule training or reassessment to restore compliance.",
+        "reviewExpired": "Review Now",
+        "complianceDetails": {
+            "title": "Compliance Details",
+            "subtitle": "Breakdown of compliance metrics and calculation.",
+            "scoreLabel": "Compliance Score",
+            "howItWorks": "How it works",
+            "explanation": "Your compliance score is calculated based on the percentage of required competences that are currently valid. Missing or expired competences reduce the score.",
+            "formula": "Score = ((Valid + Expiring) / Total Required) × 100",
+            "validAndExpiring": "Valid & Expiring",
+            "expiredOrMissing": "Expired or Missing",
+            "note": "Note",
+            "noteText": "Employees with missing or expired mandatory competences require immediate attention."
+        }
     },
     "personnel": {
         "title": "Personnel",

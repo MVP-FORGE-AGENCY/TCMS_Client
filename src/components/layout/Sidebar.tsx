@@ -22,6 +22,7 @@ import {
     Target,
     Bot,
     PanelLeftClose,
+    Upload,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/context/AuthContext"
@@ -223,6 +224,11 @@ export function Sidebar({ className, isOpen = true, onToggle }: SidebarProps) {
             title: t("nav.superAdmin.organizations.navLabel"),
             href: "/super-admin/organizations",
             icon: Building,
+        },
+        {
+            title: t("nav.superAdmin.import.navLabel", "Import"),
+            href: "/super-admin/import",
+            icon: Upload,
         },
     ]
 
