@@ -25,7 +25,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import type { Programme, ProgrammeType } from "@/types"
-import { Edit, Trash2, MoreHorizontal } from "lucide-react"
+import { Edit, Trash2, MoreHorizontal, BookOpen } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -140,12 +141,12 @@ export function ProgrammesTable({
                 return (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover-lift">
                                 <span className="sr-only">Open menu</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="animate-scale-in">
                             <DropdownMenuLabel>{t("programmes.actions")}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => onEdit(programme)}>
                                 <Edit className="mr-2 h-4 w-4" /> {t("programmes.edit")}
@@ -235,9 +236,13 @@ export function ProgrammesTable({
                             <TableRow>
                                 <TableCell
                                     colSpan={columns.length}
-                                    className="h-24 text-center"
+                                    className="h-64 text-center p-0"
                                 >
-                                    {t("common.noData")}
+                                    <EmptyState
+                                        icon={BookOpen}
+                                        title={t("common.noData", "No programmes found")}
+                                        description="Adjust your search filters or add a new training programme."
+                                    />
                                 </TableCell>
                             </TableRow>
                         )}
@@ -250,6 +255,7 @@ export function ProgrammesTable({
                     size="sm"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
+                    className="hover-lift"
                 >
                     Previous
                 </Button>
@@ -258,6 +264,7 @@ export function ProgrammesTable({
                     size="sm"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
+                    className="hover-lift"
                 >
                     Next
                 </Button>

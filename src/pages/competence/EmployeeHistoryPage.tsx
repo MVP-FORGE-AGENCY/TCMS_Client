@@ -116,7 +116,7 @@ export default function EmployeeHistoryPage() {
         <div className="space-y-6 max-w-[100vw] overflow-x-hidden">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                    <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate(-1)}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>

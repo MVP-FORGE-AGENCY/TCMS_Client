@@ -49,6 +49,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Label } from "@/components/ui/label"
 import type { ScheduleRetakeRequest, Employee } from "@/types"
 
@@ -292,7 +293,23 @@ export default function SessionDetailPage() {
         }
     }
 
-    if (isLoading) return <div className="p-8">Loading...</div>
+    if (isLoading) {
+        return (
+            <div className="space-y-6 mt-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                        <Skeleton className="h-10 w-10" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-8 w-[300px]" />
+                            <Skeleton className="h-4 w-[250px]" />
+                        </div>
+                    </div>
+                </div>
+                <Skeleton className="h-10 w-full max-w-sm mb-4" />
+                <Skeleton className="h-[400px] w-full" />
+            </div>
+        )
+    }
     if (!session) return <div className="p-8">Session not found</div>
 
     const isPlanned = session.status === 'planned'
@@ -304,7 +321,7 @@ export default function SessionDetailPage() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(campaignId ? `/campaigns/${campaignId}` : "/sessions")} className="shrink-0">
+                    <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate(campaignId ? `/campaigns/${campaignId}` : "/sessions")} className="shrink-0">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="min-w-0">

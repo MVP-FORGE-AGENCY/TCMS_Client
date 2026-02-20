@@ -196,6 +196,7 @@ export function SessionParticipants({ session, open, onOpenChange }: SessionPart
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
+                                                        aria-label="Remove participant"
                                                         onClick={() => removeParticipant(p.id)}
                                                         className="h-8 w-8 text-red-500 hover:text-red-600"
                                                     >

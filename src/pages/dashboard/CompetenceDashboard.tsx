@@ -175,12 +175,12 @@ export function CompetenceDashboard() {
         a.click()
     }
 
-    const getStatusColor = (status: CompetenceStatus) => {
+    const getStatusVariant = (status: CompetenceStatus) => {
         switch (status) {
-            case "valid": return "bg-emerald-500 hover:bg-emerald-600"
-            case "expiring_soon": return "bg-amber-500 hover:bg-amber-600"
-            case "expired": return "bg-red-500 hover:bg-red-600"
-            default: return "bg-gray-300 hover:bg-gray-400 text-gray-700"
+            case "valid": return "valid"
+            case "expiring_soon": return "expiring"
+            case "expired": return "expired"
+            default: return "secondary"
         }
     }
 
@@ -302,7 +302,8 @@ export function CompetenceDashboard() {
                                                     <TooltipTrigger asChild>
                                                         <div className="relative inline-block">
                                                             <Badge
-                                                                className={`w-24 justify-center ${getStatusColor(comp.status)}`}
+                                                                variant={getStatusVariant(comp.status) as any}
+                                                                className="w-24 justify-center"
                                                             >
                                                                 {getStatusLabel(comp.status)}
                                                             </Badge>

@@ -44,7 +44,7 @@ export function Header({ toggleSidebar, isSidebarOpen = true }: HeaderProps) {
     }
     
     return (
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b glass px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             {/* Desktop Sidebar Toggle */}
             <div className="hidden xl:block">
                 {!isSidebarOpen && toggleSidebar && (
@@ -96,7 +96,7 @@ export function Header({ toggleSidebar, isSidebarOpen = true }: HeaderProps) {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full">
+                        <Button variant="ghost" size="icon" aria-label="User profile menu" className="rounded-full">
                             <Avatar className="h-8 w-8">
                                 <AvatarImage src={(user as any)?.avatarUrl} alt={user?.fullName || "User"} />
                                 <AvatarFallback>{getInitials(user?.fullName)}</AvatarFallback>

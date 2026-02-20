@@ -184,6 +184,7 @@ export default function CurriculumsPage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
+                                            aria-label="View version history"
                                             className="h-8 w-8"
                                             onClick={(e) => {
                                                 e.stopPropagation()

@@ -263,7 +263,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-xl max-w-7xl mx-auto w-full">
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{t("dashboard.title")}</h1>

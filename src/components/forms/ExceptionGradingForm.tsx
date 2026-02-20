@@ -249,7 +249,7 @@ export function ExceptionGradingForm({
                                         })}
 
                                         <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
+                                            <Button variant="ghost" size="icon" aria-label={state?.isExpanded ? "Collapse" : "Expand"} className="h-8 w-8 ml-2">
                                                 {state?.isExpanded ? (
                                                     <ChevronUp className="h-4 w-4" />
                                                 ) : (

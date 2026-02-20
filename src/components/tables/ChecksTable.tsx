@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Table,
     TableBody,
@@ -17,7 +17,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, FileText, CheckCircle } from "lucide-react"
+import { MoreHorizontal, FileText, CheckCircle, Search } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ProficiencyCheck } from "@/types"
 
@@ -34,12 +35,24 @@ export function ChecksTable({
 }: ChecksTableProps) {
     const [filterTrainee, setFilterTrainee] = useState("")
     const [filterResult, setFilterResult] = useState<string>("all")
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [filterTrainee, filterResult])
 
     const filteredData = data.filter((check) => {
         const matchesTrainee = check.traineeId.toLowerCase().includes(filterTrainee.toLowerCase())
         const matchesResult = filterResult === "all" || check.result === filterResult
         return matchesTrainee && matchesResult
     })
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+    const paginatedItems = filteredData.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    )
 
     const getResultColor = (result: string) => {
         switch (result) {
@@ -93,7 +106,7 @@ export function ChecksTable({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredData.map((check) => (
+                        {paginatedItems.map((check) => (
                             <TableRow key={check.id}>
                                 <TableCell>
                                     {new Date(check.dateStart).toLocaleDateString()}
@@ -110,12 +123,12 @@ export function ChecksTable({
                                 <TableCell className="text-right">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <Button variant="ghost" className="h-8 w-8 p-0 hover-lift">
                                                 <span className="sr-only">Open menu</span>
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
+                                        <DropdownMenuContent align="end" className="animate-scale-in">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                             {check.result === "planned" && (
                                                 <DropdownMenuItem onClick={() => onComplete(check)}>
@@ -136,7 +149,45 @@ export function ChecksTable({
                         ))}
                     </TableBody>
                 </Table>
+                
+                {filteredData.length === 0 && (
+                    <div className="py-6 border-t border-border">
+                        <EmptyState
+                            icon={Search}
+                            title="No checks found"
+                            description="Adjust your filters or try a different search term to find proficiency checks."
+                        />
+                    </div>
+                )}
             </div>
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+                    </p>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="hover-lift"
+                        >
+                            Previous
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="hover-lift"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

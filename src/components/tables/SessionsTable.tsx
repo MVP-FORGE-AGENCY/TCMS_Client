@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import {
     Table,
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MoreHorizontal, Users, ClipboardCheck, Ban, Calendar, MapPin, User } from "lucide-react"
+import { MoreHorizontal, Users, ClipboardCheck, Ban, Calendar, MapPin, User, Search } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 import type { Session } from "@/types"
 import { format } from "date-fns"
 
@@ -57,18 +58,31 @@ export function SessionsTable({
         return matchesSearch
     })
 
-    const getStatusColor = (status: string) => {
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [filterSearch])
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+    const paginatedItems = filteredData.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    )
+
+    const getStatusVariant = (status: string) => {
         switch (status) {
             case "planned":
-                return "bg-blue-500 hover:bg-blue-600"
+                return "pending"
             case "in_progress":
-                return "bg-amber-500 hover:bg-amber-600"
+                return "expiring"
             case "completed":
-                return "bg-green-500 hover:bg-green-600"
+                return "valid"
             case "cancelled":
-                return "bg-gray-500 hover:bg-gray-600"
+                return "expired"
             default:
-                return "bg-gray-500"
+                return "secondary"
         }
     }
 
@@ -106,11 +120,15 @@ export function SessionsTable({
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
                 {filteredData.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
-                        {t('common.noResults', 'No results found')}
+                    <div className="py-6 border rounded-md bg-muted/10">
+                        <EmptyState
+                            icon={Search}
+                            title={t('common.noResults', 'No results found')}
+                            description={t('sessions.noDataDesc', 'Adjust your search filters to find sessions.')}
+                        />
                     </div>
                 ) : (
-                    filteredData.map((session) => (
+                    paginatedItems.map((session) => (
                         <Card key={session.id} className="overflow-hidden">
                             <CardHeader className="p-4 bg-muted/30 pb-2">
                                 <div className="flex justify-between items-start">
@@ -122,7 +140,7 @@ export function SessionsTable({
                                             {(session as any).campaign?.name || session.programme?.name || '-'}
                                         </div>
                                     </div>
-                                    <Badge className={getStatusColor(session.status)}>
+                                    <Badge variant={getStatusVariant(session.status) as any} className="capitalize">
                                         {session.status.replace("_", " ")}
                                     </Badge>
                                 </div>
@@ -229,12 +247,16 @@ export function SessionsTable({
                     <TableBody>
                         {filteredData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
-                                    {t('common.noResults', 'No results found')}
+                                <TableCell colSpan={visibleColumns.length + 1} className="h-64 text-center p-0">
+                                    <EmptyState
+                                        icon={Search}
+                                        title={t('common.noResults', 'No results found')}
+                                        description={t('sessions.noDataDesc', 'Adjust your search filters to find sessions.')}
+                                    />
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredData.map((session) => (
+                            paginatedItems.map((session) => (
                                 <TableRow key={session.id}>
                                     {isColumnVisible('date') && (
                                         <TableCell>
@@ -276,7 +298,7 @@ export function SessionsTable({
                                     )}
                                     {isColumnVisible('status') && (
                                         <TableCell>
-                                            <Badge className={getStatusColor(session.status)}>
+                                            <Badge variant={getStatusVariant(session.status) as any} className="capitalize">
                                                 {session.status.replace("_", " ")}
                                             </Badge>
                                         </TableCell>
@@ -284,12 +306,12 @@ export function SessionsTable({
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                            <Button variant="ghost" className="h-8 w-8 p-0 hover-lift">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="animate-scale-in">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuItem onClick={() => onViewSession(session)}>
                                                     <Users className="mr-2 h-4 w-4" />
@@ -315,6 +337,34 @@ export function SessionsTable({
                     </TableBody>
                 </Table>
             </div>
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+                    </p>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="hover-lift"
+                        >
+                            Previous
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="hover-lift"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

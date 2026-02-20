@@ -86,6 +86,7 @@ export function OrgSwitcher() {
                     <Button 
                         variant="ghost" 
                         size="icon" 
+                        aria-label="Clear Selection"
                         className="h-8 w-8" 
                         onClick={() => impersonateOrg(null)}
                         title="Clear Selection (View as Super Admin)"

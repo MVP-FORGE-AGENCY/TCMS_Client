@@ -140,6 +140,7 @@ export function NotificationBell() {
                 <Button 
                     variant="ghost" 
                     size="icon" 
+                    aria-label="Notifications"
                     className={cn(
                         "relative transition-all duration-300",
                         hasCritical && "text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-100/50 dark:hover:bg-red-950/30"

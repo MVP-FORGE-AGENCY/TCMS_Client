@@ -303,7 +303,7 @@ export default function CurriculumBuilder() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/curriculums')}>
+                    <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate('/curriculums')}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
@@ -584,6 +584,7 @@ export default function CurriculumBuilder() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
+                                                    aria-label="Move module up"
                                                     className="h-6 w-6"
                                                     onClick={() => moveModule(index, 'up')}
                                                     disabled={index === 0}
@@ -593,6 +594,7 @@ export default function CurriculumBuilder() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
+                                                    aria-label="Move module down"
                                                     className="h-6 w-6"
                                                     onClick={() => moveModule(index, 'down')}
                                                     disabled={index === modules.length - 1}
@@ -636,6 +638,7 @@ export default function CurriculumBuilder() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
+                                                    aria-label="Module settings"
                                                     className="h-8 w-8"
                                                     onClick={() => openModuleDialog(index)}
                                                 >
@@ -644,6 +647,7 @@ export default function CurriculumBuilder() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
+                                                    aria-label="Delete module"
                                                     className="h-8 w-8 text-destructive hover:text-destructive"
                                                     onClick={() => deleteModule(index)}
                                                 >

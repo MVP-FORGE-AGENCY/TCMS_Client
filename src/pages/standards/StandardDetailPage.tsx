@@ -19,6 +19,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -151,8 +152,28 @@ export default function StandardDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <div className="space-y-6 mt-6">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-10" />
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-8 w-[250px]" />
+                        <Skeleton className="h-4 w-[200px]" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-9 w-[100px]" />
+                        <Skeleton className="h-9 w-[100px]" />
+                    </div>
+                </div>
+                <div className="flex gap-4 border-b pb-2">
+                    <Skeleton className="h-6 w-[100px]" />
+                    <Skeleton className="h-6 w-[100px]" />
+                    <Skeleton className="h-6 w-[100px]" />
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Skeleton className="h-[120px]" />
+                    <Skeleton className="h-[120px]" />
+                    <Skeleton className="h-[120px]" />
+                </div>
             </div>
         )
     }
@@ -178,7 +199,7 @@ export default function StandardDetailPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/standards")}>
+                <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate("/standards")}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex-1">
@@ -394,6 +415,7 @@ export default function StandardDetailPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
+                                                        aria-label="Download"
                                                         onClick={() => handleDownload(m.id)}
                                                         title={t("common.download", "Download")}
                                                     >
@@ -403,6 +425,7 @@ export default function StandardDetailPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
+                                                            aria-label="Approve"
                                                             onClick={() => approveMutation.mutate(m.id)}
                                                             disabled={approveMutation.isPending}
                                                             title={t("common.approve", "Approve")}
@@ -414,6 +437,7 @@ export default function StandardDetailPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
+                                                            aria-label="Archive"
                                                             onClick={() => archiveMutation.mutate(m.id)}
                                                             disabled={archiveMutation.isPending}
                                                             title={t("common.archive", "Archive")}

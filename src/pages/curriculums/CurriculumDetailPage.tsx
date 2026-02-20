@@ -36,6 +36,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useState, useEffect } from "react"
 import type { Curriculum } from "@/types"
 import { 
@@ -115,14 +116,31 @@ export default function CurriculumDetailPage() {
         setIsScheduleModalOpen(true)
     }
 
-    if (isLoading) return <div>{t('common.loading')}</div>
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-10" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-[200px]" />
+                        <Skeleton className="h-4 w-[300px]" />
+                    </div>
+                </div>
+                <Skeleton className="h-10 w-full max-w-md" />
+                <div className="grid gap-6 md:grid-cols-2">
+                    <Skeleton className="h-[200px]" />
+                    <Skeleton className="h-[200px]" />
+                </div>
+            </div>
+        )
+    }
     if (!curriculum) return <div>{t('errors.notFound')}</div>
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/curriculums")}>
+                <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate("/curriculums")}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex-1">
@@ -138,7 +156,7 @@ export default function CurriculumDetailPage() {
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="More options">
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>

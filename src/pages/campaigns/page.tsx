@@ -100,19 +100,19 @@ export default function CampaignsPage() {
         }
     }
 
-    const getStatusColor = (status: string) => {
+    const getStatusVariant = (status: string) => {
         switch (status) {
-            case 'draft': return 'bg-slate-500'
-            case 'active': return 'bg-blue-500'
-            case 'paused': return 'bg-amber-500'
-            case 'completed': return 'bg-green-500'
-            case 'cancelled': return 'bg-red-500'
-            default: return 'bg-slate-500'
+            case 'draft': return 'secondary'
+            case 'active': return 'valid'
+            case 'paused': return 'expiring'
+            case 'completed': return 'valid'
+            case 'cancelled': return 'expired'
+            default: return 'secondary'
         }
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-xl max-w-7xl mx-auto w-full">
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -311,7 +311,7 @@ export default function CampaignsPage() {
                                             {campaign.curriculum?.name || campaign.curriculumId}
                                         </CardDescription>
                                     </div>
-                                    <Badge className={getStatusColor(campaign.status)}>
+                                    <Badge variant={getStatusVariant(campaign.status) as any} className="capitalize">
                                         {campaign.status}
                                     </Badge>
                                 </div>

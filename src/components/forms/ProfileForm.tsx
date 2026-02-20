@@ -229,6 +229,7 @@ export function ProfileForm({ initialData, onSubmit, onCancel, standards }: Prof
                                     type="button"
                                     variant="ghost"
                                     size="icon"
+                                    aria-label="Remove element"
                                     onClick={() => remove(index)}
                                     className="text-red-500 hover:text-red-600"
                                 >

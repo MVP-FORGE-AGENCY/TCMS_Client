@@ -622,7 +622,7 @@ export default function CampaignDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/campaigns')}>
+                    <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate('/campaigns')}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>

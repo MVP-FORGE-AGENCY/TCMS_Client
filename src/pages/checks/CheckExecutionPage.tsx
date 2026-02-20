@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CheckCircle, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CheckExecutionPage() {
     const { id } = useParams<{ id: string }>();
@@ -63,7 +64,26 @@ export default function CheckExecutionPage() {
     });
 
     if (isLoading || !check) {
-        return <div className="p-8 text-center">Loading check details...</div>;
+        return (
+            <div className="space-y-6 container py-6 mx-auto max-w-5xl">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                    <div>
+                        <Skeleton className="h-8 w-[250px] mb-2" />
+                        <Skeleton className="h-4 w-[200px]" />
+                    </div>
+                </div>
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-6">
+                        <Skeleton className="h-[400px] w-full" />
+                    </div>
+                    <div className="md:col-span-1 space-y-6">
+                        <Skeleton className="h-[200px] w-full" />
+                        <Skeleton className="h-[200px] w-full" />
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const { profile, trainee, assessors, evaluations, finalDecision } = check;
@@ -80,7 +100,7 @@ export default function CheckExecutionPage() {
     return (
         <div className="space-y-6 container py-6 mx-auto max-w-5xl">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate(-1)}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>

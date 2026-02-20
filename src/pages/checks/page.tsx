@@ -385,13 +385,13 @@ const ChecksPage = () => {
                         {format(calendarDate, 'MMMM yyyy')}
                     </CardTitle>
                     <div className="flex items-center space-x-1">
-                        <Button variant="outline" size="icon" onClick={() => setCalendarDate(subMonths(calendarDate, 1))}>
+                        <Button variant="outline" size="icon" aria-label="Previous month" onClick={() => setCalendarDate(subMonths(calendarDate, 1))}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCalendarDate(new Date())}>
+                        <Button variant="outline" size="icon" aria-label="Today" onClick={() => setCalendarDate(new Date())}>
                             <CalendarIcon className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCalendarDate(addMonths(calendarDate, 1))}>
+                        <Button variant="outline" size="icon" aria-label="Next month" onClick={() => setCalendarDate(addMonths(calendarDate, 1))}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -464,7 +464,7 @@ const ChecksPage = () => {
 
 
     return (
-        <div className="space-y-8 w-full min-w-0">
+        <div className="space-y-xl max-w-7xl mx-auto w-full min-w-0">
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center">
                 <div>
                      <div className="flex items-center gap-2 mb-1">

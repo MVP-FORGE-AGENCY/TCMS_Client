@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @layer base {
   :root {
     /* TCMS Brand Identity System - Colors */
@@ -70,13 +72,13 @@
 
   .dark {
     /* Premium Dark Mode - Deep Blues with Subtle Warmth */
-    --background: 224 71% 4%;
+    --background: 222 47% 11%;
     --foreground: 213 31% 91%;
 
-    --card: 224 71% 7%;
+    --card: 223 47% 14%;
     --card-foreground: 213 31% 91%;
 
-    --popover: 224 71% 7%;
+    --popover: 223 47% 14%;
     --popover-foreground: 213 31% 91%;
 
     --primary: 217 91% 60%;
@@ -99,13 +101,13 @@
     --ring: 217 91% 60%;
     
     /* Sidebar - Dark Mode */
-    --sidebar-background: 224 71% 5%;
+    --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 213 31% 91%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 223 47% 11%;
+    --sidebar-accent: 223 47% 14%;
     --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 223 47% 14%;
+    --sidebar-border: 223 47% 18%;
     --sidebar-ring: 217 91% 60%;
   }
 }
@@ -121,7 +123,7 @@
   
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.6;
     transition: background-color var(--transition-slow) ease,

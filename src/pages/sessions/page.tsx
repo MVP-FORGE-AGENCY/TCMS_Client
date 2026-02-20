@@ -372,13 +372,13 @@ export default function SessionsPage() {
         return calendarSessions.filter(s => isSameDay(new Date(s.dateStart), day))
     }
 
-    const getStatusColor = (status: string) => {
+    const getStatusVariant = (status: string) => {
         switch (status) {
-            case 'planned': return 'bg-blue-500'
-            case 'in_progress': return 'bg-amber-500'
-            case 'completed': return 'bg-green-500'
-            case 'cancelled': return 'bg-gray-400'
-            default: return 'bg-gray-300'
+            case 'planned': return 'pending'
+            case 'in_progress': return 'expiring'
+            case 'completed': return 'valid'
+            case 'cancelled': return 'expired'
+            default: return 'secondary'
         }
     }
 
@@ -450,7 +450,7 @@ export default function SessionsPage() {
                     {viewMode === 'table' && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon">
+                                <Button variant="outline" size="icon" aria-label="Columns settings">
                                     <Settings2 className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -705,14 +705,15 @@ export default function SessionsPage() {
                                         </div>
                                         <div className="space-y-1 max-h-[60px] overflow-y-auto">
                                             {daySessions.slice(0, 3).map(session => (
-                                                <div 
+                                                <Badge 
                                                     key={session.id}
-                                                    className={`text-[10px] p-1 rounded cursor-pointer truncate text-white ${getStatusColor(session.status)}`}
+                                                    variant={getStatusVariant(session.status) as any}
+                                                    className="text-[10px] py-1 px-2 cursor-pointer truncate hover:z-10 relative"
                                                     onClick={() => handleViewSession(session)}
                                                     title={`${session.curriculumModule?.name || session.programme?.name || 'Session'} - ${session.location || ''}`}
                                                 >
                                                     {format(new Date(session.dateStart), 'HH:mm')} {session.curriculumModule?.name || session.programme?.code || ''}
-                                                </div>
+                                                </Badge>
                                             ))}
                                             {daySessions.length > 3 && (
                                                 <Badge variant="secondary" className="text-[10px]">

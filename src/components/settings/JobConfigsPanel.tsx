@@ -117,7 +117,7 @@ function HistoryRow({ log }: { log: JobLog }) {
                 <TableCell>
                     <div className="flex items-center gap-2">
                             {hasDetails ? (
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-transparent">
+                                <Button variant="ghost" size="sm" aria-label="Toggle details" className="h-6 w-6 p-0 hover:bg-transparent">
                                     {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                 </Button>
                             ) : (
@@ -619,6 +619,7 @@ export default function JobConfigsPanel() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label="View History"
                                                     onClick={() => handleViewHistory(config)}
                                                     title="View History"
                                                 >
@@ -627,6 +628,7 @@ export default function JobConfigsPanel() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label="Run Now"
                                                     onClick={() => handleRunNow(config)}
                                                     title="Run Now"
                                                 >
@@ -635,6 +637,7 @@ export default function JobConfigsPanel() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label="Edit"
                                                     onClick={() => openEditModal(config)}
                                                     title="Edit"
                                                 >

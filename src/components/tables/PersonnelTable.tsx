@@ -32,7 +32,8 @@ import {
 import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import type { Employee } from "@/types"
-import { Edit, Eye, Trash2, ChevronDown } from "lucide-react"
+import { Edit, Eye, Trash2, ChevronDown, Users } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -154,6 +155,7 @@ export function PersonnelTable({
                         <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="View history"
                             onClick={() => onViewHistory(employee)}
                             title={t('personnel.historyLabel')}
                         >
@@ -163,6 +165,7 @@ export function PersonnelTable({
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Edit"
                                 onClick={() => onEdit(employee)}
                                 title="Edit"
                             >
@@ -173,6 +176,7 @@ export function PersonnelTable({
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Delete"
                                 className="text-destructive hover:text-destructive"
                                 onClick={() => onDelete(employee.id)}
                                 title="Delete"
@@ -349,8 +353,12 @@ export function PersonnelTable({
                         )
                     })
                 ) : (
-                    <div className="text-center py-8 text-muted-foreground border rounded-md p-4 bg-muted/20">
-                         {t("common.noData")}
+                    <div className="py-6 border rounded-md bg-muted/10">
+                        <EmptyState
+                            icon={Users}
+                            title={t("common.noData", "No personnel found")}
+                            description={t("personnel.noDataDesc", "Adjust your search filters or add new personnel.")}
+                        />
                     </div>
                 )}
             </div>
@@ -396,9 +404,13 @@ export function PersonnelTable({
                             <TableRow>
                                 <TableCell
                                     colSpan={columns.length}
-                                    className="h-24 text-center"
+                                    className="h-64 text-center p-0"
                                 >
-                                    {t("common.noData")}
+                                    <EmptyState
+                                        icon={Users}
+                                        title={t("common.noData", "No personnel found")}
+                                        description={t("personnel.noDataDesc", "Adjust your search filters or add new personnel.")}
+                                    />
                                 </TableCell>
                             </TableRow>
                         )}
@@ -418,6 +430,7 @@ export function PersonnelTable({
                         size="sm"
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
+                        className="hover-lift"
                     >
                         {t("common.previous")}
                     </Button>
@@ -426,6 +439,7 @@ export function PersonnelTable({
                         size="sm"
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
+                        className="hover-lift"
                     >
                         {t("common.next")}
                     </Button>

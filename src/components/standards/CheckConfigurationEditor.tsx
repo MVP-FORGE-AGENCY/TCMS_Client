@@ -254,6 +254,7 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                                         <Button 
                                             size="icon" 
                                             variant="ghost" 
+                                            aria-label="Edit item"
                                             className="h-8 w-8"
                                             onClick={() => setEditingItem(item)}
                                         >
@@ -262,6 +263,7 @@ export default function CheckConfigurationEditor({ standardId, onSave }: CheckCo
                                         <Button 
                                             size="icon" 
                                             variant="ghost" 
+                                            aria-label="Delete item"
                                             className="h-8 w-8 text-destructive hover:text-destructive"
                                             onClick={() => handleDeleteItem(item.id)}
                                         >

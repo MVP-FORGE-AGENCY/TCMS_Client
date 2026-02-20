@@ -33,12 +33,12 @@ export const ProficiencyCheckList: React.FC = () => {
         check.profile.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const getStatusColor = (status: string) => {
+    const getStatusVariant = (status: string) => {
         switch (status) {
-            case 'pass': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            case 'fail': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-            case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'pass': return 'valid';
+            case 'fail': return 'expired';
+            case 'pending': return 'pending';
+            default: return 'secondary';
         }
     };
     
@@ -173,7 +173,7 @@ export const ProficiencyCheckList: React.FC = () => {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={`flex w-fit items-center ${getStatusColor(check.finalDecision)}`}>
+                                        <Badge variant={getStatusVariant(check.finalDecision) as any} className="flex w-fit items-center">
                                             {getStatusIcon(check.finalDecision)}
                                             {check.finalDecision.charAt(0).toUpperCase() + check.finalDecision.slice(1)}
                                         </Badge>

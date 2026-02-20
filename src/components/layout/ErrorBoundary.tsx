@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Home, RefreshCcw } from "lucide-react"
 
 interface Props {
     children?: ReactNode
@@ -28,25 +28,30 @@ export class ErrorBoundary extends Component<Props, State> {
         if (this.state.hasError) {
             return (
                 <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 mb-6">
-                        <AlertTriangle className="h-10 w-10 text-red-600" />
-                    </div>
-                    <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
-                    <p className="text-muted-foreground max-w-md mb-8">
-                        We apologize for the inconvenience. An unexpected error has occurred.
-                    </p>
-                    <div className="flex gap-4">
-                        <Button onClick={() => window.location.reload()}>
-                            Reload Page
-                        </Button>
-                        <Button variant="outline" onClick={() => window.location.href = '/'}>
-                            Go Home
-                        </Button>
+                    <div className="w-full max-w-md bg-card/60 glass rounded-xl border border-destructive/20 shadow-soft-lg p-8 text-center animate-in zoom-in-95 duration-300">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 dark:bg-destructive/20 mb-6">
+                            <AlertTriangle className="h-8 w-8 text-destructive dark:text-red-400" />
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight mb-3">Something went wrong</h1>
+                        <p className="text-muted-foreground mb-8">
+                            We apologize for the inconvenience. An unexpected error has occurred while loading this page.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button onClick={() => window.location.reload()} className="hover-lift">
+                                <RefreshCcw className="mr-2 h-4 w-4" />
+                                Reload Page
+                            </Button>
+                            <Button variant="outline" onClick={() => window.location.href = '/'} className="hover-lift">
+                                <Home className="mr-2 h-4 w-4" />
+                                Go Home
+                            </Button>
+                        </div>
                     </div>
                     {import.meta.env.DEV && this.state.error && (
-                        <div className="mt-8 p-4 bg-muted rounded-md text-left w-full max-w-2xl overflow-auto">
-                            <p className="font-mono text-xs text-red-500">
-                                {this.state.error.toString()}
+                        <div className="mt-8 p-4 bg-background/50 glass border border-destructive/30 rounded-lg text-left w-full max-w-3xl overflow-auto shadow-sm">
+                            <p className="font-mono text-sm font-medium text-destructive mb-2">Error Details (Development Only):</p>
+                            <p className="font-mono text-xs text-destructive/80 whitespace-pre-wrap break-all">
+                                {this.state.error.stack || this.state.error.toString()}
                             </p>
                         </div>
                     )}

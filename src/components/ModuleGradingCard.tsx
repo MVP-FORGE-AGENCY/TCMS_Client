@@ -39,12 +39,12 @@ const ModuleGradingCard: React.FC<ModuleGradingCardProps> = ({
     passCriteria,
     onClick 
 }) => {
-    const getStatusColor = (status?: string) => {
+    const getStatusVariant = (status?: string) => {
         switch (status) {
-            case 'pass': return 'success';
-            case 'completed': return 'success';
-            case 'fail': return 'destructive';
-            case 'incomplete': return 'warning';
+            case 'pass': 
+            case 'completed': return 'valid';
+            case 'fail': return 'expired';
+            case 'incomplete': return 'expiring';
             default: return 'secondary';
         }
     };
@@ -87,7 +87,7 @@ const ModuleGradingCard: React.FC<ModuleGradingCardProps> = ({
                     </div>
                      <div className="flex items-center gap-2">
                         {result && (
-                            <Badge variant={getStatusColor(result.result) as any}>
+                            <Badge variant={getStatusVariant(result.result) as any} className="capitalize">
                                 {result.result}
                             </Badge>
                         )}

@@ -179,12 +179,12 @@ export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
         }
     }
 
-    const getStatusColor = (status: string) => {
+    const getStatusVariant = (status: string) => {
         switch (status) {
-            case "approved": return "bg-green-600"
-            case "pending": return "bg-yellow-600"
-            case "rejected": return "bg-red-600"
-            default: return "bg-gray-500"
+            case "approved": return "valid"
+            case "pending": return "pending"
+            case "rejected": return "expired"
+            default: return "secondary"
         }
     }
 
@@ -338,7 +338,7 @@ export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
                                     <TableCell>{a.dateStart ? format(new Date(a.dateStart), "MMM d, yyyy") : "-"}</TableCell>
                                     <TableCell>{a.dateEnd ? format(new Date(a.dateEnd), "MMM d, yyyy") : "-"}</TableCell>
                                     <TableCell>
-                                        <Badge className={getStatusColor(a.status)}>{a.status}</Badge>
+                                        <Badge variant={getStatusVariant(a.status) as any} className="capitalize">{a.status}</Badge>
                                     </TableCell>
                                     <ExpandableText text={a.reason || "-"} />
                                     {canManage && (
@@ -347,6 +347,7 @@ export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label="Edit absence"
                                                     onClick={() => handleEdit(a)}
                                                 >
                                                     <Pencil className="h-4 w-4" />
@@ -354,6 +355,7 @@ export function AbsencesTab({ userId, userName }: AbsencesTabProps) {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label="Delete absence"
                                                     onClick={() => handleDelete(a.id)}
                                                     disabled={deleteMutation.isPending}
                                                 >

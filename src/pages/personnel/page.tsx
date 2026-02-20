@@ -145,7 +145,7 @@ export default function PersonnelPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-xl max-w-7xl mx-auto w-full">
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t("personnel.title")}</h1>
