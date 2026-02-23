@@ -140,48 +140,58 @@ export function MyActions() {
             const generatedActions: ActionItem[] = []
             const now = new Date()
 
-            // Fetch relevant data based on role
-            if (['admin', 'training_manager', 'instructor'].includes(user.role || '')) {
-                // Get upcoming sessions for instructors
-                try {
-                    const sessionsRes = await api.get('/sessions?status=planned&limit=5')
-                    const sessions = sessionsRes.data.data || []
-                    
-                    sessions.forEach((session: any) => {
-                        const sessionDate = new Date(session.dateStart)
-                        const daysUntil = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                        
-                        if (daysUntil <= 7 && daysUntil >= 0) {
-                            generatedActions.push({
-                                id: `session-${session.id}`,
-                                type: 'session_reminder',
-                                title: `${session.programme?.name || 'Training Session'}`,
-                                description: `Scheduled for ${sessionDate.toLocaleDateString()}`,
-                                priority: daysUntil <= 1 ? 'high' : 'medium',
-                                dueDate: session.dateStart,
-                                targetUrl: `/sessions/${session.id}`,
-                                entityType: 'session',
-                                entityId: session.id,
-                                createdAt: now.toISOString()
-                            })
-                        }
-                    })
-                } catch (e) {
-                    console.error('Failed to fetch sessions for actions:', e)
+            // 1. Fetch Upcoming Sessions
+            try {
+                let sessions: any[] = []
+                // For managers, we only want their own assigned sessions in "My Actions", not the whole org's
+                if (['admin', 'training_manager', 'auditor'].includes(user.role || '')) {
+                    const res = await api.get(`/sessions?status=planned&limit=5&instructorId=${user.id}`);
+                    sessions = res.data.data || [];
+                } else {
+                    const res = await api.get('/sessions?status=planned&limit=5');
+                    sessions = res.data.data || [];
                 }
 
-                // Get pending proficiency checks
+                sessions.forEach((session: any) => {
+                    const sessionDate = new Date(session.dateStart)
+                    const daysUntil = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                    
+                    if (daysUntil <= 14 && daysUntil >= 0) {
+                        const isInstructor = session.instructorId === user.id;
+
+                        generatedActions.push({
+                            id: `session-${session.id}`,
+                            type: 'session_reminder',
+                            title: isInstructor 
+                                ? `Teach: ${session.programme?.name || 'Training Session'}`
+                                : `Attend: ${session.programme?.name || 'Training Session'}`,
+                            description: `Scheduled for ${sessionDate.toLocaleDateString()}`,
+                            priority: daysUntil <= 1 ? 'high' : 'medium',
+                            dueDate: session.dateStart,
+                            targetUrl: `/sessions/${session.id}`,
+                            entityType: 'session',
+                            entityId: session.id,
+                            createdAt: now.toISOString()
+                        })
+                    }
+                })
+            } catch (e) {
+                console.error('Failed to fetch sessions for actions:', e)
+            }
+
+            // 2. Fetch Checks to Grade (for assessors, managers)
+            if (['admin', 'training_manager', 'assessor'].includes(user.role || '')) {
                 try {
-                    const checksRes = await api.get('/checks?status=planned&limit=5')
+                    const checksRes = await api.get('/checks?status=planned&limit=5&view=assigned')
                     const checks = checksRes.data.data || []
                     
                     checks.forEach((check: any) => {
                         generatedActions.push({
-                            id: `check-${check.id}`,
+                            id: `grade-check-${check.id}`,
                             type: 'pending_grading',
                             title: `Complete check for ${check.trainee?.fullName || 'Candidate'}`,
-                            description: check.profile?.name || 'Proficiency Check',
-                            priority: 'medium',
+                            description: check.profile?.name || check.trainingStandards?.name || 'Proficiency Check',
+                            priority: 'high',
                             targetUrl: `/checks/${check.id}`,
                             entityType: 'check',
                             entityId: check.id,
@@ -189,8 +199,44 @@ export function MyActions() {
                         })
                     })
                 } catch (e) {
-                    console.error('Failed to fetch checks for actions:', e)
+                    console.error('Failed to fetch checks to grade:', e)
                 }
+            }
+
+            // 3. Fetch Checks to Attend (for everyone)
+            try {
+                let attendChecks: any[] = []
+                if (['admin', 'training_manager', 'auditor'].includes(user.role || '')) {
+                    const res = await api.get(`/checks?status=planned&limit=5&traineeId=${user.id}`)
+                    attendChecks = res.data.data || []
+                } else {
+                    const res = await api.get('/checks?status=planned&limit=5')
+                    attendChecks = res.data.data || []
+                }
+                
+                attendChecks.forEach((check: any) => {
+                    const checkDate = new Date(check.dateStart)
+                    const daysUntil = Math.ceil((checkDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                    if (daysUntil <= 14 && daysUntil >= 0) {
+                        // Only add if we aren't already grading it (just in case)
+                        if (!generatedActions.find(a => a.id === `grade-check-${check.id}`)) {
+                            generatedActions.push({
+                                id: `attend-check-${check.id}`,
+                                type: 'session_reminder',
+                                title: `Attend Check: ${check.profile?.name || check.trainingStandards?.name || 'Proficiency Check'}`,
+                                description: `Scheduled for ${checkDate.toLocaleDateString()}`,
+                                priority: daysUntil <= 1 ? 'high' : 'medium',
+                                dueDate: check.dateStart,
+                                targetUrl: `/checks/${check.id}`,
+                                entityType: 'check',
+                                entityId: check.id,
+                                createdAt: now.toISOString()
+                            })
+                        }
+                    }
+                })
+            } catch (e) {
+                console.error('Failed to fetch checks to attend:', e)
             }
 
             // For managers - get expired and expiring competences
