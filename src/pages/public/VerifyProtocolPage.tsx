@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Search, ShieldCheck, User, Calendar } from 'lucide-react';
+import { CheckCircle2, XCircle, Search, ShieldCheck, User, Calendar, MapPin, Users } from 'lucide-react';
 import { api } from '@/lib/api';
 
 const VerifyProtocolPage = () => {
@@ -134,6 +134,34 @@ const VerifyProtocolPage = () => {
                                                 <p className="font-mono text-sm">{new Date(result.issueDate).toLocaleDateString()}</p>
                                             </div>
                                         </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Location</p>
+                                                <p className="text-sm flex items-center">
+                                                    <MapPin className="h-3 w-3 mr-1 text-slate-400" />
+                                                    {result.location || 'Unknown'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Check Type</p>
+                                                <p className="text-sm capitalize">{result.checkType || 'Unknown'}</p>
+                                            </div>
+                                        </div>
+
+                                        {result.assessors && result.assessors.length > 0 && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Assessors</p>
+                                                <div className="flex flex-col mt-1 space-y-1">
+                                                    {result.assessors.map((assessor: string, idx: number) => (
+                                                        <p key={idx} className="text-sm flex items-center">
+                                                            <Users className="h-3 w-3 mr-1 text-slate-400" />
+                                                            {assessor}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="bg-slate-50 p-3 rounded-md border border-slate-100 mt-4">
                                             <div className="flex items-center justify-between mb-1">
